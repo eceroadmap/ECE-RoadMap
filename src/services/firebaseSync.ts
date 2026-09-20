@@ -356,29 +356,6 @@ class FirebaseSyncService {
       this.setLastSyncedAt(now);
       this.setSyncStatus('synced');
 
-      // Synchronize record to guest_visitors collection as well for dual-channel admin visibility
-      try {
-        const guestDocRef = doc(db, 'guest_visitors', user.uid);
-        const resolvedFullName = user.displayName || localProfile.name || 'طالب جديد';
-        const nameParts = resolvedFullName.split(' ');
-        const first = nameParts[0] || 'طالب';
-        const last = nameParts.slice(1).join(' ') || 'جديد';
-        await setDoc(guestDocRef, {
-          id: user.uid,
-          firstName: first,
-          lastName: last,
-          fullName: resolvedFullName,
-          email: user.email || null,
-          academicYear: localProfile.academicYear || 1,
-          createdAt: now,
-          lastLoginAt: now,
-          authProvider: 'google',
-          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : ''
-        }, { merge: true });
-      } catch (guestErr) {
-        console.warn('Syncing to guest_visitors notice:', guestErr);
-      }
-
       // Setup real-time listener for multi-device sync
       this.unsubscribeFirestore = onSnapshot(userDocRef, (snap) => {
         if (!snap.exists() || this.isSyncingFromRemote) return;

@@ -15,7 +15,6 @@ service cloud.firestore {
       return isAuthenticated() && (
         request.auth.token.email.lower() == "eceroadmap@gmail.com"
         || request.auth.token.email.lower() == "marwa.mgd.shmdeen@gmail.com"
-        || request.auth.token.email.lower().matches(".*eceroadmap.*")
         || (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'super_admin')
       );
     }
@@ -31,14 +30,16 @@ service cloud.firestore {
     }
 
     // 1. Private Student Journey & Progress Documents
-    // Accessible for aggregate admin directory listing and student owner updates.
+    // Accessible only by the student owner, or by the administrator for platform aggregates.
+    // Students can NEVER elevate their role or edit other students.
+    // Administrators cannot modify private student academic milestones.
     match /students/{userId} {
-      allow read: if true;
+      allow read: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId)
         && request.resource.data.uid == userId;
       allow update: if isOwner(userId)
         && request.resource.data.uid == resource.data.uid;
-      allow delete: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId);
     }
 
     // 2. Dedicated Administrator Authorization Collection

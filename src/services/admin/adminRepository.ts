@@ -26,7 +26,6 @@ import {
 } from '../../types/admin';
 import { CommunityTip } from '../../types/student';
 import { SkillCourse } from '../../types';
-import { isPlatformOwnerRecord } from './adminStats';
 
 enum OperationType {
   CREATE = 'create',
@@ -440,7 +439,18 @@ export const adminRepository = {
           uid: d.id,
           ...(d.data() as Omit<AdminStudentRecord, 'uid'>)
         }))
-        .filter(s => !isPlatformOwnerRecord(s));
+        .filter(s => {
+          const email = s.email?.toLowerCase().trim() || '';
+          const name = s.displayName?.toLowerCase().trim() || '';
+          const isOwnerAccount = 
+            email === 'eceroadmap@gmail.com' ||
+            email.includes('eceroadmap') ||
+            (s.role as any) === 'super_admin' ||
+            (s as any).isOwner === true ||
+            name.includes('المهندسة مروة') ||
+            name.includes('مدير المنصة');
+          return !isOwnerAccount;
+        });
     } catch (error) {
       console.warn('Failed to list students from Firestore:', error);
       return [];

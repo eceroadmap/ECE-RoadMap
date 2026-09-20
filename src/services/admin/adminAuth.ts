@@ -10,21 +10,8 @@ import {
 import { AdminRecord } from '../../types/admin';
 import { moderatorsService } from './moderatorsService';
 
-// The verified initial project administrator emails
+// The verified initial project administrator email (from project environment)
 export const BOOTSTRAP_ADMIN_EMAIL = 'eceroadmap@gmail.com';
-export const OWNER_ADMIN_EMAILS = [
-  'eceroadmap@gmail.com',
-  'marwa.mgd.shmdeen@gmail.com'
-];
-
-export function isBootstrapAdminEmail(email: string | null | undefined): boolean {
-  if (!email) return false;
-  const clean = email.toLowerCase().trim();
-  return (
-    OWNER_ADMIN_EMAILS.some(e => e.toLowerCase() === clean) ||
-    clean.includes('eceroadmap')
-  );
-}
 
 let currentAdminStatus = false;
 let currentAdminRecord: AdminRecord | null = null;
@@ -37,7 +24,7 @@ function notifyAdminListeners() {
 export function getIsOwner(): boolean {
   if (currentAdminRecord?.isOwner === true) return true;
   const currentEmail = auth.currentUser?.email?.toLowerCase().trim() || '';
-  return isBootstrapAdminEmail(currentEmail);
+  return currentEmail === BOOTSTRAP_ADMIN_EMAIL.toLowerCase() || currentEmail.includes('eceroadmap');
 }
 
 /**
@@ -63,7 +50,7 @@ export async function checkIsAdmin(user: User | null): Promise<boolean> {
     return false;
   }
 
-  const isBootstrapOwner = isBootstrapAdminEmail(userEmail);
+  const isBootstrapOwner = userEmail === BOOTSTRAP_ADMIN_EMAIL.toLowerCase() || userEmail.includes('eceroadmap');
 
   try {
     const adminDocRef = doc(db, 'admins', user.uid);
