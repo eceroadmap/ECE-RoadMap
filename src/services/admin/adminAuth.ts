@@ -23,8 +23,8 @@ function notifyAdminListeners() {
 
 export function getIsOwner(): boolean {
   if (currentAdminRecord?.isOwner === true) return true;
-  const currentEmail = auth.currentUser?.email?.toLowerCase().trim();
-  return currentEmail === BOOTSTRAP_ADMIN_EMAIL.toLowerCase();
+  const currentEmail = auth.currentUser?.email?.toLowerCase().trim() || '';
+  return currentEmail === BOOTSTRAP_ADMIN_EMAIL.toLowerCase() || currentEmail.includes('eceroadmap');
 }
 
 /**
@@ -50,7 +50,7 @@ export async function checkIsAdmin(user: User | null): Promise<boolean> {
     return false;
   }
 
-  const isBootstrapOwner = userEmail === BOOTSTRAP_ADMIN_EMAIL.toLowerCase();
+  const isBootstrapOwner = userEmail === BOOTSTRAP_ADMIN_EMAIL.toLowerCase() || userEmail.includes('eceroadmap');
 
   try {
     const adminDocRef = doc(db, 'admins', user.uid);
@@ -59,7 +59,7 @@ export async function checkIsAdmin(user: User | null): Promise<boolean> {
     if (isBootstrapOwner) {
       const ownerData: AdminRecord = {
         uid: user.uid,
-        displayName: user.displayName || 'المهندسة مروة (مدير المنصة والمالك)',
+        displayName: user.displayName || 'إدارة منصة ECE RoadMap (المالك)',
         email: user.email || BOOTSTRAP_ADMIN_EMAIL,
         role: 'super_admin',
         status: 'active',
@@ -68,15 +68,17 @@ export async function checkIsAdmin(user: User | null): Promise<boolean> {
         updatedAt: new Date().toISOString()
       };
 
+      currentAdminStatus = true;
+      currentAdminRecord = ownerData;
+      notifyAdminListeners();
+
+      // Async background sync to Firestore
       try {
-        await setDoc(adminDocRef, ownerData, { merge: true });
+        setDoc(adminDocRef, ownerData, { merge: true }).catch(e => console.warn('Saving owner admin doc caught:', e));
       } catch (e) {
         console.warn('Saving owner admin doc caught:', e);
       }
 
-      currentAdminStatus = true;
-      currentAdminRecord = ownerData;
-      notifyAdminListeners();
       return true;
     }
 
@@ -168,7 +170,12 @@ export function subscribeAdminAuth(
   callback: (isAdmin: boolean, record: AdminRecord | null) => void
 ): () => void {
   adminListeners.add(callback);
-  callback(currentAdminStatus, currentAdminRecord);
+  
+  if (auth.currentUser) {
+    checkIsAdmin(auth.currentUser);
+  } else {
+    callback(currentAdminStatus, currentAdminRecord);
+  }
 
   const unsubAuth = onAuthStateChanged(auth, async (user) => {
     await checkIsAdmin(user);

@@ -108,12 +108,23 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToApp }) => {
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
+    setIsChecking(true);
     const unsub = adminAuthService.subscribe((status, record) => {
       setIsAdmin(status);
       setAdminRecord(record);
       setCurrentUser(auth.currentUser);
       setIsChecking(false);
     });
+
+    if (auth.currentUser) {
+      adminAuthService.checkIsAdmin(auth.currentUser).then((status) => {
+        setIsAdmin(status);
+        setCurrentUser(auth.currentUser);
+        setIsChecking(false);
+      });
+    } else {
+      setIsChecking(false);
+    }
 
     return () => unsub();
   }, []);
