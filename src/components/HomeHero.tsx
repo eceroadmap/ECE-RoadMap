@@ -58,32 +58,7 @@ export const HomeHero: React.FC<HomeHeroProps> = ({
         </svg>
       </div>
 
-      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 text-center">
-        {/* Top Product & Fair Badge */}
-        <div className="flex items-center justify-center gap-2 flex-wrap mb-4 sm:mb-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-700/60 text-cyan-300 text-xs font-mono tracking-wide backdrop-blur-sm shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-            ECE RoadMap &bull; دمشق
-          </div>
-
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/80 border border-slate-800 text-slate-300 text-xs font-medium backdrop-blur-sm">
-            <span>كلية الهمك</span>
-            <span className="text-slate-600">•</span>
-            <span>جامعة دمشق</span>
-          </div>
-
-          {onOpenExhibition && (
-            <button
-              onClick={onOpenExhibition}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-300 text-xs font-bold transition-all shadow-sm group min-h-[32px]"
-              title="عرض المنصة على الشاشات الكبيرة والمعارض"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-cyan-400 group-hover:rotate-12 transition-transform" />
-              <span>وضع الملتقى (Exhibition)</span>
-            </button>
-          )}
-        </div>
-
+      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 text-center pt-2 sm:pt-4">
         {/* Main Heading with Fluid Clamp Typography */}
         <h1 className="text-fluid-hero font-black text-white tracking-tight leading-tight mb-4 sm:mb-6">
           <span className="block sm:inline">هندسة الإلكترونيات </span>

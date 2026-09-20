@@ -127,6 +127,15 @@
         "details": { "type": "string", "description": "Descriptive summary of the operation" },
         "timestamp": { "type": "string", "description": "ISO timestamp" }
       }
+    },
+    "site_stats": {
+      "description": "Real-time anonymous site-wide visitor counters and metrics",
+      "fields": {
+        "id": { "type": "string", "description": "Stat identifier such as 'visitors'" },
+        "totalVisits": { "type": "number", "description": "Total sequential unique visits counter starting from 1" },
+        "lastVisitedAt": { "type": "string", "description": "ISO timestamp of last unique visitor arrival" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" }
+      }
     }
   }
 }

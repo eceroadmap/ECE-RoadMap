@@ -25,7 +25,9 @@ import {
   arrayUnion, 
   arrayRemove,
   increment,
-  writeBatch
+  writeBatch,
+  runTransaction,
+  serverTimestamp
 } from 'firebase/firestore';
 
 import firebaseConfig from '../../firebase-applet-config.json';
@@ -114,6 +116,8 @@ export {
   arrayRemove,
   increment,
   writeBatch,
+  runTransaction,
+  serverTimestamp,
   onAuthStateChanged 
 };
 export type { User };

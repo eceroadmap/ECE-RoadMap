@@ -150,5 +150,17 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // 10. Public Site & Visitor Statistics Counter
+    // Allows public read and atomic increment for real sequential visitor tracking
+    match /site_stats/{statId} {
+      allow read: if true;
+      allow create: if request.resource.data.totalVisits is number;
+      allow update: if (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalVisits', 'lastVisitedAt', 'createdAt'])
+        && request.resource.data.totalVisits is number
+        && request.resource.data.totalVisits >= resource.data.totalVisits
+      ) || isAdmin();
+    }
   }
 }

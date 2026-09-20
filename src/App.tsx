@@ -29,6 +29,7 @@ import { GraduationProjectNavigatorSection } from './components/GraduationProjec
 import { FromCourseToSkillSection } from './components/FromCourseToSkillSection';
 import { ExhibitionModeModal } from './components/ExhibitionModeModal';
 import { QRCodeDisplay } from './components/QRCodeDisplay';
+import { VisitorWelcomeWidget } from './components/VisitorWelcomeWidget';
 import { ArrowLeft, BookOpen, Cpu, Sparkles, Map, GraduationCap, Laptop, HelpCircle } from 'lucide-react';
 import { COURSES_DATA } from './data/courses';
 import { SOFTWARE_DATA } from './data/software';
@@ -116,6 +117,9 @@ export default function App() {
         onOpenExhibition={() => setIsExhibitionOpen(true)}
         onOpenQRModal={() => setIsQRModalOpen(true)}
       />
+
+      {/* Real Visitor Welcome Widget under Header */}
+      <VisitorWelcomeWidget />
 
       {/* Main App Content View Container */}
       <main className="flex-1 z-10">
