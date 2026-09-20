@@ -183,7 +183,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
 
           <div className="space-y-3 pt-1">
             {([1, 2, 3, 4, 5] as AcademicYearNumber[]).map((yr) => {
-              const count = stats?.studentsByYear[yr] || 0;
+              const count = stats?.studentsByYear?.[yr] ?? 0;
               const total = stats?.totalRegisteredStudents || 1;
               const pct = Math.round((count / (total > 0 ? total : 1)) * 100);
 
@@ -381,7 +381,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
                     <span className="text-slate-200">{log.details}</span>
                   </div>
                   <div className="text-[11px] text-slate-500 font-mono shrink-0">
-                    {new Date(log.timestamp).toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit' })}
+                    {log.timestamp ? new Date(log.timestamp).toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit' }) : '—'}
                   </div>
                 </div>
               ))}

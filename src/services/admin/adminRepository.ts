@@ -89,7 +89,7 @@ export const adminRepository = {
       const snap = await getDocs(q);
       return snap.docs.map(d => ({ id: d.id, ...d.data() } as AdminActivityLog));
     } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, p);
+      console.warn('Failed to list admin logs from Firestore:', error);
       return [];
     }
   },
@@ -103,7 +103,7 @@ export const adminRepository = {
       const snap = await getDocs(collection(db, p));
       return snap.docs.map(d => ({ id: d.id, ...d.data() } as ManagedCourse));
     } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, p);
+      console.warn('Failed to list courses from Firestore:', error);
       return [];
     }
   },
@@ -173,7 +173,7 @@ export const adminRepository = {
       const snap = await getDocs(collection(db, p));
       return snap.docs.map(d => ({ id: d.id, ...d.data() } as ManagedSoftware));
     } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, p);
+      console.warn('Failed to list software tools from Firestore:', error);
       return [];
     }
   },
@@ -243,7 +243,7 @@ export const adminRepository = {
       const snap = await getDocs(collection(db, p));
       return snap.docs.map(d => ({ id: d.id, ...d.data() } as ManagedResource));
     } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, p);
+      console.warn('Failed to list academic resources from Firestore:', error);
       return [];
     }
   },
@@ -315,7 +315,7 @@ export const adminRepository = {
         .map(d => ({ id: d.id, ...d.data() } as ManagedFAQ))
         .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
     } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, p);
+      console.warn('Failed to list FAQs from Firestore:', error);
       return [];
     }
   },
@@ -385,7 +385,7 @@ export const adminRepository = {
       const snap = await getDocs(collection(db, p));
       return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, p);
+      console.warn('Failed to list community tips from Firestore:', error);
       return [];
     }
   },
@@ -438,7 +438,7 @@ export const adminRepository = {
         ...(d.data() as Omit<AdminStudentRecord, 'uid'>)
       }));
     } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, p);
+      console.warn('Failed to list students from Firestore:', error);
       return [];
     }
   },
@@ -453,7 +453,7 @@ export const adminRepository = {
         ...(snap.data() as Omit<AdminStudentRecord, 'uid'>)
       };
     } catch (error) {
-      handleFirestoreError(error, OperationType.GET, p);
+      console.warn('Failed to get student document by id:', error);
       return null;
     }
   },
@@ -468,7 +468,7 @@ export const adminRepository = {
         ...(d.data() as Omit<CommunityTip, 'id'>)
       }));
     } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, p);
+      console.warn('Failed to list student tips from Firestore:', error);
       return [];
     }
   }

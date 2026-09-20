@@ -160,9 +160,9 @@ export const ActivityLogView: React.FC = () => {
                     <td className="py-3.5 px-5 whitespace-nowrap text-slate-400 font-mono text-[11px]">
                       <div className="flex items-center gap-1.5">
                         <Calendar className="w-3 h-3 text-slate-500" />
-                        <span>{new Date(log.timestamp).toLocaleDateString('ar-SY')}</span>
+                        <span>{log.timestamp ? new Date(log.timestamp).toLocaleDateString('ar-SY') : '—'}</span>
                         <span className="text-slate-600">|</span>
-                        <span>{new Date(log.timestamp).toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span>{log.timestamp ? new Date(log.timestamp).toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit' }) : '—'}</span>
                       </div>
                     </td>
                   </tr>
