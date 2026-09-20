@@ -90,7 +90,18 @@ googleProvider.setCustomParameters({
 
 export async function signInWithGoogle(): Promise<User | null> {
   try {
-    const result = await signInWithPopup(auth, googleProvider);
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        const timeoutError = new Error('SIGNIN_TIMEOUT');
+        (timeoutError as any).code = 'auth/popup-timeout';
+        reject(timeoutError);
+      }, 25000);
+    });
+
+    const result = await Promise.race([
+      signInWithPopup(auth, googleProvider),
+      timeoutPromise
+    ]);
     return result.user;
   } catch (error: any) {
     console.warn('Google sign-in attempt warning:', error?.code, error?.message || error);

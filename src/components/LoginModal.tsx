@@ -103,7 +103,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       console.warn('Google Sign-In Error Code:', code, err);
       
       if (code === 'auth/unauthorized-domain') {
-        setErrorMsg(isArabic ? 'نطاق الاستضافة الحالي يحتاج للإضافة في قائمة النطاقات المصرح بها في Firebase Console. يمكنك المتابعة بالدخول السريع بالاسم.' : 'Please continue using Quick Name Entry.');
+        setErrorMsg(isArabic ? 'نطاق الاستضافة الحالي (eceroadmap.workers.dev) يحتاج للإضافة إلى "Authorized Domains" في Firebase Console لمشروع eceroadmap2027.' : 'Authorized Domain needed in Firebase Console.');
+      } else if (code === 'auth/operation-not-allowed') {
+        setErrorMsg(isArabic ? 'يرجى تفعيل موفر "Google" في تبويب Authentication > Sign-in method داخل مشروع eceroadmap2027 في Firebase Console.' : 'Please enable Google Sign-In in Firebase Console.');
+      } else if (code === 'auth/popup-timeout') {
+        setErrorMsg(isArabic ? 'استغرقت الاستجابة وقتاً طويلاً. يرجى التأكد من تفعيل Google Sign-In وإضافة النطاق المصرح به في Firebase Console.' : 'Sign-in timed out. Please check Firebase Console setup.');
       } else if (code === 'auth/popup-blocked') {
         setErrorMsg(isArabic ? 'قام المتصفح بحظر نافذة Google المنبثقة. يرجى السماح بالنوافذ المنبثقة أو المتابعة بالدخول السريع.' : 'Popup was blocked. Please enable popups or use name login.');
       } else if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
@@ -111,7 +115,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       } else if (code === 'auth/network-request-failed') {
         setErrorMsg(isArabic ? 'تعذر الاتصال بخوادم المصادقة. يرجى التحقق من اتصال الإنترنت.' : 'Network error. Please check your connection.');
       } else {
-        setErrorMsg(isArabic ? 'تعذر إتمام الدخول بـ Google في بيئة الاستضافة الحالية. يمكنك المتابعة فوراً بالدخول السريع بالاسم والكنية.' : 'Google Sign-in failed. Please use Quick Name Entry.');
+        setErrorMsg(isArabic ? 'تأكد من تفعيل Google Sign-In وإضافة النطاق المصرح به في Firebase Console مشروع eceroadmap2027.' : 'Google Sign-in failed. Please check Firebase setup.');
       }
     } finally {
       setIsLoading(false);
