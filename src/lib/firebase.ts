@@ -3,6 +3,8 @@ import {
   getAuth, 
   GoogleAuthProvider, 
   signInWithPopup, 
+  setPersistence,
+  browserLocalPersistence,
   signOut as fbSignOut, 
   onAuthStateChanged,
   User 
@@ -90,12 +92,18 @@ googleProvider.setCustomParameters({
 
 export async function signInWithGoogle(): Promise<User | null> {
   try {
+    try {
+      await setPersistence(auth, browserLocalPersistence);
+    } catch (pErr) {
+      console.warn('Set persistence note:', pErr);
+    }
+
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => {
         const timeoutError = new Error('SIGNIN_TIMEOUT');
         (timeoutError as any).code = 'auth/popup-timeout';
         reject(timeoutError);
-      }, 25000);
+      }, 35000);
     });
 
     const result = await Promise.race([

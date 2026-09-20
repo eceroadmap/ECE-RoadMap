@@ -100,9 +100,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       }
     } catch (err: any) {
       const code = err?.code || '';
+      const message = err?.message || '';
       console.warn('Google Sign-In Error Code:', code, err);
       
-      if (code === 'auth/unauthorized-domain') {
+      if (message.includes('missing initial state') || message.includes('sessionStorage') || code === 'auth/web-storage-unsupported') {
+        setErrorMsg(isArabic 
+          ? 'تعذر الوصول إلى جلسة المتصفح بسبب تقييد الكوكيز للطرف الثالث بين النطاقات. يرجى تفعيل Third-Party Cookies في المتصفح أو المتابعة فوراً بالدخول السريع بالاسم والكنية.' 
+          : 'Browser blocked cross-domain cookies. Please allow 3rd party cookies or use Quick Name Entry.');
+      } else if (code === 'auth/unauthorized-domain') {
         setErrorMsg(isArabic ? 'نطاق الاستضافة الحالي (eceroadmap.workers.dev) يحتاج للإضافة إلى "Authorized Domains" في Firebase Console لمشروع eceroadmap2027.' : 'Authorized Domain needed in Firebase Console.');
       } else if (code === 'auth/operation-not-allowed') {
         setErrorMsg(isArabic ? 'يرجى تفعيل موفر "Google" في تبويب Authentication > Sign-in method داخل مشروع eceroadmap2027 في Firebase Console.' : 'Please enable Google Sign-In in Firebase Console.');
