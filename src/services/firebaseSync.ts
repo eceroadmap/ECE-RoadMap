@@ -52,6 +52,15 @@ class FirebaseSyncService {
   private init() {
     onAuthStateChanged(auth, async (user) => {
       this.currentUser = user;
+
+      if (user) {
+        const curProf = studentRepository.getProfile();
+        studentRepository.saveProfile({
+          name: curProf.name || user.displayName || 'مهندس مستقبلي',
+          onboardingCompleted: true
+        });
+      }
+
       this.notifyAuthListeners();
 
       if (user) {
@@ -230,10 +239,13 @@ class FirebaseSyncService {
         const remoteUpdated = remoteData.updatedAt ? new Date(remoteData.updatedAt).getTime() : 0;
         const localUpdated = localProfile.updatedAt ? new Date(localProfile.updatedAt).getTime() : 0;
 
+        const resolvedName = localProfile.name || remoteData.displayName || user.displayName || 'مهندس مستقبلي';
+
         let mergedProfile: StudentProfile;
         if (remoteUpdated > localUpdated && remoteData.academicYear) {
           mergedProfile = {
             ...localProfile,
+            name: resolvedName,
             currentYear: remoteData.currentYear || localProfile.currentYear,
             academicYear: remoteData.academicYear || localProfile.academicYear,
             academicSemester: remoteData.academicSemester || localProfile.academicSemester,
@@ -242,14 +254,16 @@ class FirebaseSyncService {
             username: localProfile.username || remoteData.username || undefined,
             accountPassword: localProfile.accountPassword || remoteData.accountPassword || undefined,
             targetFocusTrack: remoteData.targetFocusTrack || localProfile.targetFocusTrack,
-            onboardingCompleted: remoteData.onboardingCompleted ?? localProfile.onboardingCompleted,
+            onboardingCompleted: remoteData.onboardingCompleted ?? localProfile.onboardingCompleted ?? true,
             updatedAt: remoteData.updatedAt
           };
         } else {
           mergedProfile = {
             ...localProfile,
+            name: resolvedName,
             username: localProfile.username || remoteData.username || undefined,
             accountPassword: localProfile.accountPassword || remoteData.accountPassword || undefined,
+            onboardingCompleted: localProfile.onboardingCompleted ?? remoteData.onboardingCompleted ?? true,
             updatedAt: now
           };
         }
@@ -305,9 +319,15 @@ class FirebaseSyncService {
 
       } else {
         // Initial migration: Upload existing local anonymous progress to the cloud document
+        const initialResolvedName = localProfile.name || user.displayName || 'مهندس مستقبلي';
+        studentRepository.saveProfile({
+          name: initialResolvedName,
+          onboardingCompleted: true
+        });
+
         await setDoc(userDocRef, {
           uid: user.uid,
-          displayName: user.displayName || null,
+          displayName: user.displayName || initialResolvedName || null,
           email: user.email || null,
           username: localProfile.username || null,
           accountPassword: localProfile.accountPassword || null,
@@ -317,7 +337,7 @@ class FirebaseSyncService {
           role: localProfile.role,
           roleLabelAr: localProfile.roleLabelAr,
           targetFocusTrack: localProfile.targetFocusTrack || null,
-          onboardingCompleted: localProfile.onboardingCompleted,
+          onboardingCompleted: true,
           coursesProgress: localProgress,
           academicGrades: localGrades,
           graduationWorkspace: localWorkspace,

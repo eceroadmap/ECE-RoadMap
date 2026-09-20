@@ -87,6 +87,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     try {
       const user = await signInWithGoogle();
       if (user) {
+        updateProfile({
+          name: user.displayName || profile.name || 'مهندس مستقبلي',
+          onboardingCompleted: true
+        });
         soundEffects.playSuccess();
         setSuccessMsg(
           isArabic 
