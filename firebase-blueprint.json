@@ -1,0 +1,132 @@
+{
+  "entities": {
+    "students": {
+      "description": "Student profile, selected academic year, course completion status, and laptop preferences",
+      "fields": {
+        "uid": { "type": "string", "description": "User ID matching Firebase Auth" },
+        "displayName": { "type": "string", "description": "Student display name" },
+        "email": { "type": "string", "description": "Student Google email" },
+        "currentYear": { "type": "string|number", "description": "Current academic year 1-5 or graduate" },
+        "academicYear": { "type": "number", "description": "Academic year 1-5" },
+        "academicSemester": { "type": "number", "description": "Current semester 1 or 2" },
+        "role": { "type": "string", "description": "Student role: fresh, current, graduate" },
+        "completedCourses": { "type": "array", "description": "Array of course IDs marked as completed" },
+        "studyingCourses": { "type": "array", "description": "Array of course IDs marked as currently studying" },
+        "starredCourses": { "type": "array", "description": "Array of course IDs bookmarked" },
+        "savedLaptop": { "type": "map", "description": "Saved laptop specifications and evaluation" },
+        "courseNotes": { "type": "map", "description": "Key-value pairs of courseId to personal student notes" },
+        "onboardingCompleted": { "type": "boolean", "description": "Whether student has completed onboarding" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of creation" },
+        "lastSyncedAt": { "type": "string", "description": "ISO timestamp of last cloud synchronization" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of last update" }
+      }
+    },
+    "admins": {
+      "description": "Authorized ECE RoadMap platform administrators",
+      "fields": {
+        "uid": { "type": "string", "description": "Admin UID matching Firebase Auth" },
+        "displayName": { "type": "string", "description": "Admin name" },
+        "email": { "type": "string", "description": "Admin email" },
+        "role": { "type": "string", "description": "admin or super_admin" },
+        "status": { "type": "string", "description": "active or inactive" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of assignment" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of update" }
+      }
+    },
+    "courses": {
+      "description": "Public academic curriculum courses managed by administrators",
+      "fields": {
+        "id": { "type": "string", "description": "Course identifier" },
+        "nameAr": { "type": "string", "description": "Arabic course title" },
+        "nameEn": { "type": "string", "description": "English course title" },
+        "year": { "type": "number", "description": "Academic year 1 to 5" },
+        "semester": { "type": "number", "description": "Academic semester 1 or 2" },
+        "shortDescription": { "type": "string", "description": "Brief summary" },
+        "detailedDescription": { "type": "string", "description": "Comprehensive course syllabus" },
+        "whatYouLearn": { "type": "array", "description": "Key learning outcomes" },
+        "prerequisites": { "type": "array", "description": "Prerequisite courses" },
+        "relatedSkills": { "type": "array", "description": "Associated engineering competencies" },
+        "relatedSoftware": { "type": "array", "description": "Associated simulation software" },
+        "relatedCourses": { "type": "array", "description": "Connected curriculum courses" },
+        "usefulResources": { "type": "array", "description": "Links and study references" },
+        "status": { "type": "string", "description": "active or archived" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "description": "Update timestamp" }
+      }
+    },
+    "software": {
+      "description": "Public engineering and simulation tools managed by administrators",
+      "fields": {
+        "id": { "type": "string", "description": "Software identifier" },
+        "name": { "type": "string", "description": "Software name" },
+        "arabicName": { "type": "string", "description": "Arabic descriptive label" },
+        "category": { "type": "string", "description": "Tool discipline category" },
+        "description": { "type": "string", "description": "Overview of software capabilities" },
+        "purpose": { "type": "string", "description": "Primary academic and industrial utility" },
+        "usedInCourses": { "type": "array", "description": "Connected courses" },
+        "academicYears": { "type": "array", "description": "Relevant academic years" },
+        "officialDownloadLink": { "type": "string", "description": "Official vendor or download page" },
+        "status": { "type": "string", "description": "active or archived" },
+        "updatedAt": { "type": "string", "description": "Update timestamp" }
+      }
+    },
+    "academicResources": {
+      "description": "Public educational resources from Team Noon, Telegram, university drives, etc.",
+      "fields": {
+        "id": { "type": "string", "description": "Resource identifier" },
+        "titleAr": { "type": "string", "description": "Resource title in Arabic" },
+        "descriptionAr": { "type": "string", "description": "Resource description" },
+        "resourceType": { "type": "string", "description": "telegram, team_noon, drive, youtube, book, summary" },
+        "url": { "type": "string", "description": "Target external or internal URL" },
+        "relatedCourseIds": { "type": "array", "description": "Connected course identifiers" },
+        "academicYear": { "type": "string|number", "description": "Applicable year or 'all'" },
+        "sourceAttribution": { "type": "string", "description": "Attribution to Team Noon, University, etc." },
+        "status": { "type": "string", "description": "active or archived" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "description": "Update timestamp" }
+      }
+    },
+    "faqs": {
+      "description": "Frequently asked questions regarding ECE department and study guidelines",
+      "fields": {
+        "id": { "type": "string", "description": "Question identifier" },
+        "questionAr": { "type": "string", "description": "Question text in Arabic" },
+        "answerAr": { "type": "string", "description": "Answer text in Arabic" },
+        "categoryAr": { "type": "string", "description": "Topic category" },
+        "orderIndex": { "type": "number", "description": "Display order index" },
+        "status": { "type": "string", "description": "active or archived" },
+        "updatedAt": { "type": "string", "description": "Update timestamp" }
+      }
+    },
+    "communityTips": {
+      "description": "Student shared tips, practical advice, and study resources for ECE courses",
+      "fields": {
+        "id": { "type": "string", "description": "Unique tip ID" },
+        "authorId": { "type": "string", "description": "Author UID" },
+        "authorName": { "type": "string", "description": "Author display name" },
+        "authorYear": { "type": "string|number", "description": "Author year or graduate status" },
+        "courseId": { "type": "string", "description": "Course ID or 'general'" },
+        "courseNameAr": { "type": "string", "description": "Course Arabic title" },
+        "content": { "type": "string", "description": "Tip text" },
+        "category": { "type": "string", "description": "study_tip, exam_advice, lab_work, resource" },
+        "status": { "type": "string", "description": "active or archived" },
+        "likesCount": { "type": "number", "description": "Number of helpful upvotes" },
+        "likedBy": { "type": "array", "description": "Array of user UIDs who liked the tip" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" }
+      }
+    },
+    "adminLogs": {
+      "description": "Immutable audit trail of administrator content modifications",
+      "fields": {
+        "id": { "type": "string", "description": "Log identifier" },
+        "adminUid": { "type": "string", "description": "Admin UID who executed the action" },
+        "adminEmail": { "type": "string", "description": "Admin email" },
+        "actionType": { "type": "string", "description": "Action executed" },
+        "targetContentType": { "type": "string", "description": "Target entity" },
+        "targetDocId": { "type": "string", "description": "Affected document identifier" },
+        "details": { "type": "string", "description": "Descriptive summary of the operation" },
+        "timestamp": { "type": "string", "description": "ISO timestamp" }
+      }
+    }
+  }
+}

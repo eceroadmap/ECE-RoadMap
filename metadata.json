@@ -1,0 +1,6 @@
+{
+  "name": "ECE RoadMap",
+  "description": "خارطتك الأكاديمية من أول يوم حتى التخرج — منصة إرشادية لطلاب هندسة الإلكترونيات والاتصالات في جامعة دمشق.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

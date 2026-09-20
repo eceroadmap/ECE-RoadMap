@@ -1,0 +1,154 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Basic Authentication Helpers
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Secure Administrator Check
+    // Checks if the user exists in the protected /admins collection,
+    // or matches the initial verified project administrator.
+    function isAdmin() {
+      return isAuthenticated() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        || (request.auth.token.email.lower() == "marwa.mgd.shmdeen@gmail.com" && request.auth.token.email_verified == true)
+      );
+    }
+
+    // 1. Private Student Journey & Progress Documents
+    // Accessible only by the student owner, or by the administrator for platform aggregates.
+    // Students can NEVER elevate their role or edit other students.
+    // Administrators cannot modify private student academic milestones.
+    match /students/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId)
+        && request.resource.data.uid == userId;
+      allow update: if isOwner(userId)
+        && request.resource.data.uid == resource.data.uid;
+      allow delete: if isOwner(userId);
+    }
+
+    // 2. Dedicated Administrator Authorization Collection
+    // Only verified administrators can read and manage administrative roles.
+    // Arbitrary users and normal students are strictly forbidden from writing or querying this collection.
+    match /admins/{adminId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // 3. Managed Public Curriculum Courses
+    // Public read for all students and visitors.
+    // Write operations (create, update, archive) are strictly restricted to administrators.
+    match /courses/{courseId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 4. Managed Public Simulation & Engineering Software
+    // Public read for all students and visitors.
+    // Write operations are strictly restricted to administrators.
+    match /software/{softwareId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 5. Managed Academic Resources (Team Noon, Telegram, University Drives, etc.)
+    // Public read for all students and visitors.
+    // Write operations are strictly restricted to administrators.
+    match /academicResources/{resourceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 6. Frequently Asked Questions (FAQ)
+    // Public read for all students and visitors.
+    // Write operations are strictly restricted to administrators.
+    match /faqs/{faqId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 6b. Graduation Projects (Navigator & Admin CMS)
+    // Public read for all students and visitors.
+    // Write operations are strictly restricted to administrators.
+    match /graduation_projects/{projectId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Validation helper for community tips
+    function isValidTip(data) {
+      return data.authorId == request.auth.uid
+        && data.authorName is string
+        && data.authorName.size() >= 2
+        && data.authorName.size() <= 60
+        && data.content is string
+        && data.content.size() >= 5
+        && data.content.size() <= 2000
+        && data.category in ['study_tip', 'exam_advice', 'lab_work', 'resource']
+        && (!('likesCount' in data) || data.likesCount is number)
+        && (!('likedBy' in data) || data.likedBy is list);
+    }
+
+    // 7. Community Tips & Moderation
+    // Public read for all.
+    // Students can post and edit their own tips.
+    // Administrators have full moderation capabilities (archive, restore, delete).
+    match /communityTips/{tipId} {
+      allow read: if true;
+
+      allow create: if isAuthenticated()
+        && isValidTip(request.resource.data)
+        && request.resource.data.likesCount == 0
+        && request.resource.data.likedBy.size() == 0;
+
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        (resource.data.authorId == request.auth.uid
+          && request.resource.data.authorId == resource.data.authorId
+          && isValidTip(request.resource.data)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['content', 'category', 'courseId', 'courseNameAr', 'updatedAt', 'status']))
+        ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount', 'likedBy'])
+          && request.resource.data.authorId == resource.data.authorId
+          && request.resource.data.content == resource.data.content
+          && (
+            // Upvote
+            (request.resource.data.likedBy.hasAll(resource.data.likedBy)
+              && request.resource.data.likedBy.size() == resource.data.likedBy.size() + 1
+              && request.resource.data.likedBy.hasAny([request.auth.uid])
+              && request.resource.data.likesCount == resource.data.likesCount + 1)
+            ||
+            // Remove upvote
+            (resource.data.likedBy.hasAll(request.resource.data.likedBy)
+              && request.resource.data.likedBy.size() == resource.data.likedBy.size() - 1
+              && !request.resource.data.likedBy.hasAny([request.auth.uid])
+              && request.resource.data.likesCount == resource.data.likesCount - 1)
+          )
+        )
+      );
+
+      allow delete: if isAuthenticated() && (resource.data.authorId == request.auth.uid || isAdmin());
+    }
+
+    // 8. Administrator Activity Audit Log
+    // Read and create strictly restricted to administrators.
+    // Updates and deletions are forbidden to ensure an immutable audit log.
+    match /adminLogs/{logId} {
+      allow read, create: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // 9. System Configuration & Exhibition Settings
+    // Public read for visitors and students; writes restricted to verified administrators.
+    match /system_config/{configId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}
