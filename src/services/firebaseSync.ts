@@ -2,9 +2,10 @@ import {
   db, 
   auth, 
   signInWithGoogle, 
+  signInWithGoogleDirect,
   signOutUser,
   doc, 
-  getDoc,
+  getDoc, 
   setDoc, 
   onSnapshot, 
   collection, 
@@ -123,7 +124,7 @@ class FirebaseSyncService {
   public async signInWithGoogle(): Promise<User | null> {
     this.setSyncStatus('syncing');
     try {
-      const user = await signInWithGoogle();
+      const user = await signInWithGoogleDirect();
       if (!user) {
         this.setSyncStatus(this.currentUser ? 'synced' : 'local_only');
       }

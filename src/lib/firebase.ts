@@ -3,6 +3,7 @@ import {
   getAuth, 
   GoogleAuthProvider, 
   signInWithPopup, 
+  signInWithCredential,
   setPersistence,
   browserLocalPersistence,
   signOut as fbSignOut, 
@@ -89,6 +90,73 @@ const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
+
+export const GOOGLE_OAUTH_CLIENT_ID = (firebaseConfig as any).oAuthClientId || "23606413805-fd53oevs7u3rrkmq4bu6qfj9ipad9p1r.apps.googleusercontent.com";
+
+export async function signInWithGoogleDirect(): Promise<User | null> {
+  try {
+    try {
+      await setPersistence(auth, browserLocalPersistence);
+    } catch (pErr) {
+      console.warn('Set persistence note:', pErr);
+    }
+
+    // Check if Google Identity Services (GIS) library is available
+    if (typeof window !== 'undefined' && (window as any).google?.accounts?.oauth2) {
+      return new Promise<User | null>((resolve, reject) => {
+        let isSettled = false;
+
+        const client = (window as any).google.accounts.oauth2.initTokenClient({
+          client_id: GOOGLE_OAUTH_CLIENT_ID,
+          scope: 'email profile openid',
+          callback: async (response: any) => {
+            if (isSettled) return;
+
+            if (response?.error) {
+              console.warn('GIS Token Callback Error:', response.error);
+              isSettled = true;
+              reject(new Error(response.error));
+              return;
+            }
+
+            if (response?.access_token) {
+              isSettled = true;
+              try {
+                const credential = GoogleAuthProvider.credential(null, response.access_token);
+                const userCredential = await signInWithCredential(auth, credential);
+                resolve(userCredential.user);
+              } catch (credErr) {
+                console.warn('Credential Sign-In Error:', credErr);
+                reject(credErr);
+              }
+            } else {
+              isSettled = true;
+              reject(new Error('NO_ACCESS_TOKEN'));
+            }
+          },
+          error_callback: (err: any) => {
+            if (isSettled) return;
+            isSettled = true;
+            reject(err);
+          }
+        });
+
+        // Trigger native Google token request
+        client.requestAccessToken({ prompt: 'select_account' });
+      });
+    }
+
+    // Fallback if GSI script isn't loaded yet
+    return await signInWithGoogle();
+  } catch (err: any) {
+    console.warn('Direct Google Sign-In Fallback:', err);
+    // Fallback to standard popup if direct GIS is not completed or cancelled
+    if (err?.message !== 'popup-closed-by-user' && err?.code !== 'auth/popup-closed-by-user') {
+      return await signInWithGoogle();
+    }
+    throw err;
+  }
+}
 
 export async function signInWithGoogle(): Promise<User | null> {
   try {
