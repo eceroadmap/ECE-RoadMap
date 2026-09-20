@@ -120,8 +120,18 @@ export const guestVisitorService = {
       });
       return list;
     } catch (e) {
-      console.warn('Could not fetch guest list:', e);
-      return [];
+      console.warn('Could not fetch guest list with order, falling back to basic getDocs:', e);
+      try {
+        const snap = await getDocs(collection(db, 'guest_visitors'));
+        const list: GuestVisitorRecord[] = [];
+        snap.forEach((d) => {
+          list.push(d.data() as GuestVisitorRecord);
+        });
+        return list;
+      } catch (innerErr) {
+        console.warn('Could not fetch guest list fallback:', innerErr);
+        return [];
+      }
     }
   }
 };
