@@ -236,7 +236,7 @@ export const DEFAULT_EXHIBITION_CONFIG: ExhibitionFullConfig = {
     badgeText: 'المسح الفوري المباشر عبر كاميرا هاتفك المحمول',
     title: 'استكشف ECE RoadMap الآن على هاتفك',
     description: 'امسح الرمز لفتح الخطة الكاملة، فحص مواصفات حاسوبك، وتحميل مصادر البرمجيات ومجموعات الدفعات مباشرة.',
-    customQrUrl: '',
+    customQrUrl: 'https://www.eceroadmap.workers.dev/',
     qrTitle: 'مسح رمز المنصة',
     qrSubtitle: 'وجّه كاميرا هاتفك لفتح الرابط',
     pillars: [

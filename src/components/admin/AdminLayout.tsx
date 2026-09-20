@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { auth, signInWithGoogle, signOutUser, User } from '../../lib/firebase';
 import { adminAuthService } from '../../services/admin/adminAuth';
+import { guestVisitorService } from '../../services/guestVisitorService';
+import { studentRepository } from '../../services/studentRepository';
 import { AdminRecord } from '../../types/admin';
 import { AdminOverview } from './AdminOverview';
 import { StudentsManager } from './StudentsManager';
@@ -137,11 +139,22 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToApp }) => {
   };
 
   const handleSignOut = async () => {
-    adminAuthService.logout();
-    await signOutUser();
+    try {
+      adminAuthService.logout();
+    } catch {}
+    try {
+      guestVisitorService.clearGuest();
+    } catch {}
+    try {
+      studentRepository.resetAll();
+    } catch {}
+    try {
+      await signOutUser();
+    } catch {}
     setIsAdmin(false);
     setAdminRecord(null);
     setAuthError(null);
+    onBackToApp();
   };
 
   // 1. Loading State

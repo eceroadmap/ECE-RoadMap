@@ -147,8 +147,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       await signOut();
       guestVisitorService.clearGuest();
       setStoredGuest(null);
+      setFirstName('');
+      setLastName('');
       setMode('choose');
-      setSuccessMsg('تم تسجيل الخروج بنجاح.');
+      setErrorMsg(null);
+      setSuccessMsg('تم تسجيل الخروج بنجاح. أهلاً بك مجدداً في بوابة الدخول.');
       setTimeout(() => setSuccessMsg(null), 2500);
     } catch {
       setErrorMsg('تعذر تسجيل الخروج.');

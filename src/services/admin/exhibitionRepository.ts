@@ -9,10 +9,31 @@ import {
 import { ExhibitionFullConfig } from '../../types/exhibition';
 import { DEFAULT_EXHIBITION_CONFIG } from '../../data/defaultExhibition';
 import { adminRepository } from './adminRepository';
+import { CANONICAL_PRODUCTION_URL } from '../../lib/firebase';
 
 const LOCAL_STORAGE_KEY = 'ece_exhibition_config_v2';
 const FIRESTORE_DOC_PATH = 'system_config';
 const FIRESTORE_DOC_ID = 'exhibition_config';
+
+function normalizeConfig(data: Partial<ExhibitionFullConfig>): ExhibitionFullConfig {
+  const qrPortal = { ...DEFAULT_EXHIBITION_CONFIG.qrPortal, ...(data.qrPortal || {}) };
+  if (!qrPortal.customQrUrl || qrPortal.customQrUrl.includes('damascusuniversity.sy') || qrPortal.customQrUrl.includes('localhost')) {
+    qrPortal.customQrUrl = CANONICAL_PRODUCTION_URL;
+  }
+
+  return {
+    ...DEFAULT_EXHIBITION_CONFIG,
+    ...data,
+    slides: data.slides || DEFAULT_EXHIBITION_CONFIG.slides,
+    hero: { ...DEFAULT_EXHIBITION_CONFIG.hero, ...(data.hero || {}) },
+    journey: { ...DEFAULT_EXHIBITION_CONFIG.journey, ...(data.journey || {}) },
+    skills: { ...DEFAULT_EXHIBITION_CONFIG.skills, ...(data.skills || {}) },
+    software: { ...DEFAULT_EXHIBITION_CONFIG.software, ...(data.software || {}) },
+    graduationProjects: { ...DEFAULT_EXHIBITION_CONFIG.graduationProjects, ...(data.graduationProjects || {}) },
+    careers: { ...DEFAULT_EXHIBITION_CONFIG.careers, ...(data.careers || {}) },
+    qrPortal
+  };
+}
 
 export const exhibitionRepository = {
   /**
@@ -24,18 +45,7 @@ export const exhibitionRepository = {
       const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        return {
-          ...DEFAULT_EXHIBITION_CONFIG,
-          ...parsed,
-          slides: parsed.slides || DEFAULT_EXHIBITION_CONFIG.slides,
-          hero: { ...DEFAULT_EXHIBITION_CONFIG.hero, ...(parsed.hero || {}) },
-          journey: { ...DEFAULT_EXHIBITION_CONFIG.journey, ...(parsed.journey || {}) },
-          skills: { ...DEFAULT_EXHIBITION_CONFIG.skills, ...(parsed.skills || {}) },
-          software: { ...DEFAULT_EXHIBITION_CONFIG.software, ...(parsed.software || {}) },
-          graduationProjects: { ...DEFAULT_EXHIBITION_CONFIG.graduationProjects, ...(parsed.graduationProjects || {}) },
-          careers: { ...DEFAULT_EXHIBITION_CONFIG.careers, ...(parsed.careers || {}) },
-          qrPortal: { ...DEFAULT_EXHIBITION_CONFIG.qrPortal, ...(parsed.qrPortal || {}) }
-        };
+        return normalizeConfig(parsed);
       }
     } catch (e) {
       console.warn('Failed to load local exhibition config:', e);
@@ -64,18 +74,7 @@ export const exhibitionRepository = {
       const snap = await getDoc(docRef);
       if (snap.exists()) {
         const data = snap.data() as Partial<ExhibitionFullConfig>;
-        const merged: ExhibitionFullConfig = {
-          ...DEFAULT_EXHIBITION_CONFIG,
-          ...data,
-          slides: data.slides || DEFAULT_EXHIBITION_CONFIG.slides,
-          hero: { ...DEFAULT_EXHIBITION_CONFIG.hero, ...(data.hero || {}) },
-          journey: { ...DEFAULT_EXHIBITION_CONFIG.journey, ...(data.journey || {}) },
-          skills: { ...DEFAULT_EXHIBITION_CONFIG.skills, ...(data.skills || {}) },
-          software: { ...DEFAULT_EXHIBITION_CONFIG.software, ...(data.software || {}) },
-          graduationProjects: { ...DEFAULT_EXHIBITION_CONFIG.graduationProjects, ...(data.graduationProjects || {}) },
-          careers: { ...DEFAULT_EXHIBITION_CONFIG.careers, ...(data.careers || {}) },
-          qrPortal: { ...DEFAULT_EXHIBITION_CONFIG.qrPortal, ...(data.qrPortal || {}) }
-        };
+        const merged = normalizeConfig(data);
         this.setLocalConfig(merged);
         return merged;
       }

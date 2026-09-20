@@ -8,6 +8,8 @@ import {
 } from '../types';
 import { studentRepository, subscribeToStudentStore } from './studentRepository';
 import { firebaseSyncService, CloudSyncStatus } from './firebaseSync';
+import { guestVisitorService } from './guestVisitorService';
+import { adminAuthService } from './admin/adminAuth';
 import { User } from '../lib/firebase';
 
 export function useStudentState() {
@@ -109,6 +111,15 @@ export function useStudentState() {
   }, []);
 
   const signOut = useCallback(async () => {
+    try {
+      adminAuthService.logout();
+    } catch {}
+    try {
+      guestVisitorService.clearGuest();
+    } catch {}
+    try {
+      studentRepository.resetAll();
+    } catch {}
     return await firebaseSyncService.signOut();
   }, []);
 

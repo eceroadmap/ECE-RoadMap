@@ -53,28 +53,44 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({ isOwner = fals
         guestVisitorService.fetchRecentGuests(100)
       ]);
 
-      const guestRecords: AdminStudentRecord[] = guestsData.map((g) => ({
-        uid: g.id,
-        displayName: g.fullName,
-        email: 'دخول كزائر مسجل',
-        academicYear: (typeof g.academicYear === 'number' ? g.academicYear : 1) as any,
-        currentYear: (typeof g.academicYear === 'number' ? g.academicYear : 1) as any,
-        currentSemester: 1,
-        role: 'guest' as any,
-        roleLabelAr: 'زائر مسجل',
-        coursesCount: 0,
-        completedCoursesCount: 0,
-        starredProjectsCount: 0,
-        createdAt: g.createdAt,
-        lastLoginAt: g.createdAt,
-        authProvider: 'guest' as any
-      }));
+      const isOwnerCheck = (email?: string | null, name?: string | null, role?: string | null) => {
+        const e = (email || '').toLowerCase().trim();
+        const n = (name || '').toLowerCase().trim();
+        const r = (role || '').toLowerCase().trim();
+        return (
+          e === 'marwa.mgd.shmdeen@gmail.com' ||
+          e === BOOTSTRAP_ADMIN_EMAIL.toLowerCase() ||
+          e.includes('marwa.mgd.shmdeen') ||
+          r === 'super_admin' ||
+          n.includes('المهندسة مروة') ||
+          n.includes('مدير المنصة')
+        );
+      };
 
-      // Combine both, avoiding duplicate IDs
+      const guestRecords: AdminStudentRecord[] = guestsData
+        .filter((g) => !isOwnerCheck('', g.fullName))
+        .map((g) => ({
+          uid: g.id,
+          displayName: g.fullName,
+          email: 'دخول كزائر مسجل',
+          academicYear: (typeof g.academicYear === 'number' ? g.academicYear : 1) as any,
+          currentYear: (typeof g.academicYear === 'number' ? g.academicYear : 1) as any,
+          currentSemester: 1,
+          role: 'guest' as any,
+          roleLabelAr: 'زائر مسجل',
+          coursesCount: 0,
+          completedCoursesCount: 0,
+          starredProjectsCount: 0,
+          createdAt: g.createdAt,
+          lastLoginAt: g.createdAt,
+          authProvider: 'guest' as any
+        }));
+
+      // Combine both, avoiding duplicate IDs and filtering out owner
       const studentIds = new Set(studentsData.map((s) => s.uid));
-      const merged = [...studentsData];
+      const merged = studentsData.filter(s => !isOwnerCheck(s.email, s.displayName, s.role));
       for (const gr of guestRecords) {
-        if (!studentIds.has(gr.uid)) {
+        if (!studentIds.has(gr.uid) && !isOwnerCheck(gr.email, gr.displayName, gr.role)) {
           merged.push(gr);
         }
       }

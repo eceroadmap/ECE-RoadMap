@@ -485,17 +485,17 @@ export const ExhibitionModeModal: React.FC<ExhibitionModeModalProps> = ({
       </header>
 
       {/* ========================================================================= */}
-      {/* MAIN CINEMATIC STAGE VIEWPORT (Safe Area Clamped Layout)                   */}
+      {/* MAIN CINEMATIC STAGE VIEWPORT (Safe Area Clamped Layout & Mobile Scroll)   */}
       {/* ========================================================================= */}
       <main 
-        className="flex-1 flex flex-col justify-center relative w-full overflow-hidden"
+        className="flex-1 flex flex-col relative w-full overflow-y-auto overflow-x-hidden custom-scrollbar"
         style={{
-          paddingInline: 'clamp(20px, 4vw, 80px)',
-          paddingBlock: 'clamp(16px, 3vh, 48px)'
+          paddingInline: 'clamp(12px, 3vw, 80px)',
+          paddingBlock: 'clamp(12px, 2.5vh, 40px)'
         }}
       >
         <div 
-          className={`w-full flex-1 flex flex-col justify-center transition-all duration-500 ease-out ${
+          className={`w-full my-auto flex flex-col justify-center transition-all duration-500 ease-out py-2 ${
             isTransitioning 
               ? 'opacity-0 scale-[0.985] blur-[1px]' 
               : 'opacity-100 scale-100 blur-0'
@@ -505,44 +505,44 @@ export const ExhibitionModeModal: React.FC<ExhibitionModeModalProps> = ({
         {/* SCENE 01: HERO & OPENING REVEAL                                       */}
         {/* ===================================================================== */}
         {currentScene === 'hero' && (
-          <div className="max-w-6xl mx-auto w-full text-center space-y-6 sm:space-y-8 my-auto animate-fadeIn">
+          <div className="max-w-6xl mx-auto w-full text-center space-y-4 sm:space-y-8 my-auto animate-fadeIn">
             {/* Placemark Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-950/90 border border-cyan-500/60 text-cyan-300 text-xs sm:text-sm font-mono tracking-wider shadow-lg shadow-cyan-950/80">
-              <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
+            <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-cyan-950/90 border border-cyan-500/60 text-cyan-300 text-[11px] sm:text-sm font-mono tracking-wider shadow-lg shadow-cyan-950/80">
+              <span className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-cyan-400 animate-pulse" />
               <span>{exhibitionConfig?.hero?.placemarkBadge || DEFAULT_EXHIBITION_CONFIG.hero.placemarkBadge}</span>
             </div>
 
             {/* Department Master Title */}
-            <div className="space-y-3">
-              <h1 className="text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-black text-white tracking-tight leading-tight">
+            <div className="space-y-2 sm:space-y-3">
+              <h1 className="text-2xl sm:text-5xl lg:text-6xl xl:text-7xl font-black text-white tracking-tight leading-tight">
                 {exhibitionConfig?.hero?.mainTitle || DEFAULT_EXHIBITION_CONFIG.hero.mainTitle}
               </h1>
-              <p className="text-xl sm:text-3xl lg:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-l from-cyan-400 via-sky-300 to-blue-400 font-sans">
+              <p className="text-lg sm:text-3xl lg:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-l from-cyan-400 via-sky-300 to-blue-400 font-sans">
                 {exhibitionConfig?.hero?.subtitleGradient || DEFAULT_EXHIBITION_CONFIG.hero.subtitleGradient}
               </p>
             </div>
 
-            <p className="text-xs sm:text-base md:text-lg text-slate-300 max-w-3xl mx-auto leading-relaxed font-medium">
+            <p className="text-xs sm:text-base md:text-lg text-slate-300 max-w-3xl mx-auto leading-relaxed font-medium px-2">
               {exhibitionConfig?.hero?.description || DEFAULT_EXHIBITION_CONFIG.hero.description}
             </p>
 
             {/* Staggered Key Metric Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 max-w-5xl mx-auto pt-2">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-5 max-w-5xl mx-auto pt-1 sm:pt-2">
               {(exhibitionConfig?.hero?.metrics || DEFAULT_EXHIBITION_CONFIG.hero.metrics).map((metric, i) => {
                 const theme = METRIC_THEMES[metric.colorTheme] || METRIC_THEMES.cyan;
                 return (
                   <div 
                     key={metric.id || i}
-                    className={`p-4 sm:p-6 rounded-3xl ${theme.bg} border-2 ${theme.border} shadow-2xl space-y-1.5 text-right relative overflow-hidden group`}
+                    className={`p-3 sm:p-6 rounded-2xl sm:rounded-3xl ${theme.bg} border-2 ${theme.border} shadow-xl sm:shadow-2xl space-y-1 text-right relative overflow-hidden group`}
                   >
-                    <div className={`absolute top-0 right-0 w-24 h-24 ${theme.glow} rounded-full blur-xl`} />
-                    <span className={`text-3xl sm:text-5xl font-black ${theme.text} font-mono`}>
+                    <div className={`absolute top-0 right-0 w-16 sm:w-24 h-16 sm:h-24 ${theme.glow} rounded-full blur-xl`} />
+                    <span className={`text-2xl sm:text-5xl font-black ${theme.text} font-mono`}>
                       {metric.number}
                     </span>
-                    <div className="text-sm sm:text-base font-bold text-white">
+                    <div className="text-xs sm:text-base font-bold text-white">
                       {metric.titleAr}
                     </div>
-                    <div className="text-[11px] text-slate-400">
+                    <div className="text-[10px] sm:text-[11px] text-slate-400 line-clamp-1 sm:line-clamp-none">
                       {metric.descAr}
                     </div>
                   </div>
@@ -556,20 +556,20 @@ export const ExhibitionModeModal: React.FC<ExhibitionModeModalProps> = ({
         {/* SCENE 02: THE FIVE-YEAR JOURNEY (ANIMATED SIGNAL PATH)                 */}
         {/* ===================================================================== */}
         {currentScene === 'journey' && (
-          <div className="max-w-6xl mx-auto w-full space-y-4 sm:space-y-6 my-auto animate-fadeIn">
+          <div className="max-w-6xl mx-auto w-full space-y-3 sm:space-y-6 my-auto animate-fadeIn">
             {/* Scene Header */}
             <div className="text-center space-y-1">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-600 text-xs font-mono">
-                <Activity className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+              <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-600 text-[10px] sm:text-xs font-mono">
+                <Activity className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-cyan-400 animate-pulse" />
                 <span>{exhibitionConfig?.journey?.badgeText || DEFAULT_EXHIBITION_CONFIG.journey.badgeText}</span>
               </div>
-              <h2 className="text-2xl sm:text-4xl font-black text-white">
+              <h2 className="text-xl sm:text-4xl font-black text-white">
                 {exhibitionConfig?.journey?.sectionTitle || DEFAULT_EXHIBITION_CONFIG.journey.sectionTitle}
               </h2>
             </div>
 
             {/* 5-Year Signal Pulse Navigation Track */}
-            <div className="relative py-2 max-w-4xl mx-auto">
+            <div className="relative py-1 sm:py-2 max-w-4xl mx-auto">
               {/* Connecting Signal Line */}
               <div className="absolute top-1/2 left-4 right-4 h-1 bg-slate-800 -translate-y-1/2 z-0 hidden sm:block">
                 <div 
@@ -579,7 +579,7 @@ export const ExhibitionModeModal: React.FC<ExhibitionModeModalProps> = ({
               </div>
 
               {/* Year Nodes */}
-              <div className="grid grid-cols-5 gap-2 sm:gap-3 relative z-10">
+              <div className="grid grid-cols-5 gap-1 sm:gap-3 relative z-10">
                 {YEAR_MILESTONES.map((year, idx) => {
                   const isCurrent = journeyYearIndex === idx;
                   const isPassed = journeyYearIndex > idx;
@@ -588,7 +588,7 @@ export const ExhibitionModeModal: React.FC<ExhibitionModeModalProps> = ({
                     <button
                       key={year.yearNumber}
                       onClick={() => setJourneyYearIndex(idx)}
-                      className={`p-2 sm:p-3.5 rounded-2xl text-center transition-all border min-h-[44px] ${
+                      className={`p-1.5 sm:p-3.5 rounded-xl sm:rounded-2xl text-center transition-all border min-h-[40px] sm:min-h-[44px] ${
                         isCurrent
                           ? 'bg-cyan-500 text-slate-950 border-cyan-300 shadow-xl shadow-cyan-500/50 scale-105 font-black'
                           : isPassed
@@ -596,8 +596,8 @@ export const ExhibitionModeModal: React.FC<ExhibitionModeModalProps> = ({
                           : 'bg-slate-900/90 text-slate-400 border-slate-800 hover:border-slate-700'
                       }`}
                     >
-                      <div className="text-base sm:text-xl font-black font-mono">0{year.yearNumber}</div>
-                      <div className="text-[10px] sm:text-xs truncate font-bold mt-0.5">{year.titleAr}</div>
+                      <div className="text-xs sm:text-xl font-black font-mono">0{year.yearNumber}</div>
+                      <div className="text-[9px] sm:text-xs truncate font-bold mt-0.5">{year.titleAr}</div>
                     </button>
                   );
                 })}
@@ -605,39 +605,39 @@ export const ExhibitionModeModal: React.FC<ExhibitionModeModalProps> = ({
             </div>
 
             {/* Active Year Spotlight Instrument Card */}
-            <div className="p-4 sm:p-7 rounded-3xl bg-[#081528] border-2 border-cyan-500/40 shadow-2xl space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-3 gap-2">
+            <div className="p-3.5 sm:p-7 rounded-2xl sm:rounded-3xl bg-[#081528] border-2 border-cyan-500/40 shadow-xl sm:shadow-2xl space-y-3 sm:space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-2 sm:pb-3 gap-1 sm:gap-2">
                 <div>
-                  <span className="text-xs font-mono text-cyan-400 font-bold uppercase tracking-wider">
+                  <span className="text-[10px] sm:text-xs font-mono text-cyan-400 font-bold uppercase tracking-wider">
                     السنة {currentMilestone.yearNumber} &bull; {currentMilestone.titleEn}
                   </span>
-                  <h3 className="text-lg sm:text-2xl font-black text-white mt-0.5">
+                  <h3 className="text-base sm:text-2xl font-black text-white mt-0.5">
                     {currentMilestone.titleAr}: {currentMilestone.stageTitleAr}
                   </h3>
                 </div>
                 <div className="flex items-center gap-2 self-start sm:self-auto">
-                  <span className="text-xs font-bold text-cyan-300 px-3 py-1.5 rounded-xl bg-cyan-950 border border-cyan-700">
+                  <span className="text-[10px] sm:text-xs font-bold text-cyan-300 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl bg-cyan-950 border border-cyan-700">
                     {currentMilestoneCourses.length} مقرراً ومخبراً
                   </span>
                 </div>
               </div>
 
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
+              <p className="text-[11px] sm:text-sm text-slate-300 leading-relaxed font-medium">
                 {currentMilestone.stageSummaryAr}
               </p>
 
               {/* Key Courses and Labs Preview */}
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider block">
+              <div className="space-y-1.5 sm:space-y-2">
+                <span className="text-[10px] sm:text-xs font-bold text-cyan-400 uppercase tracking-wider block">
                   أبرز المقررات والمخابر التخصصية:
                 </span>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5 sm:gap-2">
                   {currentMilestoneCourses.slice(0, 8).map((course) => (
                     <div 
                       key={course.id}
-                      className="p-2 sm:p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 flex items-center gap-2 text-xs"
+                      className="p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl bg-slate-950/90 border border-slate-800 flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs"
                     >
-                      <span className="w-2 h-2 rounded-full bg-cyan-400 shrink-0" />
+                      <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-cyan-400 shrink-0" />
                       <span className="text-slate-200 font-medium truncate">{course.nameAr}</span>
                     </div>
                   ))}
@@ -646,10 +646,10 @@ export const ExhibitionModeModal: React.FC<ExhibitionModeModalProps> = ({
 
               {/* Software Tools for this Year */}
               {currentMilestoneSoftware.length > 0 && (
-                <div className="pt-2 border-t border-slate-800/80 flex items-center gap-2 flex-wrap text-xs">
-                  <span className="text-slate-400 font-semibold">برمجيات المحاكاة المعتمدة:</span>
+                <div className="pt-1.5 sm:pt-2 border-t border-slate-800/80 flex items-center gap-1.5 sm:gap-2 flex-wrap text-[10px] sm:text-xs">
+                  <span className="text-slate-400 font-semibold">برمجيات المحاكاة:</span>
                   {currentMilestoneSoftware.map((sw) => (
-                    <span key={sw.id} className="px-2.5 py-1 rounded-lg bg-cyan-950 text-cyan-300 border border-cyan-800/60 font-mono text-[11px] font-bold">
+                    <span key={sw.id} className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg bg-cyan-950 text-cyan-300 border border-cyan-800/60 font-mono text-[10px] sm:text-[11px] font-bold">
                       {sw.name}
                     </span>
                   ))}
@@ -663,19 +663,19 @@ export const ExhibitionModeModal: React.FC<ExhibitionModeModalProps> = ({
         {/* SCENE 03: FROM COURSE TO SKILL (ACADEMIC-TO-CAREER PIPELINE)          */}
         {/* ===================================================================== */}
         {currentScene === 'skills_pipeline' && (
-          <div className="max-w-6xl mx-auto w-full space-y-5 my-auto animate-fadeIn">
+          <div className="max-w-6xl mx-auto w-full space-y-3 sm:space-y-5 my-auto animate-fadeIn">
             <div className="text-center space-y-1">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-600 text-xs font-mono">
-                <Zap className="w-3.5 h-3.5 text-cyan-400" />
+              <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-600 text-[10px] sm:text-xs font-mono">
+                <Zap className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-cyan-400" />
                 <span>{exhibitionConfig?.skills?.badgeText || DEFAULT_EXHIBITION_CONFIG.skills.badgeText}</span>
               </div>
-              <h2 className="text-2xl sm:text-4xl font-black text-white">
+              <h2 className="text-xl sm:text-4xl font-black text-white">
                 {exhibitionConfig?.skills?.sectionTitle || DEFAULT_EXHIBITION_CONFIG.skills.sectionTitle}
               </h2>
             </div>
 
             {/* Pipeline Flow Visualization Card */}
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 gap-2 sm:gap-3">
               {skillPipelines.map((item, idx) => {
                 const isActive = activeSkillPipelineIndex === idx;
 
@@ -683,40 +683,40 @@ export const ExhibitionModeModal: React.FC<ExhibitionModeModalProps> = ({
                   <div 
                     key={item.id}
                     onClick={() => setActiveSkillPipelineIndex(idx)}
-                    className={`p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl transition-all border cursor-pointer ${
+                    className={`p-2.5 sm:p-4 rounded-xl sm:rounded-3xl transition-all border cursor-pointer ${
                       isActive
                         ? 'bg-[#091a32] border-cyan-400 shadow-xl shadow-cyan-950 scale-[1.01]'
-                        : 'bg-[#081528]/80 border-slate-800 opacity-75 hover:opacity-100'
+                        : 'bg-[#081528]/80 border-slate-800 opacity-80 hover:opacity-100'
                     }`}
                   >
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 sm:gap-3">
                       {/* Left: Domain & Course */}
-                      <div className="space-y-1 min-w-[240px]">
-                        <span className="text-[10px] font-mono text-cyan-400 font-bold uppercase">
+                      <div className="space-y-0.5 sm:space-y-1 min-w-[200px] sm:min-w-[240px]">
+                        <span className="text-[9px] sm:text-[10px] font-mono text-cyan-400 font-bold uppercase">
                           STAGE 0{idx + 1}
                         </span>
-                        <h4 className="text-sm sm:text-base font-bold text-white">
+                        <h4 className="text-xs sm:text-base font-bold text-white">
                           {item.titleAr}
                         </h4>
-                        <div className="text-xs text-slate-300">
+                        <div className="text-[11px] sm:text-xs text-slate-300">
                           المقرر: <span className="text-white font-medium">{item.courseAr}</span>
                         </div>
                       </div>
 
                       {/* Middle: Software & Laboratory */}
-                      <div className="flex items-center gap-2 bg-slate-950/70 p-2 rounded-xl border border-slate-800 shrink-0">
-                        <Cpu className="w-4 h-4 text-cyan-400 shrink-0" />
-                        <div className="text-xs font-mono text-cyan-300 font-bold">
+                      <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-950/70 p-1.5 sm:p-2 rounded-lg sm:rounded-xl border border-slate-800 self-start lg:self-center shrink-0">
+                        <Cpu className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-cyan-400 shrink-0" />
+                        <div className="text-[11px] sm:text-xs font-mono text-cyan-300 font-bold">
                           {item.softwareAr}
                         </div>
                       </div>
 
                       {/* Right: Acquired Skill & Career Target */}
                       <div className="space-y-0.5 flex-1 lg:text-left">
-                        <div className="text-xs text-slate-300">
+                        <div className="text-[10px] sm:text-xs text-slate-300">
                           المهارة: <span className="text-slate-100">{item.skillAr}</span>
                         </div>
-                        <div className="text-xs font-bold text-emerald-400">
+                        <div className="text-[10px] sm:text-xs font-bold text-emerald-400">
                           المجال المهني: {item.careerAr}
                         </div>
                       </div>
@@ -732,40 +732,40 @@ export const ExhibitionModeModal: React.FC<ExhibitionModeModalProps> = ({
         {/* SCENE 04: SOFTWARE & SIMULATION TOOLKIT                                */}
         {/* ===================================================================== */}
         {currentScene === 'software_toolkit' && (
-          <div className="max-w-6xl mx-auto w-full space-y-6 my-auto animate-fadeIn">
+          <div className="max-w-6xl mx-auto w-full space-y-3 sm:space-y-6 my-auto animate-fadeIn">
             <div className="text-center space-y-1">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-600 text-xs font-mono">
-                <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+              <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-600 text-[10px] sm:text-xs font-mono">
+                <Cpu className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-cyan-400" />
                 <span>{exhibitionConfig?.software?.badgeText || DEFAULT_EXHIBITION_CONFIG.software.badgeText}</span>
               </div>
-              <h2 className="text-2xl sm:text-4xl font-black text-white">
+              <h2 className="text-xl sm:text-4xl font-black text-white">
                 {exhibitionConfig?.software?.sectionTitle || DEFAULT_EXHIBITION_CONFIG.software.sectionTitle}
               </h2>
             </div>
 
             {/* Rotating 6-Card Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
               {softwareSubset.map((sw) => (
                 <div
                   key={sw.id}
-                  className="p-4 sm:p-5 rounded-3xl bg-[#081528] border border-cyan-800/40 hover:border-cyan-500 shadow-xl space-y-2.5 transition-all text-right group"
+                  className="p-3 sm:p-5 rounded-2xl sm:rounded-3xl bg-[#081528] border border-cyan-800/40 hover:border-cyan-500 shadow-xl space-y-2 transition-all text-right group"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-black font-mono text-white bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">
+                    <span className="text-[11px] sm:text-xs font-black font-mono text-white bg-slate-900 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md sm:rounded-lg border border-slate-800">
                       {sw.name}
                     </span>
-                    <span className="text-[10px] font-mono text-cyan-300 bg-cyan-950 px-2 py-0.5 rounded-full border border-cyan-800">
+                    <span className="text-[9px] sm:text-[10px] font-mono text-cyan-300 bg-cyan-950 px-2 py-0.5 rounded-full border border-cyan-800">
                       {sw.categoryLabelAr}
                     </span>
                   </div>
 
-                  <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
+                  <p className="text-[11px] sm:text-xs text-slate-300 line-clamp-2 leading-relaxed">
                     {sw.description}
                   </p>
 
-                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-                    <span>مستخدم في: {sw.usedInCourses.slice(0, 2).join(', ')}</span>
-                    <span className="font-mono text-cyan-400">سنة {sw.academicYears.join('-')}</span>
+                  <div className="pt-1.5 sm:pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400">
+                    <span className="truncate">مستخدم في: {sw.usedInCourses.slice(0, 2).join(', ')}</span>
+                    <span className="font-mono text-cyan-400 shrink-0">سنة {sw.academicYears.join('-')}</span>
                   </div>
                 </div>
               ))}
@@ -775,11 +775,11 @@ export const ExhibitionModeModal: React.FC<ExhibitionModeModalProps> = ({
             <div className="flex justify-center gap-2 pt-1">
               <button
                 onClick={() => setSoftwareGroupIndex(0)}
-                className={`h-2 rounded-full transition-all ${softwareGroupIndex === 0 ? 'w-8 bg-cyan-400' : 'w-2 bg-slate-700'}`}
+                className={`h-1.5 sm:h-2 rounded-full transition-all ${softwareGroupIndex === 0 ? 'w-6 sm:w-8 bg-cyan-400' : 'w-2 bg-slate-700'}`}
               />
               <button
                 onClick={() => setSoftwareGroupIndex(1)}
-                className={`h-2 rounded-full transition-all ${softwareGroupIndex === 1 ? 'w-8 bg-cyan-400' : 'w-2 bg-slate-700'}`}
+                className={`h-1.5 sm:h-2 rounded-full transition-all ${softwareGroupIndex === 1 ? 'w-6 sm:w-8 bg-cyan-400' : 'w-2 bg-slate-700'}`}
               />
             </div>
           </div>
@@ -789,49 +789,49 @@ export const ExhibitionModeModal: React.FC<ExhibitionModeModalProps> = ({
         {/* SCENE 05: GRADUATION PROJECTS ("ما الذي يمكنني بناءه؟")                   */}
         {/* ===================================================================== */}
         {currentScene === 'graduation_projects' && (
-          <div className="max-w-6xl mx-auto w-full space-y-5 my-auto animate-fadeIn">
+          <div className="max-w-6xl mx-auto w-full space-y-3 sm:space-y-5 my-auto animate-fadeIn">
             <div className="text-center space-y-1">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-600 text-xs font-mono">
-                <GraduationCap className="w-3.5 h-3.5 text-cyan-400" />
+              <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-600 text-[10px] sm:text-xs font-mono">
+                <GraduationCap className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-cyan-400" />
                 <span>{exhibitionConfig?.graduationProjects?.badgeText || DEFAULT_EXHIBITION_CONFIG.graduationProjects.badgeText}</span>
               </div>
-              <h2 className="text-2xl sm:text-4xl font-black text-white">
+              <h2 className="text-xl sm:text-4xl font-black text-white">
                 {exhibitionConfig?.graduationProjects?.sectionTitle || DEFAULT_EXHIBITION_CONFIG.graduationProjects.sectionTitle}
               </h2>
-              <p className="text-xs sm:text-sm text-slate-300 max-w-2xl mx-auto">
+              <p className="text-[11px] sm:text-sm text-slate-300 max-w-2xl mx-auto px-2">
                 {exhibitionConfig?.graduationProjects?.descriptionHint || DEFAULT_EXHIBITION_CONFIG.graduationProjects.descriptionHint}
               </p>
             </div>
 
             {/* Grid of 3 Representative Graduation Projects */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-4">
               {GRADUATION_PROJECTS_DATA.slice(0, 3).map((proj) => (
                 <div
                   key={proj.id}
-                  className="p-5 rounded-3xl bg-[#081528] border-2 border-cyan-500/40 hover:border-cyan-400 shadow-2xl space-y-3 text-right flex flex-col justify-between"
+                  className="p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl bg-[#081528] border-2 border-cyan-500/40 hover:border-cyan-400 shadow-xl sm:shadow-2xl space-y-2 sm:space-y-3 text-right flex flex-col justify-between"
                 >
-                  <div className="space-y-2">
+                  <div className="space-y-1.5 sm:space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="px-2.5 py-1 rounded-lg bg-cyan-950 text-cyan-300 border border-cyan-800 text-[10px] font-mono font-bold">
+                      <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg bg-cyan-950 text-cyan-300 border border-cyan-800 text-[9px] sm:text-[10px] font-mono font-bold">
                         {proj.trackAr}
                       </span>
-                      <span className="px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800 text-[10px] font-mono">
+                      <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg bg-slate-900 text-slate-300 border border-slate-800 text-[9px] sm:text-[10px] font-mono">
                         {proj.difficultyAr}
                       </span>
                     </div>
-                    <h3 className="text-base font-black text-white leading-snug">
+                    <h3 className="text-sm sm:text-base font-black text-white leading-snug">
                       {proj.titleAr}
                     </h3>
-                    <p className="text-xs text-slate-300 line-clamp-3 leading-relaxed">
+                    <p className="text-[11px] sm:text-xs text-slate-300 line-clamp-2 sm:line-clamp-3 leading-relaxed">
                       {proj.summaryAr}
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-800/80 space-y-2">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[11px] text-slate-400 font-semibold">البرمجيات:</span>
+                  <div className="pt-2 sm:pt-3 border-t border-slate-800/80 space-y-1.5 sm:space-y-2">
+                    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+                      <span className="text-[10px] sm:text-[11px] text-slate-400 font-semibold">البرمجيات:</span>
                       {proj.requiredSoftware.map((sw) => (
-                        <span key={sw} className="px-2 py-0.5 rounded bg-slate-900 text-cyan-400 border border-slate-800 font-mono text-[10px] font-bold">
+                        <span key={sw} className="px-1.5 sm:px-2 py-0.5 rounded bg-slate-900 text-cyan-400 border border-slate-800 font-mono text-[9px] sm:text-[10px] font-bold">
                           {sw}
                         </span>
                       ))}
@@ -847,37 +847,39 @@ export const ExhibitionModeModal: React.FC<ExhibitionModeModalProps> = ({
         {/* SCENE 06: CAREER PATHS ("ماذا ستصبح؟ - من طالب إلى مهندس")           */}
         {/* ===================================================================== */}
         {currentScene === 'careers' && (
-          <div className="max-w-6xl mx-auto w-full space-y-5 my-auto animate-fadeIn">
+          <div className="max-w-6xl mx-auto w-full space-y-3 sm:space-y-5 my-auto animate-fadeIn">
             <div className="text-center space-y-1">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-600 text-xs font-mono">
-                <Award className="w-3.5 h-3.5 text-cyan-400" />
+              <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-600 text-[10px] sm:text-xs font-mono">
+                <Award className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-cyan-400" />
                 <span>{exhibitionConfig?.careers?.badgeText || DEFAULT_EXHIBITION_CONFIG.careers.badgeText}</span>
               </div>
-              <h2 className="text-2xl sm:text-4xl font-black text-white">
+              <h2 className="text-xl sm:text-4xl font-black text-white">
                 {exhibitionConfig?.careers?.sectionTitle || DEFAULT_EXHIBITION_CONFIG.careers.sectionTitle}
               </h2>
             </div>
 
-            {/* 8 Career Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* 8 Career Cards Grid: 2 cols on mobile, 4 cols on desktop */}
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
               {careerPaths.map((career, i) => {
                 const Icon = career.icon;
 
                 return (
                   <div
                     key={career.id || i}
-                    className={`p-4 rounded-3xl border ${career.colorClass || 'border-cyan-500/40 bg-cyan-950/40 text-cyan-300'} shadow-lg space-y-2 text-right transition-transform hover:-translate-y-1`}
+                    className={`p-2.5 sm:p-4 rounded-2xl sm:rounded-3xl border ${career.colorClass || 'border-cyan-500/40 bg-cyan-950/40 text-cyan-300'} shadow-md sm:shadow-lg space-y-1.5 text-right transition-transform hover:-translate-y-0.5 flex flex-col justify-between`}
                   >
-                    <div className="w-8 h-8 rounded-xl bg-slate-900/80 flex items-center justify-center text-cyan-400">
-                      <Icon className="w-4 h-4" />
+                    <div>
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-slate-900/80 flex items-center justify-center text-cyan-400 mb-1.5">
+                        <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      </div>
+                      <h4 className="font-bold text-white text-xs sm:text-sm leading-tight">
+                        {career.titleAr}
+                      </h4>
+                      <div className="text-[9px] sm:text-[10px] font-mono text-slate-400 truncate mt-0.5">
+                        {career.titleEn}
+                      </div>
                     </div>
-                    <h4 className="font-bold text-white text-sm">
-                      {career.titleAr}
-                    </h4>
-                    <div className="text-[10px] font-mono text-slate-400 truncate">
-                      {career.titleEn}
-                    </div>
-                    <p className="text-[11px] text-slate-300 leading-snug pt-1 border-t border-slate-800/80">
+                    <p className="text-[10px] sm:text-[11px] text-slate-300 leading-snug pt-1 border-t border-slate-800/80 line-clamp-2">
                       {career.domain}
                     </p>
                   </div>
@@ -888,42 +890,40 @@ export const ExhibitionModeModal: React.FC<ExhibitionModeModalProps> = ({
         )}
 
         {/* ===================================================================== */}
-        {/* SCENE 06: QR PORTAL & DIRECT ACCESS FOR BOOTH VISITORS                */}
+        {/* SCENE 07: QR PORTAL & DIRECT ACCESS FOR BOOTH VISITORS                */}
         {/* ===================================================================== */}
         {currentScene === 'qr_portal' && (
-          <div className="max-w-5xl mx-auto w-full text-center space-y-6 my-auto animate-fadeIn">
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-950/90 border border-cyan-500/60 text-cyan-300 text-xs font-mono">
-                <Smartphone className="w-4 h-4 text-cyan-400" />
+          <div className="max-w-5xl mx-auto w-full text-center space-y-3 sm:space-y-6 my-auto animate-fadeIn">
+            <div className="space-y-1 sm:space-y-2">
+              <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-cyan-950/90 border border-cyan-500/60 text-cyan-300 text-[10px] sm:text-xs font-mono">
+                <Smartphone className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-cyan-400" />
                 <span>{exhibitionConfig?.qrPortal?.badgeText || DEFAULT_EXHIBITION_CONFIG.qrPortal.badgeText}</span>
               </div>
-              <h2 className="text-3xl sm:text-5xl font-black text-white">
+              <h2 className="text-xl sm:text-4xl lg:text-5xl font-black text-white">
                 {exhibitionConfig?.qrPortal?.title || DEFAULT_EXHIBITION_CONFIG.qrPortal.title}
               </h2>
-              <p className="text-xs sm:text-base text-slate-300 max-w-xl mx-auto">
+              <p className="text-[11px] sm:text-base text-slate-300 max-w-xl mx-auto px-2">
                 {exhibitionConfig?.qrPortal?.description || DEFAULT_EXHIBITION_CONFIG.qrPortal.description}
               </p>
             </div>
 
             {/* High-Contrast QR Code Centerpiece */}
-            <div className="flex justify-center">
-              <div className="p-4 sm:p-6 rounded-3xl bg-[#060d1a] shadow-2xl border-4 border-cyan-500 max-w-xs sm:max-w-sm">
-                <QRCodeDisplay
-                  url={exhibitionConfig?.qrPortal?.customQrUrl || currentAppUrl}
-                  title={exhibitionConfig?.qrPortal?.qrTitle || "مسح رمز المنصة"}
-                  subtitle={exhibitionConfig?.qrPortal?.qrSubtitle || "وجّه كاميرا هاتفك لفتح الرابط"}
-                  isModal={false}
-                />
-              </div>
+            <div className="flex justify-center max-w-md mx-auto w-full">
+              <QRCodeDisplay
+                url={exhibitionConfig?.qrPortal?.customQrUrl || currentAppUrl}
+                title={exhibitionConfig?.qrPortal?.qrTitle || "مسح رمز المنصة"}
+                subtitle={exhibitionConfig?.qrPortal?.qrSubtitle || "وجّه كاميرا هاتفك لفتح الرابط"}
+                isModal={false}
+              />
             </div>
 
             {/* Four Quick Pillars */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-w-3xl mx-auto text-xs font-bold text-slate-300">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2.5 max-w-3xl mx-auto text-[11px] sm:text-xs font-bold text-slate-300">
               {(exhibitionConfig?.qrPortal?.pillars || DEFAULT_EXHIBITION_CONFIG.qrPortal.pillars).map((pillar, i) => {
                 const PillarIcon = ICON_LOOKUP[pillar.iconKey] || Layers;
                 return (
-                  <div key={pillar.id || i} className="p-2.5 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-center gap-2">
-                    <PillarIcon className="w-4 h-4 text-cyan-400" />
+                  <div key={pillar.id || i} className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-center gap-1.5 sm:gap-2">
+                    <PillarIcon className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-cyan-400" />
                     <span>{pillar.title}</span>
                   </div>
                 );

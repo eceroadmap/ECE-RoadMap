@@ -15,7 +15,7 @@ export async function fetchPlatformStatistics(): Promise<PlatformStatistics> {
     const studentsSnap = await getDocs(collection(db, 'students'));
     const tipsSnap = await getDocs(collection(db, 'communityTips'));
 
-    const totalRegistered = studentsSnap?.size || 0;
+    let totalRegistered = 0;
     let cloudSyncedCount = 0;
     let onboardingCompletedCount = 0;
     let savedLaptopCount = 0;
@@ -28,6 +28,19 @@ export async function fetchPlatformStatistics(): Promise<PlatformStatistics> {
 
     studentsSnap?.forEach((docSnap) => {
       const data = docSnap.data() || {};
+      const email = (data.email || '').toLowerCase().trim();
+      const name = (data.displayName || '').toLowerCase().trim();
+      const isOwner = 
+        email === 'marwa.mgd.shmdeen@gmail.com' ||
+        email.includes('marwa.mgd.shmdeen') ||
+        data.role === 'super_admin' ||
+        data.isOwner === true ||
+        name.includes('المهندسة مروة') ||
+        name.includes('مدير المنصة');
+
+      if (isOwner) return;
+
+      totalRegistered++;
       if (data.email) {
         cloudSyncedCount++;
       }

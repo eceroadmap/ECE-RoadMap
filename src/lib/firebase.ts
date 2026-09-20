@@ -45,15 +45,11 @@ export const resolvedFirebaseConfig = {
   firestoreDatabaseId: env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || (firebaseConfig as any).firestoreDatabaseId || undefined
 };
 
-// Global Production URL Provider
+// Global Production Canonical URL
+export const CANONICAL_PRODUCTION_URL = 'https://www.eceroadmap.workers.dev/';
+
 export function getProductionAppUrl(): string {
-  if (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_PUBLIC_APP_URL) {
-    return (import.meta as any).env.VITE_PUBLIC_APP_URL.replace(/\/$/, '');
-  }
-  if (typeof window !== 'undefined' && window.location.origin && !window.location.origin.includes('localhost') && !window.location.origin.includes('127.0.0.1')) {
-    return window.location.origin;
-  }
-  return typeof window !== 'undefined' ? window.location.href.split('#')[0] : 'https://eceroadmap.damascusuniversity.sy';
+  return CANONICAL_PRODUCTION_URL;
 }
 
 // Initialize Firebase App

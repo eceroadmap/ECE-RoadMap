@@ -433,10 +433,23 @@ export const adminRepository = {
     const p = 'students';
     try {
       const snap = await getDocs(collection(db, p));
-      return snap.docs.map(d => ({
-        uid: d.id,
-        ...(d.data() as Omit<AdminStudentRecord, 'uid'>)
-      }));
+      return snap.docs
+        .map(d => ({
+          uid: d.id,
+          ...(d.data() as Omit<AdminStudentRecord, 'uid'>)
+        }))
+        .filter(s => {
+          const email = s.email?.toLowerCase().trim() || '';
+          const name = s.displayName?.toLowerCase().trim() || '';
+          const isOwnerAccount = 
+            email === 'marwa.mgd.shmdeen@gmail.com' ||
+            email.includes('marwa.mgd.shmdeen') ||
+            (s.role as any) === 'super_admin' ||
+            (s as any).isOwner === true ||
+            name.includes('المهندسة مروة') ||
+            name.includes('مدير المنصة');
+          return !isOwnerAccount;
+        });
     } catch (error) {
       console.warn('Failed to list students from Firestore:', error);
       return [];
