@@ -31,9 +31,11 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
           {/* Column 1: Brand & Department info */}
           <div className="md:col-span-2 space-y-3">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-700 flex items-center justify-center text-white">
-                <Layers className="w-4 h-4 text-cyan-100" />
-              </div>
+              <img 
+                src="/icon.png" 
+                alt="ECE RoadMap Icon" 
+                className="w-8 h-8 rounded-lg object-cover border border-cyan-400/40 shadow-sm" 
+              />
               <div>
                 <span className="text-lg font-bold text-white font-mono">
                   ECE <span className="text-cyan-400">RoadMap</span>

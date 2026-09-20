@@ -185,9 +185,11 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => handleNavClick('home')}
             className="flex items-center gap-2.5 text-right group focus:outline-none focus:ring-2 focus:ring-cyan-500/50 rounded-lg p-1 transition-transform active:scale-95 shrink-0 min-h-[44px]"
           >
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-700 flex items-center justify-center text-white shadow-md shadow-cyan-950 border border-cyan-400/40 shrink-0">
-              <Layers className="w-5 h-5 text-cyan-100 group-hover:rotate-6 transition-transform" />
-            </div>
+            <img 
+              src="/icon.png" 
+              alt="ECE RoadMap Icon" 
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-cover shadow-md shadow-cyan-950 border border-cyan-400/40 shrink-0 group-hover:scale-105 transition-transform" 
+            />
             <div className="text-right">
               <div className="flex items-center gap-1.5">
                 <span className="text-lg sm:text-xl font-black tracking-tight text-white font-mono">
