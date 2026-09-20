@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Course, AcademicYearNumber, SoftwareTool } from '../types';
 import { COURSES_DATA } from '../data/courses';
+import { soundEffects } from '../utils/soundEffects';
 
 interface CoursesSectionProps {
   initialYearFilter?: AcademicYearNumber | 'all';
@@ -97,7 +98,10 @@ export const CoursesSection: React.FC<CoursesSectionProps> = ({
             ].map((item) => (
               <button
                 key={item.id}
-                onClick={() => setYearFilter(item.id as any)}
+                onClick={() => {
+                  soundEffects.playClick();
+                  setYearFilter(item.id as any);
+                }}
                 className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors ${
                   yearFilter === item.id
                     ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
@@ -156,7 +160,10 @@ export const CoursesSection: React.FC<CoursesSectionProps> = ({
           <div
             key={course.id}
             id={`course-card-${course.id}`}
-            onClick={() => onSelectCourse(course)}
+            onClick={() => {
+              soundEffects.playModalOpen();
+              onSelectCourse(course);
+            }}
             className="p-5 rounded-2xl bg-[#091527] border border-slate-800/80 hover:border-cyan-500/50 hover:bg-[#0c1c33] transition-all duration-200 shadow-lg cursor-pointer flex flex-col justify-between group"
           >
             <div className="space-y-3">

@@ -39,6 +39,8 @@ const translations: Record<Language, Record<string, string>> = {
     'lang.toggle': 'English',
     'lang.current': 'العربية',
     'lang.select': 'لغة العرض',
+    'sound.mute': 'كتم المؤثرات الصوتية',
+    'sound.unmute': 'تفعيل الأصوات التفاعلية',
 
     // Registration & Login Modal
     'auth.portal_title': 'بوابة الانضمام والتعريف',
@@ -132,6 +134,8 @@ const translations: Record<Language, Record<string, string>> = {
     'lang.toggle': 'العربية',
     'lang.current': 'English',
     'lang.select': 'Language',
+    'sound.mute': 'Mute UI sound effects',
+    'sound.unmute': 'Enable interactive UI sound effects',
 
     // Registration & Login Modal
     'auth.portal_title': 'Welcome & Identity Portal',

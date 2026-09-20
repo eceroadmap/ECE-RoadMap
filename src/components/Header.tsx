@@ -23,12 +23,15 @@ import {
   User,
   LogIn,
   Languages,
-  Globe
+  Globe,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { ActiveTab } from '../types';
 import { useStudentState } from '../services/useStudentState';
 import { adminAuthService } from '../services/admin/adminAuth';
 import { useLanguage } from '../context/LanguageContext';
+import { soundEffects } from '../utils/soundEffects';
 
 interface HeaderProps {
   activeTab: ActiveTab;
@@ -50,9 +53,15 @@ export const Header: React.FC<HeaderProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreDropdownOpen, setMoreDropdownOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSoundMuted, setIsSoundMuted] = useState(() => soundEffects.isMuted());
   const moreDropdownRef = useRef<HTMLDivElement | null>(null);
   const { profile, isCloudSynced, isLoggedInWithGoogle, firebaseUser } = useStudentState();
   const { language, toggleLanguage, setLanguage, isArabic, t } = useLanguage();
+
+  const handleToggleSound = () => {
+    const nextMuted = soundEffects.toggleMute();
+    setIsSoundMuted(nextMuted);
+  };
 
   useEffect(() => {
     const unsub = adminAuthService.subscribe((status) => {
@@ -115,6 +124,7 @@ export const Header: React.FC<HeaderProps> = ({
   ];
 
   const handleNavClick = (tab: ActiveTab) => {
+    soundEffects.playTab();
     onSelectTab(tab);
     setMobileMenuOpen(false);
     setMoreDropdownOpen(false);
@@ -137,12 +147,39 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="hidden md:inline text-slate-400">{t('nav.faculty')}</span>
           </div>
 
-          {/* Top Quick Actions (Language Toggle, Exhibition Mode, QR Code) */}
+          {/* Top Quick Actions (Sound Toggle, Language Toggle, Exhibition Mode, QR Code) */}
           <div className="flex items-center gap-1.5 shrink-0 text-[11px]">
+            {/* Interactive Sound Toggle */}
+            <button
+              id="top-sound-toggle"
+              onClick={handleToggleSound}
+              title={isSoundMuted ? t('sound.unmute') : t('sound.mute')}
+              className={`px-2 py-0.5 rounded-full border transition-all font-semibold flex items-center gap-1 shadow-sm ${
+                !isSoundMuted 
+                  ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300' 
+                  : 'bg-slate-900/90 border-slate-700/80 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {!isSoundMuted ? (
+                <>
+                  <Volume2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  <span className="hidden sm:inline text-[10px]">{isArabic ? 'صوت مفعل' : 'Sound ON'}</span>
+                </>
+              ) : (
+                <>
+                  <VolumeX className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span className="hidden sm:inline text-[10px]">{isArabic ? 'صوت مكتوم' : 'Muted'}</span>
+                </>
+              )}
+            </button>
+
             {/* Top Language Switcher */}
             <button
               id="top-language-toggle"
-              onClick={toggleLanguage}
+              onClick={() => {
+                soundEffects.playToggle(!isArabic);
+                toggleLanguage();
+              }}
               title={isArabic ? 'Switch to English' : 'التحويل للغة العربية'}
               className="px-2.5 py-0.5 rounded-full bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 hover:border-cyan-500/50 text-cyan-300 transition-all font-semibold flex items-center gap-1 shadow-sm"
             >
@@ -152,7 +189,10 @@ export const Header: React.FC<HeaderProps> = ({
 
             {onOpenExhibition && (
               <button
-                onClick={onOpenExhibition}
+                onClick={() => {
+                  soundEffects.playModalOpen();
+                  onOpenExhibition();
+                }}
                 title={isArabic ? 'وضع الملتقى الأكاديمي للشاشات الكبيرة والمعارض' : 'Exhibition Mode for large screens'}
                 className="px-2.5 py-0.5 rounded-full bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-300 transition-colors font-semibold flex items-center gap-1 shadow-sm"
               >
@@ -164,7 +204,10 @@ export const Header: React.FC<HeaderProps> = ({
 
             {onOpenQRModal && (
               <button
-                onClick={onOpenQRModal}
+                onClick={() => {
+                  soundEffects.playModalOpen();
+                  onOpenQRModal();
+                }}
                 title={isArabic ? 'عرض رمز الـ QR للمسح عبر الهاتف' : 'Show QR code for mobile scan'}
                 className="px-2 py-0.5 rounded border border-slate-700/80 bg-slate-900/60 text-slate-300 hover:text-white transition-colors flex items-center gap-1"
               >
@@ -336,7 +379,10 @@ export const Header: React.FC<HeaderProps> = ({
             {onOpenSyncModal && (
               <button
                 id="cloud-sync-trigger"
-                onClick={onOpenSyncModal}
+                onClick={() => {
+                  soundEffects.playModalOpen();
+                  onOpenSyncModal();
+                }}
                 title={
                   isLoggedInWithGoogle 
                     ? `Google: ${firebaseUser?.displayName || firebaseUser?.email}` 
@@ -369,7 +415,10 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Search Trigger */}
             <button
               id="global-search-trigger"
-              onClick={onOpenSearch}
+              onClick={() => {
+                soundEffects.playModalOpen();
+                onOpenSearch();
+              }}
               className="flex items-center gap-2 px-2.5 sm:px-3 py-2 text-xs text-slate-300 bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/50 rounded-xl transition-all group min-h-[44px]"
               aria-label={t('nav.search')}
             >
@@ -383,7 +432,10 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Mobile Menu Toggle */}
             <button
               id="mobile-menu-toggle"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              onClick={() => {
+                soundEffects.playToggle(!mobileMenuOpen);
+                setMobileMenuOpen(!mobileMenuOpen);
+              }}
               className="md:hidden p-2.5 rounded-xl text-slate-300 hover:text-white bg-slate-900/90 border border-slate-800 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 min-h-[44px] min-w-[44px] flex items-center justify-center"
               aria-label={mobileMenuOpen ? 'إغلاق القائمة' : 'فتح القائمة'}
             >

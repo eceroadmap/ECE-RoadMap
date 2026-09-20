@@ -21,6 +21,7 @@ import { useStudentState } from '../services/useStudentState';
 import { guestVisitorService, GuestVisitorRecord } from '../services/guestVisitorService';
 import { AcademicYearNumber } from '../types';
 import { useLanguage } from '../context/LanguageContext';
+import { soundEffects } from '../utils/soundEffects';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -86,6 +87,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     try {
       const user = await signInWithGoogle();
       if (user) {
+        soundEffects.playSuccess();
         setSuccessMsg(
           isArabic 
             ? `أهلاً بك يا ${user.displayName || 'مهندسنا العزيز'}! تم تسجيل الدخول بنجاح ومزامنة حسابك.`
@@ -148,6 +150,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       });
 
       setStoredGuest(record);
+      soundEffects.playSuccess();
       setSuccessMsg(
         isArabic 
           ? `أهلاً بك يا ${record.fullName}! نتمنى لك تجربة ممتعة ومفيدة في رحلتك الأكاديمية.`
