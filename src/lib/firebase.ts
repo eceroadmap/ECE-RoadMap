@@ -9,6 +9,9 @@ import {
 } from 'firebase/auth';
 import { 
   getFirestore, 
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
   doc, 
   getDoc, 
   getDocs,
@@ -62,10 +65,19 @@ const app = getApps().length > 0 ? getApp() : initializeApp({
   messagingSenderId: resolvedFirebaseConfig.messagingSenderId,
 });
 
-// Initialize Firestore with custom database ID if present
-export const db = resolvedFirebaseConfig.firestoreDatabaseId
-  ? getFirestore(app, resolvedFirebaseConfig.firestoreDatabaseId)
-  : getFirestore(app);
+// Initialize Firestore with persistent local cache and fallback
+export const db = (function() {
+  try {
+    const cache = persistentLocalCache({ tabManager: persistentMultipleTabManager() });
+    return resolvedFirebaseConfig.firestoreDatabaseId
+      ? initializeFirestore(app, { localCache: cache }, resolvedFirebaseConfig.firestoreDatabaseId)
+      : initializeFirestore(app, { localCache: cache });
+  } catch (err) {
+    return resolvedFirebaseConfig.firestoreDatabaseId
+      ? getFirestore(app, resolvedFirebaseConfig.firestoreDatabaseId)
+      : getFirestore(app);
+  }
+})();
 
 // Initialize Firebase Auth
 export const auth = getAuth(app);
