@@ -89,13 +89,19 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         }, 1200);
       }
     } catch (err: any) {
-      if (err?.code === 'auth/popup-closed-by-user' || err?.code === 'auth/cancelled-popup-request') {
-        return;
-      }
-      if (err?.code === 'auth/network-request-failed') {
+      const code = err?.code || '';
+      console.warn('Google Sign-In Error Code:', code, err);
+      
+      if (code === 'auth/unauthorized-domain') {
+        setErrorMsg('نطاق الاستضافة الحالي يحتاج للإضافة في قائمة النطاقات المصرح بها (Authorized Domains) في إعدادات Firebase Console. يمكنك المتابعة فوراً بالدخول السريع بالاسم والكنية أدناه.');
+      } else if (code === 'auth/popup-blocked') {
+        setErrorMsg('قام المتصفح بحظر نافذة Google المنبثقة. يرجى السماح بالنوافذ المنبثقة أو المتابعة بالدخول السريع.');
+      } else if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+        setErrorMsg('تم إغلاق نافذة تسجيل الدخول المنبثقة. يمكنك إعادة المحاولة أو المتابعة بالدخول السريع بالاسم.');
+      } else if (code === 'auth/network-request-failed') {
         setErrorMsg('تعذر الاتصال بخوادم المصادقة. يرجى التحقق من اتصال الإنترنت.');
       } else {
-        setErrorMsg('تعذر إتمام تسجيل الدخول بـ Google. يرجى المحاولة لاحقاً أو الدخول السريع بالاسم.');
+        setErrorMsg('تعذر إتمام الدخول بـ Google في بيئة الاستضافة الحالية. يمكنك المتابعة فوراً بالدخول السريع بالاسم والكنية.');
       }
     } finally {
       setIsLoading(false);
@@ -200,9 +206,25 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
         {/* Feedback Messages */}
         {errorMsg && (
-          <div className="p-3.5 rounded-2xl bg-rose-950/80 border border-rose-500/40 text-rose-300 text-xs font-bold flex items-center gap-2 animate-fadeIn">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-            <span>{errorMsg}</span>
+          <div className="p-3.5 rounded-2xl bg-rose-950/80 border border-rose-500/40 text-rose-200 text-xs font-medium space-y-2 animate-fadeIn">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
+              <span className="leading-relaxed">{errorMsg}</span>
+            </div>
+            {mode === 'choose' && (
+              <div className="pt-1 flex justify-end">
+                <button
+                  onClick={() => {
+                    setErrorMsg(null);
+                    setMode('guest_form');
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[11px] transition-colors flex items-center gap-1 shadow-sm"
+                >
+                  <User className="w-3.5 h-3.5" />
+                  <span>المتابعة بالدخول السريع بالاسم</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
 

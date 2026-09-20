@@ -85,11 +85,7 @@ export async function signInWithGoogle(): Promise<User | null> {
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
   } catch (error: any) {
-    // Handle user closure or cancellation gracefully
-    if (error?.code === 'auth/popup-closed-by-user' || error?.code === 'auth/cancelled-popup-request') {
-      return null;
-    }
-    console.warn('Google sign-in attempt warning:', error?.message || error);
+    console.warn('Google sign-in attempt warning:', error?.code, error?.message || error);
     throw error;
   }
 }
