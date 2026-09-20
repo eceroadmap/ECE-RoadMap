@@ -136,6 +136,49 @@
         "lastVisitedAt": { "type": "string", "description": "ISO timestamp of last unique visitor arrival" },
         "createdAt": { "type": "string", "description": "Creation timestamp" }
       }
+    },
+    "guest_visitors": {
+      "description": "Registered guest student records with first name and last name",
+      "fields": {
+        "id": { "type": "string", "description": "Guest visitor unique identifier" },
+        "firstName": { "type": "string", "description": "Student first name" },
+        "lastName": { "type": "string", "description": "Student last name" },
+        "fullName": { "type": "string", "description": "Student combined full name" },
+        "academicYear": { "type": "string|number", "description": "Academic year or interest" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of guest registration" }
+      }
+    },
+    "course_skill_pipelines": {
+      "description": "Curriculum transformation pipelines from academic courses to practical engineering skills",
+      "fields": {
+        "id": { "type": "string", "description": "Pipeline unique identifier" },
+        "category": { "type": "string", "description": "signals, embedded, networks, rf, circuits, or custom" },
+        "categoryLabelAr": { "type": "string", "description": "Arabic category title" },
+        "courseNameAr": { "type": "string", "description": "Name of the academic course in Arabic" },
+        "courseId": { "type": "string", "description": "Associated course identifier" },
+        "courseYear": { "type": "number", "description": "Academic year 1-5" },
+        "toolName": { "type": "string", "description": "Associated engineering software or tool" },
+        "toolCategory": { "type": "string", "description": "Tool specialty category" },
+        "learningCourseTitle": { "type": "string", "description": "Recommended online course or training path" },
+        "learningPlatform": { "type": "string", "description": "Hosting educational platform" },
+        "practicalSkillTitle": { "type": "string", "description": "Acquired practical engineering skill" },
+        "skillOutcomeAr": { "type": "string", "description": "Comprehensive practical outcome description" },
+        "careerPathAr": { "type": "string", "description": "Target job role or career outcome" },
+        "accentColor": { "type": "string", "description": "Tailwind color classes" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of update" }
+      }
+    },
+    "moderators": {
+      "description": "Authorized supervisors added exclusively by the platform owner/manager",
+      "fields": {
+        "id": { "type": "string", "description": "Moderator lowercase email as document ID" },
+        "email": { "type": "string", "description": "Supervisor Google email address" },
+        "displayName": { "type": "string", "description": "Supervisor name or academic title" },
+        "status": { "type": "string", "description": "active or inactive" },
+        "notes": { "type": "string", "description": "Responsibility notes or assigned year" },
+        "addedBy": { "type": "string", "description": "Owner email who authorized them" },
+        "addedAt": { "type": "string", "description": "ISO timestamp of authorization" }
+      }
     }
   }
 }

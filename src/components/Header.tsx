@@ -19,7 +19,9 @@ import {
   ChevronDown,
   MoreHorizontal,
   Award,
-  FolderGit2
+  FolderGit2,
+  User,
+  LogIn
 } from 'lucide-react';
 import { ActiveTab } from '../types';
 import { useStudentState } from '../services/useStudentState';
@@ -318,15 +320,31 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 id="cloud-sync-trigger"
                 onClick={onOpenSyncModal}
-                title={isLoggedInWithGoogle ? `حساب: ${firebaseUser?.displayName || firebaseUser?.email}` : "حساب الطالب والمزامنة"}
+                title={
+                  isLoggedInWithGoogle 
+                    ? `حساب Google: ${firebaseUser?.displayName || firebaseUser?.email}` 
+                    : profile.name 
+                      ? `الزائر: ${profile.name}` 
+                      : "تسجيل الدخول أو الدخول كزائر"
+                }
                 className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs text-slate-300 bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/50 rounded-xl transition-all min-h-[44px]"
               >
                 <div className="relative">
-                  <Cloud className={`w-4 h-4 ${isCloudSynced ? 'text-cyan-400' : 'text-slate-400'}`} />
-                  <span className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full ${isCloudSynced ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+                  {isLoggedInWithGoogle ? (
+                    <Cloud className={`w-4 h-4 ${isCloudSynced ? 'text-cyan-400' : 'text-slate-400'}`} />
+                  ) : profile.name ? (
+                    <User className="w-4 h-4 text-cyan-400" />
+                  ) : (
+                    <LogIn className="w-4 h-4 text-cyan-400" />
+                  )}
+                  <span className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full ${isLoggedInWithGoogle || profile.name ? 'bg-emerald-400' : 'bg-slate-500'}`} />
                 </div>
                 <span className="hidden xl:inline text-[11px] text-slate-300 font-medium">
-                  {isLoggedInWithGoogle ? (firebaseUser?.displayName?.split(' ')[0] || 'حسابي') : 'حساب الطالب'}
+                  {isLoggedInWithGoogle 
+                    ? (firebaseUser?.displayName?.split(' ')[0] || 'حسابي') 
+                    : profile.name 
+                      ? profile.name.split(' ')[0] 
+                      : 'تسجيل الدخول'}
                 </span>
               </button>
             )}

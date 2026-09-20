@@ -1,12 +1,29 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ActiveTab } from '../types';
-import { Layers, ShieldCheck, Heart } from 'lucide-react';
+import { Layers, ShieldCheck, Heart, Users, X, Send, ExternalLink, Sparkles } from 'lucide-react';
 
 interface FooterProps {
   onSelectTab: (tab: ActiveTab) => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
+  const [showDevModal, setShowDevModal] = useState(false);
+
+  // Close modal on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowDevModal(false);
+      }
+    };
+    if (showDevModal) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showDevModal]);
+
   return (
     <footer className="relative border-t border-slate-800/80 bg-[#040810] text-slate-400 mt-20 z-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -136,13 +153,101 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
               <span>الإدارة الأكاديمية (CMS)</span>
             </button>
             <span className="text-slate-700">|</span>
-            <div className="flex items-center gap-1.5">
-              <span>صُممت لخدمة وإرشاد طلاب الكلية</span>
-              <Heart className="w-3 h-3 text-rose-500 fill-rose-500/30" />
-            </div>
+            <button
+              id="open-devs-modal-btn"
+              onClick={() => setShowDevModal(true)}
+              className="hover:text-cyan-400 transition-colors flex items-center gap-1.5 text-xs text-slate-400 hover:text-cyan-300 cursor-pointer group"
+              title="عرض مطوري الموقع"
+            >
+              <Users className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
+              <span className="font-semibold underline-offset-4 group-hover:underline">مطورو الموقع</span>
+            </button>
           </div>
         </div>
       </div>
+
+      {/* نافذة مطورو الموقع (Developers Modal) */}
+      {showDevModal && (
+        <div
+          id="devs-modal-backdrop"
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 transition-all"
+          onClick={() => setShowDevModal(false)}
+        >
+          <div
+            id="devs-modal-card"
+            className="bg-[#070e18] border border-cyan-500/30 rounded-2xl max-w-lg w-full p-6 sm:p-7 shadow-2xl shadow-cyan-950/50 relative text-right"
+            dir="rtl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* زر الإغلاق */}
+            <button
+              id="close-devs-modal-btn"
+              onClick={() => setShowDevModal(false)}
+              className="absolute top-4 left-4 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors cursor-pointer"
+              aria-label="إغلاق النافذة"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* رأس النافذة */}
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">مطورو الموقع</h3>
+                <p className="text-xs text-cyan-400 font-medium mt-0.5">صمم هذا الموقع من قبل:</p>
+              </div>
+            </div>
+
+            {/* قائمة المساهمين وفِرق العمل */}
+            <div className="space-y-3 text-sm">
+              {/* فريق ملتقى وجهتك الأكاديمية */}
+              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-cyan-500/30 transition-colors">
+                <div className="font-semibold text-cyan-200 text-xs mb-1.5 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 inline-block"></span>
+                  <span>فريق ملتقى وجهتك الأكاديمية 2026:</span>
+                </div>
+                <p className="text-slate-200 text-xs font-medium leading-relaxed pr-3">
+                  غياث عثمان &bull; سنا ذوالغنى &bull; ليلاس ادلبي &bull; فاطمة دريع
+                </p>
+              </div>
+
+              {/* الهيئة الطلابية */}
+              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-cyan-500/30 transition-colors flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 inline-block"></span>
+                <span className="text-slate-200 text-xs font-semibold">
+                  الهيئة الطلابية في قسم هندسة الإلكترونيات والاتصالات
+                </span>
+              </div>
+
+              {/* فريق نون التطوعي */}
+              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-cyan-500/30 transition-colors flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 inline-block"></span>
+                <span className="text-slate-200 text-xs font-semibold">
+                  فريق نون التطوعي
+                </span>
+              </div>
+            </div>
+
+            {/* قسم التواصل والاستفسار */}
+            <div className="mt-6 pt-5 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <span className="text-xs text-slate-300 font-medium">للتواصل والاستفسار:</span>
+              <a
+                id="dev-telegram-contact-btn"
+                href="https://t.me/gh1_ot"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs transition-all shadow-lg shadow-cyan-500/20 hover:scale-[1.02] cursor-pointer"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>تواصل عبر تيليغرام (@gh1_ot)</span>
+                <ExternalLink className="w-3 h-3 opacity-80" />
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </footer>
   );
 };

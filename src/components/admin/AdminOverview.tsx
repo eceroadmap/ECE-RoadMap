@@ -15,33 +15,39 @@ import {
   ArrowUpRight,
   ShieldCheck,
   GraduationCap,
-  MonitorPlay
+  MonitorPlay,
+  GitMerge,
+  UserPlus
 } from 'lucide-react';
 import { PlatformStatistics, AdminActivityLog } from '../../types/admin';
 import { fetchPlatformStatistics } from '../../services/admin/adminStats';
 import { adminRepository } from '../../services/admin/adminRepository';
+import { adminAuthService } from '../../services/admin/adminAuth';
 import { AcademicYearNumber } from '../../types';
 
 interface AdminOverviewProps {
   onNavigateSection: (section: string) => void;
   onOpenSeeder: () => void;
+  isOwner?: boolean;
 }
 
 export const AdminOverview: React.FC<AdminOverviewProps> = ({ 
   onNavigateSection,
-  onOpenSeeder 
+  onOpenSeeder,
+  isOwner = false
 }) => {
   const [stats, setStats] = useState<PlatformStatistics | null>(null);
   const [recentLogs, setRecentLogs] = useState<AdminActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const effectiveIsOwner = isOwner || adminAuthService.getIsOwner();
+
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [statsData, logsData] = await Promise.all([
-        fetchPlatformStatistics(),
-        adminRepository.getLogs(6)
-      ]);
+      const statsPromise = fetchPlatformStatistics();
+      const logsPromise = effectiveIsOwner ? adminRepository.getLogs(6) : Promise.resolve([]);
+      const [statsData, logsData] = await Promise.all([statsPromise, logsPromise]);
       setStats(statsData);
       setRecentLogs(logsData);
     } catch (e) {
@@ -53,7 +59,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [effectiveIsOwner]);
 
   return (
     <div className="space-y-7">
@@ -279,6 +285,15 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
           </button>
 
           <button
+            onClick={() => onNavigateSection('course_skills')}
+            className="p-4 rounded-2xl bg-slate-900/80 hover:bg-slate-850 border border-slate-800 hover:border-cyan-500/50 text-right space-y-2 transition-all group"
+          >
+            <GitMerge className="w-5 h-5 text-cyan-400 group-hover:scale-110 transition-transform" />
+            <div className="text-xs font-bold text-white">المادة إلى المهارة</div>
+            <div className="text-[10px] text-slate-500">ربط المقررات بمهارات العمل</div>
+          </button>
+
+          <button
             onClick={() => onNavigateSection('software')}
             className="p-4 rounded-2xl bg-slate-900/80 hover:bg-slate-850 border border-slate-800 hover:border-cyan-500/50 text-right space-y-2 transition-all group"
           >
@@ -314,55 +329,70 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
             <div className="text-[10px] text-slate-500">مراجعة نصائح الطلاب</div>
           </button>
 
-          <button
-            onClick={() => onNavigateSection('logs')}
-            className="p-4 rounded-2xl bg-slate-900/80 hover:bg-slate-850 border border-slate-800 hover:border-cyan-500/50 text-right space-y-2 transition-all group"
-          >
-            <Clock className="w-5 h-5 text-rose-400 group-hover:scale-110 transition-transform" />
-            <div className="text-xs font-bold text-white">سجل العمليات</div>
-            <div className="text-[10px] text-slate-500">التدقيق الأمني والنشاط</div>
-          </button>
+          {effectiveIsOwner && (
+            <button
+              onClick={() => onNavigateSection('moderators')}
+              className="p-4 rounded-2xl bg-slate-900/80 hover:bg-slate-850 border border-slate-800 hover:border-cyan-500/50 text-right space-y-2 transition-all group"
+            >
+              <UserPlus className="w-5 h-5 text-cyan-400 group-hover:scale-110 transition-transform" />
+              <div className="text-xs font-bold text-white">إدارة المشرفين</div>
+              <div className="text-[10px] text-slate-500">إضافة وتعيين الصلاحيات</div>
+            </button>
+          )}
+
+          {effectiveIsOwner && (
+            <button
+              onClick={() => onNavigateSection('logs')}
+              className="p-4 rounded-2xl bg-slate-900/80 hover:bg-slate-850 border border-slate-800 hover:border-cyan-500/50 text-right space-y-2 transition-all group"
+            >
+              <Clock className="w-5 h-5 text-rose-400 group-hover:scale-110 transition-transform" />
+              <div className="text-xs font-bold text-white">سجل العمليات</div>
+              <div className="text-[10px] text-slate-500">التدقيق الأمني والنشاط</div>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* 4. Recent Activity Log Strip */}
-      <div className="p-6 rounded-3xl bg-[#091527] border border-slate-800 shadow-xl space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-cyan-400" />
-            <h3 className="text-sm font-bold text-white">آخر النشاطات والعمليات الإدارية</h3>
+      {/* 4. Recent Activity Log Strip (Owner only) */}
+      {effectiveIsOwner && (
+        <div className="p-6 rounded-3xl bg-[#091527] border border-slate-800 shadow-xl space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-cyan-400" />
+              <h3 className="text-sm font-bold text-white">آخر النشاطات والعمليات الإدارية</h3>
+            </div>
+            <button
+              onClick={() => onNavigateSection('logs')}
+              className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+            >
+              <span>عرض السجل الكامل</span>
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </button>
           </div>
-          <button
-            onClick={() => onNavigateSection('logs')}
-            className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
-          >
-            <span>عرض السجل الكامل</span>
-            <ArrowUpRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
 
-        {recentLogs.length > 0 ? (
-          <div className="divide-y divide-slate-800/80">
-            {recentLogs.map((log) => (
-              <div key={log.id} className="py-3 flex items-center justify-between gap-4 text-xs">
-                <div className="flex items-center gap-3">
-                  <span className="px-2 py-0.5 rounded-md bg-slate-800 text-cyan-300 font-mono text-[10px] border border-slate-700">
-                    {log.actionType}
-                  </span>
-                  <span className="text-slate-200">{log.details}</span>
+          {recentLogs.length > 0 ? (
+            <div className="divide-y divide-slate-800/80">
+              {recentLogs.map((log) => (
+                <div key={log.id} className="py-3 flex items-center justify-between gap-4 text-xs">
+                  <div className="flex items-center gap-3">
+                    <span className="px-2 py-0.5 rounded-md bg-slate-800 text-cyan-300 font-mono text-[10px] border border-slate-700">
+                      {log.actionType}
+                    </span>
+                    <span className="text-slate-200">{log.details}</span>
+                  </div>
+                  <div className="text-[11px] text-slate-500 font-mono shrink-0">
+                    {new Date(log.timestamp).toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
                 </div>
-                <div className="text-[11px] text-slate-500 font-mono shrink-0">
-                  {new Date(log.timestamp).toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit' })}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-xs text-slate-500 text-center py-4">
-            لم تسجل أي عمليات إدارية بعد. ستظهر هنا كافة التعديلات والتحديثات فور حدوثها.
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-xs text-slate-500 text-center py-4">
+              لم تسجل أي عمليات إدارية بعد. ستظهر هنا كافة التعديلات والتحديثات فور حدوثها.
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

@@ -10,13 +10,21 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Secure Administrator Check
-    // Checks if the user exists in the protected /admins collection,
-    // or matches the initial verified project administrator.
+    // Super Administrator Check (Platform Owner / Manager only)
+    function isSuperAdmin() {
+      return isAuthenticated() && (
+        (request.auth.token.email.lower() == "marwa.mgd.shmdeen@gmail.com" && request.auth.token.email_verified == true)
+        || (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'super_admin')
+      );
+    }
+
+    // Secure Administrator & Supervisor Check
+    // Grants editing permissions to Super Admin, registered Admins, or authorized Moderators
     function isAdmin() {
       return isAuthenticated() && (
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
-        || (request.auth.token.email.lower() == "marwa.mgd.shmdeen@gmail.com" && request.auth.token.email_verified == true)
+        isSuperAdmin()
+        || exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        || exists(/databases/$(database)/documents/moderators/$(request.auth.token.email.lower()))
       );
     }
 
@@ -137,10 +145,12 @@ service cloud.firestore {
     }
 
     // 8. Administrator Activity Audit Log
-    // Read and create strictly restricted to administrators.
+    // Read strictly restricted to the Super Admin (Platform Owner / Manager).
+    // Supervisors / Moderators can create logs for operations, but CANNOT view the audit log.
     // Updates and deletions are forbidden to ensure an immutable audit log.
     match /adminLogs/{logId} {
-      allow read, create: if isAdmin();
+      allow read: if isSuperAdmin();
+      allow create: if isAdmin();
       allow update, delete: if false;
     }
 
@@ -161,6 +171,32 @@ service cloud.firestore {
         && request.resource.data.totalVisits is number
         && request.resource.data.totalVisits >= resource.data.totalVisits
       ) || isAdmin();
+    }
+
+    // 11. Guest Student Visitors Registration
+    // Allows guest students to register their first name and last name into the database
+    match /guest_visitors/{guestId} {
+      allow read: if isAdmin();
+      allow create: if request.resource.data.firstName is string
+        && request.resource.data.firstName.size() >= 1
+        && request.resource.data.firstName.size() <= 60
+        && request.resource.data.lastName is string
+        && request.resource.data.lastName.size() >= 1
+        && request.resource.data.lastName.size() <= 60;
+      allow update, delete: if isAdmin();
+    }
+
+    // 12. Course to Skill Pipelines (من المادة إلى المهارة)
+    // Public read for all students; editable only by authorized administrators
+    match /course_skill_pipelines/{pipelineId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 13. Authorized Supervisors / Moderators (إدارة المشرفين)
+    // Only the Super Admin (Manager/Owner) can read, add, update, or remove supervisors.
+    match /moderators/{modId} {
+      allow read, write: if isSuperAdmin();
     }
   }
 }

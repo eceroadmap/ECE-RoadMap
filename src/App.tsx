@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ActiveTab, Course, SoftwareTool, AcademicYearNumber } from './types';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
@@ -22,7 +22,7 @@ import { SoftwareModal } from './components/SoftwareModal';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
 import { StudentDashboard } from './components/StudentDashboard';
 import { OnboardingModal } from './components/OnboardingModal';
-import { AuthSyncModal } from './components/AuthSyncModal';
+import { LoginModal } from './components/LoginModal';
 import { AdminLayout } from './components/admin/AdminLayout';
 import { AcademicRecordSection } from './components/AcademicRecordSection';
 import { GraduationProjectNavigatorSection } from './components/GraduationProjectNavigatorSection';
@@ -34,6 +34,7 @@ import { ArrowLeft, BookOpen, Cpu, Sparkles, Map, GraduationCap, Laptop, HelpCir
 import { COURSES_DATA } from './data/courses';
 import { SOFTWARE_DATA } from './data/software';
 import { useStudentState } from './services/useStudentState';
+import { guestVisitorService } from './services/guestVisitorService';
 import { getProductionAppUrl } from './lib/firebase';
 
 export default function App() {
@@ -42,7 +43,7 @@ export default function App() {
   const [selectedSoftware, setSelectedSoftware] = useState<SoftwareTool | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
-  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isExhibitionOpen, setIsExhibitionOpen] = useState(false);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [courseYearFilter, setCourseYearFilter] = useState<AcademicYearNumber | 'all'>('all');
@@ -53,8 +54,22 @@ export default function App() {
     updateProfile,
     graduationWorkspace,
     saveGraduationWorkspace,
-    toggleStarredProject
+    toggleStarredProject,
+    firebaseUser,
+    isLoggedInWithGoogle
   } = useStudentState();
+
+  const storedGuest = guestVisitorService.getStoredGuest();
+  const isIdentified = Boolean(
+    isLoggedInWithGoogle || 
+    firebaseUser || 
+    (profile.name && profile.name.trim().length > 0) || 
+    (storedGuest && storedGuest.fullName && storedGuest.fullName.trim().length > 0)
+  );
+
+  // If user is not identified yet, the entrance gate is mandatory and cannot be closed
+  const isMandatoryGate = !isIdentified;
+  const isModalVisible = isMandatoryGate || isLoginModalOpen;
 
   // Navigate between tabs cleanly
   const handleNavigateTab = (tab: ActiveTab, year?: AcademicYearNumber) => {
@@ -113,7 +128,7 @@ export default function App() {
         activeTab={activeTab}
         onSelectTab={(tab) => handleNavigateTab(tab)}
         onOpenSearch={() => setIsSearchOpen(true)}
-        onOpenSyncModal={() => setIsSyncModalOpen(true)}
+        onOpenSyncModal={() => setIsLoginModalOpen(true)}
         onOpenExhibition={() => setIsExhibitionOpen(true)}
         onOpenQRModal={() => setIsQRModalOpen(true)}
       />
@@ -263,7 +278,7 @@ export default function App() {
               onSelectCourse={(course) => setSelectedCourse(course)}
               onSelectSoftware={(sw) => setSelectedSoftware(sw)}
               onOpenOnboarding={() => setIsOnboardingOpen(true)}
-              onOpenSyncModal={() => setIsSyncModalOpen(true)}
+              onOpenSyncModal={() => setIsLoginModalOpen(true)}
             />
           </div>
         )}
@@ -381,10 +396,18 @@ export default function App() {
         }}
       />
 
-      {/* Cloud Sync & Firebase Account Modal */}
-      <AuthSyncModal
-        isOpen={isSyncModalOpen}
-        onClose={() => setIsSyncModalOpen(false)}
+      {/* Attractive Login & Registration Entrance Gate */}
+      <LoginModal
+        isOpen={isModalVisible}
+        isMandatory={isMandatoryGate}
+        onClose={() => {
+          if (!isMandatoryGate) {
+            setIsLoginModalOpen(false);
+          }
+        }}
+        onSuccess={() => {
+          setIsLoginModalOpen(false);
+        }}
       />
 
       {/* Exhibition Mode Modal */}

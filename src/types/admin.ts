@@ -24,10 +24,22 @@ export interface AdminRecord {
   uid: string;
   displayName: string;
   email: string;
-  role: 'admin' | 'super_admin';
+  role: 'admin' | 'super_admin' | 'moderator';
   status: 'active' | 'inactive';
   createdAt: string;
   updatedAt: string;
+  isOwner?: boolean;
+}
+
+export interface ModeratorRecord {
+  id: string; // Document ID (usually sanitized email)
+  email: string;
+  displayName?: string;
+  status: 'active' | 'inactive';
+  notes?: string;
+  addedBy: string;
+  addedAt: string;
+  lastActiveAt?: string;
 }
 
 export type AdminContentType = 

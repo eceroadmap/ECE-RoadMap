@@ -37,6 +37,9 @@ import { CurriculumSeederModal } from './CurriculumSeederModal';
 import { ExhibitionManager } from './ExhibitionManager';
 import { AdminSettingsView } from './AdminSettingsView';
 import { AdminGraduationProjectsView } from './AdminGraduationProjectsView';
+import { CourseSkillsManager } from './CourseSkillsManager';
+import { ModeratorsManager } from './ModeratorsManager';
+import { GitMerge, UserPlus } from 'lucide-react';
 
 interface AdminLayoutProps {
   onBackToApp: () => void;
@@ -163,17 +166,28 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToApp }) => {
   }
 
   // 3. Authorized Administrator Dashboard
+  const isOwner = adminRecord?.isOwner === true || adminAuthService.getIsOwner();
+
+  // Redirect supervisors away from owner-only sections
+  useEffect(() => {
+    if (!isOwner && (activeSection === 'logs' || activeSection === 'moderators')) {
+      setActiveSection('overview');
+    }
+  }, [isOwner, activeSection]);
+
   const navItems = [
     { id: 'overview', label: 'لوحة القيادة والإحصائيات', icon: LayoutDashboard },
+    ...(isOwner ? [{ id: 'moderators', label: 'إدارة المشرفين والصلاحيات', icon: UserPlus }] : []),
     { id: 'exhibition', label: 'إدارة شرائح وضع الملتقى', icon: MonitorPlay },
     { id: 'graduation_projects', label: 'إدارة مشاريع التخرج', icon: FolderGit2 },
     { id: 'students', label: 'إدارة الطلاب', icon: GraduationCap },
     { id: 'courses', label: 'إدارة المقررات الدراسية', icon: BookOpen },
+    { id: 'course_skills', label: 'تعديل (من المادة إلى المهارة)', icon: GitMerge },
     { id: 'software', label: 'إدارة برمجيات المحاكاة', icon: Cpu },
     { id: 'resources', label: 'موارد ومصادر فريق نُون', icon: Sparkles },
     { id: 'faq', label: 'الأسئلة الشائعة الأكاديمية', icon: HelpCircle },
     { id: 'community', label: 'الإشراف على نصائح الطلاب', icon: Users },
-    { id: 'logs', label: 'سجل العمليات الإدارية', icon: Clock },
+    ...(isOwner ? [{ id: 'logs', label: 'سجل العمليات الإدارية', icon: Clock }] : []),
     { id: 'settings', label: 'إعدادات النظام الأكاديمي', icon: Settings },
   ];
 
@@ -197,8 +211,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToApp }) => {
             <div>
               <div className="text-xs font-black text-white flex items-center gap-1.5">
                 <span>إدارة ECE RoadMap الأكاديمية</span>
-                <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 text-[10px] font-mono">
-                  {adminRecord?.role || 'Admin'}
+                <span className={`hidden sm:inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                  isOwner 
+                    ? 'bg-amber-950/80 text-amber-300 border-amber-800' 
+                    : 'bg-cyan-950/80 text-cyan-300 border-cyan-800'
+                }`}>
+                  {isOwner ? 'المالك (مدير المنصة)' : 'مشرف معتمد (صلاحيات تحرير)'}
                 </span>
               </div>
               <div className="text-[10px] text-slate-400 font-mono hidden sm:block">
@@ -304,16 +322,21 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToApp }) => {
             <AdminOverview 
               onNavigateSection={setActiveSection}
               onOpenSeeder={() => setIsSeederModalOpen(true)}
+              isOwner={isOwner}
             />
           )}
+
+          {activeSection === 'moderators' && isOwner && <ModeratorsManager />}
 
           {activeSection === 'exhibition' && <ExhibitionManager />}
 
           {activeSection === 'graduation_projects' && <AdminGraduationProjectsView />}
 
-          {activeSection === 'students' && <StudentsManager />}
+          {activeSection === 'students' && <StudentsManager isOwner={isOwner} />}
 
           {activeSection === 'courses' && <CoursesManager />}
+
+          {activeSection === 'course_skills' && <CourseSkillsManager />}
 
           {activeSection === 'software' && <SoftwareManager />}
 
@@ -323,7 +346,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToApp }) => {
 
           {activeSection === 'community' && <CommunityModeration />}
 
-          {activeSection === 'logs' && <ActivityLogView />}
+          {activeSection === 'logs' && isOwner && <ActivityLogView />}
 
           {activeSection === 'settings' && <AdminSettingsView />}
         </main>

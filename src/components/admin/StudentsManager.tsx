@@ -20,12 +20,20 @@ import {
 } from 'lucide-react';
 import { AdminStudentRecord } from '../../types/admin';
 import { adminRepository } from '../../services/admin/adminRepository';
+import { guestVisitorService } from '../../services/guestVisitorService';
 import { StudentProfileModal } from './StudentProfileModal';
+import { BOOTSTRAP_ADMIN_EMAIL, adminAuthService } from '../../services/admin/adminAuth';
 
-export const StudentsManager: React.FC = () => {
+interface StudentsManagerProps {
+  isOwner?: boolean;
+}
+
+export const StudentsManager: React.FC<StudentsManagerProps> = ({ isOwner = false }) => {
   const [students, setStudents] = useState<AdminStudentRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorType, setErrorType] = useState<'permission' | 'network' | null>(null);
+
+  const effectiveIsOwner = isOwner || adminAuthService.getIsOwner();
   
   // Search & Filters state
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,8 +48,38 @@ export const StudentsManager: React.FC = () => {
     setIsLoading(true);
     setErrorType(null);
     try {
-      const data = await adminRepository.getStudents();
-      setStudents(data);
+      const [studentsData, guestsData] = await Promise.all([
+        adminRepository.getStudents(),
+        guestVisitorService.fetchRecentGuests(100)
+      ]);
+
+      const guestRecords: AdminStudentRecord[] = guestsData.map((g) => ({
+        uid: g.id,
+        displayName: g.fullName,
+        email: 'دخول كزائر مسجل',
+        academicYear: (typeof g.academicYear === 'number' ? g.academicYear : 1) as any,
+        currentYear: (typeof g.academicYear === 'number' ? g.academicYear : 1) as any,
+        currentSemester: 1,
+        role: 'guest' as any,
+        roleLabelAr: 'زائر مسجل',
+        coursesCount: 0,
+        completedCoursesCount: 0,
+        starredProjectsCount: 0,
+        createdAt: g.createdAt,
+        lastLoginAt: g.createdAt,
+        authProvider: 'guest' as any
+      }));
+
+      // Combine both, avoiding duplicate IDs
+      const studentIds = new Set(studentsData.map((s) => s.uid));
+      const merged = [...studentsData];
+      for (const gr of guestRecords) {
+        if (!studentIds.has(gr.uid)) {
+          merged.push(gr);
+        }
+      }
+
+      setStudents(merged);
     } catch (err: any) {
       console.error('Error fetching students directory:', err);
       const errMsg = String(err?.message || err);
