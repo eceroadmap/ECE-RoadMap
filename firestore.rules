@@ -42,11 +42,10 @@ service cloud.firestore {
     }
 
     // 2. Dedicated Administrator Authorization Collection
-    // Only verified administrators can read and manage administrative roles.
-    // Arbitrary users and normal students are strictly forbidden from writing or querying this collection.
+    // Only verified administrators and authenticated users checking their own status can read.
     match /admins/{adminId} {
-      allow read: if isAdmin();
-      allow write: if isAdmin();
+      allow read: if isAuthenticated() && (request.auth.uid == adminId || isAdmin());
+      allow write: if isAdmin() || (isAuthenticated() && request.auth.uid == adminId && exists(/databases/$(database)/documents/moderators/$(request.auth.token.email.lower())));
     }
 
     // 3. Managed Public Curriculum Courses
@@ -194,9 +193,10 @@ service cloud.firestore {
     }
 
     // 13. Authorized Supervisors / Moderators (إدارة المشرفين)
-    // Only the Super Admin (Manager/Owner) can read, add, update, or remove supervisors.
+    // Only the Super Admin can manage supervisors; authenticated users can read their own authorization status.
     match /moderators/{modId} {
-      allow read, write: if isSuperAdmin();
+      allow read: if isAuthenticated() && (isSuperAdmin() || request.auth.token.email.lower() == modId.lower());
+      allow write: if isSuperAdmin();
     }
   }
 }

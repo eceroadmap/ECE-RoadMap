@@ -13,62 +13,8 @@ import { moderatorsService } from './moderatorsService';
 // The verified initial project administrator email (from project environment)
 export const BOOTSTRAP_ADMIN_EMAIL = 'marwa.mgd.shmdeen@gmail.com';
 
-enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-    },
-    operationType,
-    path
-  };
-  console.error('Firestore Admin Auth Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
-}
-
-const ADMIN_SESSION_STORAGE_KEY = 'ece_admin_authenticated_session';
-
-const VALID_SUPER_ADMIN_PASSCODES = [
-  'marwa.mgd.shmdeen@gmail.com',
-  'ece-admin-2025',
-  'ece-admin-2026',
-  'ece-admin',
-  'marwa2025',
-  'marwa-admin',
-  'admin123',
-  'admin'
-];
-
-function loadStoredAdminSession(): AdminRecord | null {
-  try {
-    const raw = localStorage.getItem(ADMIN_SESSION_STORAGE_KEY);
-    if (!raw) return null;
-    const data = JSON.parse(raw);
-    if (data && (data.isOwner || data.role === 'super_admin' || data.role === 'moderator')) {
-      return data as AdminRecord;
-    }
-  } catch (e) {
-    console.warn('Failed to parse admin session cache:', e);
-  }
-  return null;
-}
-
-const initialCachedRecord = loadStoredAdminSession();
-let currentAdminStatus = initialCachedRecord !== null;
-let currentAdminRecord: AdminRecord | null = initialCachedRecord;
+let currentAdminStatus = false;
+let currentAdminRecord: AdminRecord | null = null;
 const adminListeners: Set<(isAdmin: boolean, record: AdminRecord | null) => void> = new Set();
 
 function notifyAdminListeners() {
@@ -82,81 +28,11 @@ export function getIsOwner(): boolean {
 }
 
 /**
- * Authenticates admin directly using Master Passcode or Owner credentials
- */
-export async function loginWithPasscode(input: string): Promise<{ success: boolean; message: string; record?: AdminRecord }> {
-  const clean = input.trim().toLowerCase();
-  
-  // Check if owner passcode or email
-  if (VALID_SUPER_ADMIN_PASSCODES.includes(clean) || clean === BOOTSTRAP_ADMIN_EMAIL.toLowerCase()) {
-    const ownerData: AdminRecord = {
-      uid: auth.currentUser?.uid || 'super_admin_direct',
-      displayName: 'المهندسة مروة (مدير المنصة والمالك)',
-      email: BOOTSTRAP_ADMIN_EMAIL,
-      role: 'super_admin',
-      status: 'active',
-      isOwner: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    currentAdminStatus = true;
-    currentAdminRecord = ownerData;
-    try {
-      localStorage.setItem(ADMIN_SESSION_STORAGE_KEY, JSON.stringify(ownerData));
-    } catch (e) {
-      console.warn('Local storage error:', e);
-    }
-    notifyAdminListeners();
-    return { success: true, message: 'تم التحقق بنجاح! مرحباً بك كمدير أعلى للمنصة.', record: ownerData };
-  }
-
-  // Check if email in authorized moderators list
-  const isAuthorizedMod = await moderatorsService.checkIsEmailAuthorized(clean);
-  if (isAuthorizedMod) {
-    const modData: AdminRecord = {
-      uid: auth.currentUser?.uid || `mod_${Date.now()}`,
-      displayName: 'مشرف أكاديمي معتمد',
-      email: clean,
-      role: 'moderator',
-      status: 'active',
-      isOwner: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    currentAdminStatus = true;
-    currentAdminRecord = modData;
-    try {
-      localStorage.setItem(ADMIN_SESSION_STORAGE_KEY, JSON.stringify(modData));
-    } catch (e) {}
-    notifyAdminListeners();
-    return { success: true, message: 'تم التحقق من المشرف بنجاح.', record: modData };
-  }
-
-  return { 
-    success: false, 
-    message: 'رمز المرور أو البريد الإلكتروني غير مصرح له بالوصول الإداري.' 
-  };
-}
-
-/**
- * Sign out and clear cached admin session
- */
-export function logoutAdmin() {
-  try {
-    localStorage.removeItem(ADMIN_SESSION_STORAGE_KEY);
-  } catch (e) {}
-  currentAdminStatus = false;
-  currentAdminRecord = null;
-  notifyAdminListeners();
-}
-
-/**
  * Verifies whether the specified Firebase User possesses administrator privileges.
- * Validation priority:
+ * Validation priority (Pure Google Authentication):
  * 1. Checks if user is the bootstrapped verified project owner email.
  * 2. Checks Firestore `admins/{uid}` document existence.
- * 3. Checks if user email is authorized in `moderators` list.
+ * 3. Checks if user email is authorized in `moderators` collection.
  */
 export async function checkIsAdmin(user: User | null): Promise<boolean> {
   if (!user || user.isAnonymous) {
@@ -167,6 +43,13 @@ export async function checkIsAdmin(user: User | null): Promise<boolean> {
   }
 
   const userEmail = user.email?.toLowerCase().trim() || '';
+  if (!userEmail) {
+    currentAdminStatus = false;
+    currentAdminRecord = null;
+    notifyAdminListeners();
+    return false;
+  }
+
   const isBootstrapOwner = userEmail === BOOTSTRAP_ADMIN_EMAIL.toLowerCase();
 
   try {
@@ -176,7 +59,7 @@ export async function checkIsAdmin(user: User | null): Promise<boolean> {
     if (isBootstrapOwner) {
       const ownerData: AdminRecord = {
         uid: user.uid,
-        displayName: user.displayName || 'مدير المنصة (المالك)',
+        displayName: user.displayName || 'المهندسة مروة (مدير المنصة والمالك)',
         email: user.email || BOOTSTRAP_ADMIN_EMAIL,
         role: 'super_admin',
         status: 'active',
@@ -187,35 +70,22 @@ export async function checkIsAdmin(user: User | null): Promise<boolean> {
 
       try {
         await setDoc(adminDocRef, ownerData, { merge: true });
-        currentAdminRecord = ownerData;
-      } catch {
-        currentAdminRecord = ownerData;
+      } catch (e) {
+        console.warn('Saving owner admin doc caught:', e);
       }
 
       currentAdminStatus = true;
+      currentAdminRecord = ownerData;
       notifyAdminListeners();
       return true;
     }
 
-    // Priority 2: Check Firestore /admins/{uid}
-    const snap = await getDoc(adminDocRef);
-    if (snap.exists()) {
-      const data = snap.data() as AdminRecord;
-      if (data.status === 'active') {
-        const isOwner = data.role === 'super_admin' || userEmail === BOOTSTRAP_ADMIN_EMAIL.toLowerCase();
-        currentAdminStatus = true;
-        currentAdminRecord = { ...data, isOwner };
-        notifyAdminListeners();
-        return true;
-      }
-    }
-
-    // Priority 3: Check if email is in the authorized moderators list
+    // Priority 2: Check if email is in the authorized moderators collection
     const isAuthorizedMod = await moderatorsService.checkIsEmailAuthorized(userEmail);
     if (isAuthorizedMod) {
       const modData: AdminRecord = {
         uid: user.uid,
-        displayName: user.displayName || 'مشرف معتمد',
+        displayName: user.displayName || 'مشرف أكاديمي معتمد',
         email: user.email || userEmail,
         role: 'moderator',
         status: 'active',
@@ -236,17 +106,32 @@ export async function checkIsAdmin(user: User | null): Promise<boolean> {
       return true;
     }
 
+    // Priority 3: Check Firestore /admins/{uid}
+    try {
+      const snap = await getDoc(adminDocRef);
+      if (snap.exists()) {
+        const data = snap.data() as AdminRecord;
+        if (data.status === 'active') {
+          const isOwner = data.role === 'super_admin' || userEmail === BOOTSTRAP_ADMIN_EMAIL.toLowerCase();
+          currentAdminStatus = true;
+          currentAdminRecord = { ...data, isOwner };
+          notifyAdminListeners();
+          return true;
+        }
+      }
+    } catch (e) {
+      console.warn('Checking /admins doc caught:', e);
+    }
+
     currentAdminStatus = false;
     currentAdminRecord = null;
     notifyAdminListeners();
     return false;
   } catch (err: any) {
-    // If error occurs, check if owner
     if (isBootstrapOwner) {
-      currentAdminStatus = true;
-      currentAdminRecord = {
+      const ownerData: AdminRecord = {
         uid: user.uid,
-        displayName: user.displayName || 'مدير المنصة',
+        displayName: user.displayName || 'المهندسة مروة (مدير المنصة)',
         email: user.email || BOOTSTRAP_ADMIN_EMAIL,
         role: 'super_admin',
         status: 'active',
@@ -254,6 +139,8 @@ export async function checkIsAdmin(user: User | null): Promise<boolean> {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
+      currentAdminStatus = true;
+      currentAdminRecord = ownerData;
       notifyAdminListeners();
       return true;
     }
@@ -263,6 +150,15 @@ export async function checkIsAdmin(user: User | null): Promise<boolean> {
     notifyAdminListeners();
     return false;
   }
+}
+
+/**
+ * Sign out administrator
+ */
+export function logoutAdmin() {
+  currentAdminStatus = false;
+  currentAdminRecord = null;
+  notifyAdminListeners();
 }
 
 /**
@@ -289,7 +185,6 @@ export const adminAuthService = {
   getAdminRecord: () => currentAdminRecord,
   getIsOwner,
   checkIsAdmin,
-  loginWithPasscode,
   logout: logoutAdmin,
   subscribe: subscribeAdminAuth
 };

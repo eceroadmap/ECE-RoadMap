@@ -101,6 +101,7 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'develop', label: 'طوّر نفسك', icon: Sparkles },
     { id: 'hub', label: 'Student Hub', icon: Users },
     { id: 'faq', label: 'الأسئلة الشائعة', icon: HelpCircle },
+    { id: 'admin', label: 'لوحة الإدارة (CMS)', icon: ShieldCheck },
   ];
 
   const allNavItems = [
