@@ -21,11 +21,14 @@ import {
   Award,
   FolderGit2,
   User,
-  LogIn
+  LogIn,
+  Languages,
+  Globe
 } from 'lucide-react';
 import { ActiveTab } from '../types';
 import { useStudentState } from '../services/useStudentState';
 import { adminAuthService } from '../services/admin/adminAuth';
+import { useLanguage } from '../context/LanguageContext';
 
 interface HeaderProps {
   activeTab: ActiveTab;
@@ -49,6 +52,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [isAdmin, setIsAdmin] = useState(false);
   const moreDropdownRef = useRef<HTMLDivElement | null>(null);
   const { profile, isCloudSynced, isLoggedInWithGoogle, firebaseUser } = useStudentState();
+  const { language, toggleLanguage, setLanguage, isArabic, t } = useLanguage();
 
   useEffect(() => {
     const unsub = adminAuthService.subscribe((status) => {
@@ -77,31 +81,31 @@ export const Header: React.FC<HeaderProps> = ({
 
   // Primary core navigation items (always front-and-center on md screens and above)
   const primaryNavItems: NavItem[] = [
-    { id: 'home', label: 'الرئيسية', icon: Compass },
+    { id: 'home', label: t('nav.home'), icon: Compass },
     { 
       id: 'dashboard', 
-      label: 'رحلتي', 
+      label: t('nav.dashboard'), 
       icon: GraduationCap, 
-      badge: profile.currentYear ? (profile.currentYear === 'graduate' ? 'خريج' : `سنة ${profile.currentYear}`) : undefined 
+      badge: profile.currentYear ? (profile.currentYear === 'graduate' ? (isArabic ? 'خريج' : 'Grad') : `${isArabic ? 'سنة' : 'Y'}${profile.currentYear}`) : undefined 
     },
-    { id: 'roadmap', label: 'الخارطة الأكاديمية', icon: Map },
-    { id: 'courses', label: 'المواد', icon: BookOpen },
-    { id: 'software', label: 'البرامج', icon: Cpu },
+    { id: 'roadmap', label: t('nav.roadmap'), icon: Map },
+    { id: 'courses', label: t('nav.courses'), icon: BookOpen },
+    { id: 'software', label: t('nav.software'), icon: Cpu },
   ];
 
   // Extended navigation items visible directly on wide screens (>= 1280px)
   const extendedNavItems: NavItem[] = [
-    { id: 'laptop', label: 'مستشار اللابتوب', icon: Laptop },
-    { id: 'academic_record', label: 'سجلي الأكاديمي', icon: Award },
+    { id: 'laptop', label: t('nav.laptop'), icon: Laptop },
+    { id: 'academic_record', label: t('nav.academic_record'), icon: Award },
   ];
 
   // Secondary items kept neatly inside the "المزيد" dropdown
   const secondaryNavItems: NavItem[] = [
-    { id: 'graduation_projects', label: 'مشاريع التخرج', icon: FolderGit2 },
-    { id: 'develop', label: 'طوّر نفسك', icon: Sparkles },
-    { id: 'hub', label: 'Student Hub', icon: Users },
-    { id: 'faq', label: 'الأسئلة الشائعة', icon: HelpCircle },
-    { id: 'admin', label: 'لوحة الإدارة (CMS)', icon: ShieldCheck },
+    { id: 'graduation_projects', label: t('nav.graduation_projects'), icon: FolderGit2 },
+    { id: 'develop', label: t('nav.develop'), icon: Sparkles },
+    { id: 'hub', label: t('nav.hub'), icon: Users },
+    { id: 'faq', label: t('nav.faq'), icon: HelpCircle },
+    { id: 'admin', label: t('nav.admin'), icon: ShieldCheck },
   ];
 
   const allNavItems = [
@@ -121,40 +125,51 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-cyan-950/60 bg-[#050b14]/95 backdrop-blur-md">
-      {/* Top Branding & Partner Placemarks Bar (Hidden on small mobile to conserve vertical space) */}
+      {/* Top Branding & Partner Placemarks Bar */}
       <div className="border-b border-slate-800/40 bg-slate-950/60 px-3 sm:px-4 py-1 text-xs text-slate-400">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 truncate">
             <span className="inline-flex items-center gap-1.5 text-cyan-400 font-medium truncate">
               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
-              <span className="truncate">هندسة الإلكترونيات والاتصالات</span>
+              <span className="truncate">{t('nav.dept_title')}</span>
             </span>
             <span className="hidden md:inline text-slate-600">|</span>
-            <span className="hidden md:inline text-slate-400">كلية الهمك - جامعة دمشق</span>
+            <span className="hidden md:inline text-slate-400">{t('nav.faculty')}</span>
           </div>
 
-          {/* Top Quick Actions (Exhibition Mode, QR Code, Partners) */}
+          {/* Top Quick Actions (Language Toggle, Exhibition Mode, QR Code) */}
           <div className="flex items-center gap-1.5 shrink-0 text-[11px]">
+            {/* Top Language Switcher */}
+            <button
+              id="top-language-toggle"
+              onClick={toggleLanguage}
+              title={isArabic ? 'Switch to English' : 'التحويل للغة العربية'}
+              className="px-2.5 py-0.5 rounded-full bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 hover:border-cyan-500/50 text-cyan-300 transition-all font-semibold flex items-center gap-1 shadow-sm"
+            >
+              <Globe className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+              <span>{isArabic ? 'English' : 'العربية'}</span>
+            </button>
+
             {onOpenExhibition && (
               <button
                 onClick={onOpenExhibition}
-                title="وضع الملتقى الأكاديمي للشاشات الكبيرة والمعارض"
+                title={isArabic ? 'وضع الملتقى الأكاديمي للشاشات الكبيرة والمعارض' : 'Exhibition Mode for large screens'}
                 className="px-2.5 py-0.5 rounded-full bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-300 transition-colors font-semibold flex items-center gap-1 shadow-sm"
               >
                 <Sparkles className="w-3 h-3 text-cyan-400 shrink-0" />
-                <span className="hidden sm:inline">وضع الملتقى ✦</span>
-                <span className="sm:hidden">الملتقى</span>
+                <span className="hidden sm:inline">{t('nav.exhibition')}</span>
+                <span className="sm:hidden">{isArabic ? 'الملتقى' : 'Exhibit'}</span>
               </button>
             )}
 
             {onOpenQRModal && (
               <button
                 onClick={onOpenQRModal}
-                title="عرض رمز الـ QR للمسح عبر الهاتف"
+                title={isArabic ? 'عرض رمز الـ QR للمسح عبر الهاتف' : 'Show QR code for mobile scan'}
                 className="px-2 py-0.5 rounded border border-slate-700/80 bg-slate-900/60 text-slate-300 hover:text-white transition-colors flex items-center gap-1"
               >
                 <QrCode className="w-3 h-3 text-cyan-400 shrink-0" />
-                <span className="hidden sm:inline">رمز QR</span>
+                <span className="hidden sm:inline">{t('nav.qr')}</span>
               </button>
             )}
           </div>
@@ -183,14 +198,13 @@ export const Header: React.FC<HeaderProps> = ({
                 </span>
               </div>
               <p className="text-[10px] text-slate-400 -mt-0.5 font-medium hidden sm:block">
-                جامعة دمشق
+                {isArabic ? 'جامعة دمشق' : 'Damascus University'}
               </p>
             </div>
           </button>
 
-          {/* Main Navigation (Visible on md: and above - Orderly, Professional, No clutter) */}
+          {/* Main Navigation (Visible on md: and above) */}
           <nav className="hidden md:flex items-center gap-1 lg:gap-1.5">
-            {/* Core Primary Items: الرئيسية، رحلتي، الخارطة الأكاديمية، المواد، البرامج */}
             {primaryNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -250,7 +264,7 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent'
                 }`}
               >
-                <span>المزيد</span>
+                <span>{t('nav.more')}</span>
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${moreDropdownOpen ? 'rotate-180 text-cyan-400' : 'text-slate-400'}`} />
               </button>
 
@@ -308,11 +322,11 @@ export const Header: React.FC<HeaderProps> = ({
             {isAdmin && (
               <button
                 onClick={() => handleNavClick('admin')}
-                title="لوحة الإدارة الأكاديمية (CMS)"
+                title={isArabic ? 'لوحة الإدارة الأكاديمية (CMS)' : 'Admin CMS'}
                 className="flex items-center gap-1.5 px-2.5 py-2 text-xs text-cyan-300 bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-500/50 rounded-xl transition-all shadow-sm min-h-[44px]"
               >
                 <ShieldCheck className="w-4 h-4 text-cyan-400" />
-                <span className="hidden sm:inline text-[11px] font-bold">الإدارة</span>
+                <span className="hidden sm:inline text-[11px] font-bold">{isArabic ? 'الإدارة' : 'Admin'}</span>
               </button>
             )}
 
@@ -323,10 +337,10 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={onOpenSyncModal}
                 title={
                   isLoggedInWithGoogle 
-                    ? `حساب Google: ${firebaseUser?.displayName || firebaseUser?.email}` 
+                    ? `Google: ${firebaseUser?.displayName || firebaseUser?.email}` 
                     : profile.name 
-                      ? `الزائر: ${profile.name}` 
-                      : "تسجيل الدخول أو الدخول كزائر"
+                      ? `${isArabic ? 'الزائر' : 'Guest'}: ${profile.name}` 
+                      : (isArabic ? 'تسجيل الدخول أو الدخول كزائر' : 'Sign In / Enter as Guest')
                 }
                 className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs text-slate-300 bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/50 rounded-xl transition-all min-h-[44px]"
               >
@@ -342,10 +356,10 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
                 <span className="hidden xl:inline text-[11px] text-slate-300 font-medium">
                   {isLoggedInWithGoogle 
-                    ? (firebaseUser?.displayName?.split(' ')[0] || 'حسابي') 
+                    ? (firebaseUser?.displayName?.split(' ')[0] || t('nav.my_account')) 
                     : profile.name 
                       ? profile.name.split(' ')[0] 
-                      : 'تسجيل الدخول'}
+                      : t('nav.login')}
                 </span>
               </button>
             )}
@@ -355,16 +369,16 @@ export const Header: React.FC<HeaderProps> = ({
               id="global-search-trigger"
               onClick={onOpenSearch}
               className="flex items-center gap-2 px-2.5 sm:px-3 py-2 text-xs text-slate-300 bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/50 rounded-xl transition-all group min-h-[44px]"
-              aria-label="بحث شامل في المقررات والبرامج"
+              aria-label={t('nav.search')}
             >
               <Search className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
-              <span className="hidden 2xl:inline text-slate-300 font-medium">بحث في المواد والبرامج...</span>
+              <span className="hidden 2xl:inline text-slate-300 font-medium">{t('nav.search')}</span>
               <kbd className="hidden 2xl:inline-block px-1.5 py-0.5 text-[10px] font-mono text-slate-400 bg-slate-800 border border-slate-700 rounded">
                 Ctrl K
               </kbd>
             </button>
 
-            {/* Mobile Menu Toggle (Hidden on Tablet & Desktop >= 768px) */}
+            {/* Mobile Menu Toggle */}
             <button
               id="mobile-menu-toggle"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -377,7 +391,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Mobile Horizontal Quick Navigation Bar (< md) - Clean, Instant access to رحلتي and الخارطة */}
+      {/* Mobile Horizontal Quick Navigation Bar */}
       <div className="md:hidden border-t border-slate-800/70 bg-[#040a14] px-2 py-1.5 overflow-x-auto no-scrollbar">
         <div className="flex items-center gap-1.5 min-w-max">
           {[...primaryNavItems, ...extendedNavItems].map((item) => {
@@ -406,9 +420,35 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Mobile Slide-Down Drawer Menu (for secondary items and exhibition) */}
+      {/* Mobile Slide-Down Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-slate-800 bg-[#071120] px-4 pt-3 pb-6 shadow-2xl space-y-2 animate-fadeIn max-h-[85vh] overflow-y-auto">
+        <div className="md:hidden border-t border-slate-800 bg-[#071120] px-4 pt-3 pb-6 shadow-2xl space-y-3 animate-fadeIn max-h-[85vh] overflow-y-auto">
+          {/* Language Switcher inside Mobile Drawer */}
+          <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-900 border border-slate-800">
+            <span className="text-xs text-slate-300 font-bold flex items-center gap-2">
+              <Globe className="w-4 h-4 text-cyan-400" />
+              <span>{t('lang.select')}</span>
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setLanguage('ar')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  isArabic ? 'bg-cyan-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                العربية
+              </button>
+              <button
+                onClick={() => setLanguage('en')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  !isArabic ? 'bg-cyan-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                English
+              </button>
+            </div>
+          </div>
+
           {/* Quick Exhibition Trigger inside drawer */}
           {onOpenExhibition && (
             <button
@@ -420,15 +460,15 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <div className="flex items-center gap-3">
                 <Sparkles className="w-5 h-5 text-cyan-400 shrink-0" />
-                <span>وضع الملتقى الأكاديمي (Exhibition)</span>
+                <span>{t('nav.exhibition')}</span>
               </div>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-900 text-cyan-200">
-                شاشة كاملة
+                {isArabic ? 'شاشة كاملة' : 'Full Screen'}
               </span>
             </button>
           )}
 
-          {/* Navigation Links Grid / List with 44px touch targets */}
+          {/* Navigation Links Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
             {allNavItems.map((item) => {
               const Icon = item.icon;

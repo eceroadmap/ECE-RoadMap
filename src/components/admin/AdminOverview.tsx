@@ -184,26 +184,35 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
           <div className="space-y-3 pt-1">
             {([1, 2, 3, 4, 5] as AcademicYearNumber[]).map((yr) => {
               const count = stats?.studentsByYear?.[yr] ?? 0;
-              const total = stats?.totalRegisteredStudents || 1;
-              const pct = Math.round((count / (total > 0 ? total : 1)) * 100);
+              const total = stats?.totalRegisteredStudents || 0;
+              const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+              const yrLabel = yr === 1 ? 'السنة الأولى (مستجد)' : yr === 5 ? 'السنة الخامسة (مشاريع التخرج)' : `السنة ${yr}`;
 
               return (
-                <div key={yr} className="space-y-1">
+                <button
+                  key={yr}
+                  onClick={() => onNavigateSection('students')}
+                  className="w-full text-right space-y-1.5 p-2 rounded-xl hover:bg-slate-900/60 transition-colors group cursor-pointer"
+                  title="اضغط للانتقال إلى قائمة الطلاب"
+                >
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-300 font-medium">
-                      السنة {yr} ({yr === 1 ? 'مستجد' : yr === 5 ? 'تخرج' : 'اختصاص'})
-                    </span>
-                    <span className="text-slate-400 font-mono">
-                      {count} طالب ({pct}%)
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-cyan-400 group-hover:scale-125 transition-transform" />
+                      <span className="text-slate-200 font-bold group-hover:text-cyan-300 transition-colors">
+                        {yrLabel}
+                      </span>
+                    </div>
+                    <span className="text-slate-300 font-mono text-[11px]">
+                      <strong className="text-white font-black text-xs">{count}</strong> طالب ({pct}%)
                     </span>
                   </div>
-                  <div className="h-2 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                  <div className="h-2.5 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800">
                     <div 
                       className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.max(pct, count > 0 ? 5 : 0)}%` }}
+                      style={{ width: `${Math.max(pct, count > 0 ? 6 : 0)}%` }}
                     />
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>

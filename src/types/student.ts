@@ -50,6 +50,8 @@ export interface CommunityTip {
   category: 'study_tip' | 'exam_advice' | 'lab_work' | 'resource';
   likesCount: number;
   likedBy: string[];
+  dislikesCount?: number;
+  dislikedBy?: string[];
   createdAt: string;
 }
 

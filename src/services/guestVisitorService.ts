@@ -92,7 +92,25 @@ export const guestVisitorService = {
     } catch {}
   },
 
-  async fetchRecentGuests(count: number = 50): Promise<GuestVisitorRecord[]> {
+  async updateStoredGuest(updated: Partial<GuestVisitorRecord>): Promise<void> {
+    const stored = this.getStoredGuest();
+    if (!stored) return;
+    const next: GuestVisitorRecord = { ...stored, ...updated };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      if (stored.id) {
+        const guestDocRef = doc(db, 'guest_visitors', stored.id);
+        await setDoc(guestDocRef, {
+          ...next,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+      }
+    } catch (e) {
+      console.warn('Could not update guest visitor in Firestore:', e);
+    }
+  },
+
+  async fetchRecentGuests(count: number = 100): Promise<GuestVisitorRecord[]> {
     try {
       const q = query(collection(db, 'guest_visitors'), orderBy('createdAt', 'desc'), limit(count));
       const snap = await getDocs(q);

@@ -470,13 +470,15 @@ class FirebaseSyncService {
       category: tipData.category,
       likesCount: 0,
       likedBy: [],
+      dislikesCount: 0,
+      dislikedBy: [],
       createdAt: new Date().toISOString()
     });
 
     return docRef.id;
   }
 
-  public async toggleLikeTip(tipId: string, currentLiked: boolean): Promise<void> {
+  public async toggleLikeTip(tipId: string, currentLiked: boolean, currentDisliked: boolean = false): Promise<void> {
     if (!this.currentUser) {
       throw new Error('AUTH_REQUIRED');
     }
@@ -484,17 +486,54 @@ class FirebaseSyncService {
     const uid = this.currentUser.uid;
     const tipRef = doc(db, 'communityTips', tipId);
 
+    const updates: Record<string, any> = {};
+
     if (currentLiked) {
-      await updateDoc(tipRef, {
-        likesCount: increment(-1),
-        likedBy: arrayRemove(uid)
-      });
+      // Remove upvote
+      updates.likesCount = increment(-1);
+      updates.likedBy = arrayRemove(uid);
     } else {
-      await updateDoc(tipRef, {
-        likesCount: increment(1),
-        likedBy: arrayUnion(uid)
-      });
+      // Add upvote
+      updates.likesCount = increment(1);
+      updates.likedBy = arrayUnion(uid);
+
+      // If was disliked, remove dislike
+      if (currentDisliked) {
+        updates.dislikesCount = increment(-1);
+        updates.dislikedBy = arrayRemove(uid);
+      }
     }
+
+    await updateDoc(tipRef, updates);
+  }
+
+  public async toggleDislikeTip(tipId: string, currentDisliked: boolean, currentLiked: boolean = false): Promise<void> {
+    if (!this.currentUser) {
+      throw new Error('AUTH_REQUIRED');
+    }
+
+    const uid = this.currentUser.uid;
+    const tipRef = doc(db, 'communityTips', tipId);
+
+    const updates: Record<string, any> = {};
+
+    if (currentDisliked) {
+      // Remove downvote
+      updates.dislikesCount = increment(-1);
+      updates.dislikedBy = arrayRemove(uid);
+    } else {
+      // Add downvote
+      updates.dislikesCount = increment(1);
+      updates.dislikedBy = arrayUnion(uid);
+
+      // If was liked, remove like
+      if (currentLiked) {
+        updates.likesCount = increment(-1);
+        updates.likedBy = arrayRemove(uid);
+      }
+    }
+
+    await updateDoc(tipRef, updates);
   }
 }
 

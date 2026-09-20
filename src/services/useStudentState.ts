@@ -62,6 +62,9 @@ export function useStudentState() {
   const updateProfile = useCallback((updated: Partial<StudentProfile>) => {
     const result = studentRepository.saveProfile(updated);
     firebaseSyncService.pushLocalToCloud();
+    if (updated.academicYear) {
+      guestVisitorService.updateStoredGuest({ academicYear: updated.academicYear });
+    }
     return result;
   }, []);
 

@@ -18,6 +18,8 @@ export interface AdminStudentRecord {
   createdAt?: string;
   updatedAt?: string;
   lastSyncedAt?: string;
+  authProvider?: 'google' | 'guest' | 'local' | string;
+  isGuest?: boolean;
 }
 
 export interface AdminRecord {

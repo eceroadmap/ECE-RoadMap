@@ -112,6 +112,8 @@
         "status": { "type": "string", "description": "active or archived" },
         "likesCount": { "type": "number", "description": "Number of helpful upvotes" },
         "likedBy": { "type": "array", "description": "Array of user UIDs who liked the tip" },
+        "dislikesCount": { "type": "number", "description": "Number of downvotes" },
+        "dislikedBy": { "type": "array", "description": "Array of user UIDs who disliked the tip" },
         "createdAt": { "type": "string", "description": "Creation timestamp" }
       }
     },

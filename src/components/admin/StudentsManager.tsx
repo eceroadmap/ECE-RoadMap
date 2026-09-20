@@ -23,6 +23,8 @@ import { adminRepository } from '../../services/admin/adminRepository';
 import { guestVisitorService } from '../../services/guestVisitorService';
 import { StudentProfileModal } from './StudentProfileModal';
 import { BOOTSTRAP_ADMIN_EMAIL, adminAuthService } from '../../services/admin/adminAuth';
+import { extractAcademicYear, extractAcademicSemester, isPlatformOwnerRecord } from '../../services/admin/adminStats';
+import { AcademicYearNumber } from '../../types';
 
 interface StudentsManagerProps {
   isOwner?: boolean;
@@ -53,44 +55,34 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({ isOwner = fals
         guestVisitorService.fetchRecentGuests(100)
       ]);
 
-      const isOwnerCheck = (email?: string | null, name?: string | null, role?: string | null) => {
-        const e = (email || '').toLowerCase().trim();
-        const n = (name || '').toLowerCase().trim();
-        const r = (role || '').toLowerCase().trim();
-        return (
-          e === 'marwa.mgd.shmdeen@gmail.com' ||
-          e === BOOTSTRAP_ADMIN_EMAIL.toLowerCase() ||
-          e.includes('marwa.mgd.shmdeen') ||
-          r === 'super_admin' ||
-          n.includes('المهندسة مروة') ||
-          n.includes('مدير المنصة')
-        );
-      };
-
       const guestRecords: AdminStudentRecord[] = guestsData
-        .filter((g) => !isOwnerCheck('', g.fullName))
-        .map((g) => ({
-          uid: g.id,
-          displayName: g.fullName,
-          email: 'دخول كزائر مسجل',
-          academicYear: (typeof g.academicYear === 'number' ? g.academicYear : 1) as any,
-          currentYear: (typeof g.academicYear === 'number' ? g.academicYear : 1) as any,
-          currentSemester: 1,
-          role: 'guest' as any,
-          roleLabelAr: 'زائر مسجل',
-          coursesCount: 0,
-          completedCoursesCount: 0,
-          starredProjectsCount: 0,
-          createdAt: g.createdAt,
-          lastLoginAt: g.createdAt,
-          authProvider: 'guest' as any
-        }));
+        .filter((g) => !isPlatformOwnerRecord(g))
+        .map((g) => {
+          const yr = extractAcademicYear(g);
+          return {
+            uid: g.id,
+            displayName: g.fullName,
+            email: null, // Distinct from Google account
+            academicYear: yr,
+            currentYear: yr,
+            academicSemester: 1,
+            role: (yr === 5 ? 'graduate' : yr === 1 ? 'freshman' : 'current') as any,
+            roleLabelAr: yr === 5 ? 'مهندس خريج' : yr === 1 ? 'طالب مستجد' : `طالب سنة ${yr}`,
+            coursesCount: 0,
+            completedCoursesCount: 0,
+            starredProjectsCount: 0,
+            onboardingCompleted: true,
+            createdAt: g.createdAt,
+            lastLoginAt: g.createdAt,
+            authProvider: 'guest' as any
+          };
+        });
 
       // Combine both, avoiding duplicate IDs and filtering out owner
       const studentIds = new Set(studentsData.map((s) => s.uid));
-      const merged = studentsData.filter(s => !isOwnerCheck(s.email, s.displayName, s.role));
+      const merged = studentsData.filter(s => !isPlatformOwnerRecord(s));
       for (const gr of guestRecords) {
-        if (!studentIds.has(gr.uid) && !isOwnerCheck(gr.email, gr.displayName, gr.role)) {
+        if (!studentIds.has(gr.uid) && !isPlatformOwnerRecord(gr)) {
           merged.push(gr);
         }
       }
@@ -124,27 +116,29 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({ isOwner = fals
 
     // Year filter
     let matchesYear = true;
+    const studentYear = extractAcademicYear(s);
     if (yearFilter !== 'all') {
-      const studentYear = s.academicYear || s.currentYear;
       if (yearFilter === 'graduate') {
-        matchesYear = studentYear === 'graduate' || studentYear === 5 || s.role === 'graduate';
+        matchesYear = studentYear === 5 || s.role === 'graduate';
       } else {
-        matchesYear = String(studentYear) === yearFilter;
+        matchesYear = studentYear === Number(yearFilter);
       }
     }
 
     // Semester filter
     let matchesSemester = true;
     if (semesterFilter !== 'all') {
-      matchesSemester = String(s.academicSemester) === semesterFilter;
+      const studentSemester = extractAcademicSemester(s);
+      matchesSemester = studentSemester === Number(semesterFilter);
     }
 
     // Account type filter
     let matchesAccountType = true;
+    const isGoogleAuth = !!(s.email && s.email.includes('@') && s.authProvider !== 'guest');
     if (accountTypeFilter === 'google') {
-      matchesAccountType = !!s.email;
+      matchesAccountType = isGoogleAuth;
     } else if (accountTypeFilter === 'local') {
-      matchesAccountType = !s.email;
+      matchesAccountType = !isGoogleAuth;
     }
 
     return matchesSearch && matchesYear && matchesSemester && matchesAccountType;
@@ -152,10 +146,17 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({ isOwner = fals
 
   // Calculate statistics from the student records
   const totalCount = students.length;
-  const googleCount = students.filter(s => !!s.email).length;
-  const localCount = students.filter(s => !s.email).length;
-  const onboardingCount = students.filter(s => s.onboardingCompleted).length;
+  const googleCount = students.filter(s => !!(s.email && s.email.includes('@') && s.authProvider !== 'guest')).length;
+  const localCount = totalCount - googleCount;
+  const onboardingCount = students.filter(s => s.onboardingCompleted || s.authProvider === 'guest').length;
   const savedLaptopCount = students.filter(s => !!s.savedLaptop?.specs).length;
+
+  // Year breakdown counts
+  const yearCounts: Record<AcademicYearNumber, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  students.forEach((s) => {
+    const yr = extractAcademicYear(s);
+    yearCounts[yr] = (yearCounts[yr] || 0) + 1;
+  });
 
   const formatDate = (isoString?: string | null) => {
     if (!isoString) return '—';
@@ -173,14 +174,14 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({ isOwner = fals
   };
 
   const formatYearLabel = (year?: number | string) => {
-    if (year === 'graduate' || year === 'خريج') return 'خريج';
+    if (year === 'graduate' || year === 'خريج') return 'السنة 5 (خريج)';
     switch (Number(year)) {
-      case 1: return 'السنة 1';
+      case 1: return 'السنة 1 (مستجد)';
       case 2: return 'السنة 2';
       case 3: return 'السنة 3';
       case 4: return 'السنة 4';
-      case 5: return 'السنة 5';
-      default: return year ? `السنة ${year}` : 'غير محدد';
+      case 5: return 'السنة 5 (تخرج)';
+      default: return year ? `السنة ${year}` : 'السنة 1';
     }
   };
 
@@ -220,15 +221,15 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({ isOwner = fals
         </div>
 
         <div className="p-4 rounded-2xl bg-[#091527] border border-slate-800 space-y-1 text-right">
-          <div className="text-xs text-slate-400">حسابات Google</div>
+          <div className="text-xs text-slate-400">حسابات Google سحابية</div>
           <div className="text-xl sm:text-2xl font-black text-emerald-400 font-mono">{googleCount}</div>
           <div className="text-[10px] text-slate-500 font-mono">Cloud Authenticated</div>
         </div>
 
         <div className="p-4 rounded-2xl bg-[#091527] border border-slate-800 space-y-1 text-right">
-          <div className="text-xs text-slate-400">حسابات محلية</div>
+          <div className="text-xs text-slate-400">حسابات زوار ومحلية</div>
           <div className="text-xl sm:text-2xl font-black text-cyan-400 font-mono">{localCount}</div>
-          <div className="text-[10px] text-slate-500 font-mono">Anonymous / Local</div>
+          <div className="text-[10px] text-slate-500 font-mono">Guest / Local</div>
         </div>
 
         <div className="p-4 rounded-2xl bg-[#091527] border border-slate-800 space-y-1 text-right">
@@ -241,6 +242,52 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({ isOwner = fals
           <div className="text-xs text-slate-400">حفظوا اللابتوب</div>
           <div className="text-xl sm:text-2xl font-black text-amber-400 font-mono">{savedLaptopCount}</div>
           <div className="text-[10px] text-slate-500 font-mono">Laptop Evaluated</div>
+        </div>
+      </div>
+
+      {/* Year-by-Year Quick Badges Bar */}
+      <div className="p-3.5 rounded-2xl bg-[#091527] border border-slate-800 shadow-md">
+        <div className="flex items-center gap-2 mb-2.5 text-xs text-slate-400 font-medium">
+          <Layers className="w-4 h-4 text-cyan-400" />
+          <span>إحصائيات الطلاب حسب السنة الدراسية (اضغط للتصفية السريعة):</span>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setYearFilter('all')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              yearFilter === 'all'
+                ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-950'
+                : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-750'
+            }`}
+          >
+            <span>جميع السنوات</span>
+            <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-black/20 font-mono">{totalCount}</span>
+          </button>
+
+          {([1, 2, 3, 4, 5] as AcademicYearNumber[]).map((yr) => {
+            const count = yearCounts[yr];
+            const isSelected = yearFilter === String(yr) || (yr === 5 && yearFilter === 'graduate');
+            const label = yr === 1 ? 'سنة 1 (مستجد)' : yr === 5 ? 'سنة 5 (تخرج)' : `سنة ${yr}`;
+
+            return (
+              <button
+                key={yr}
+                onClick={() => setYearFilter(String(yr) as any)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  isSelected
+                    ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-950'
+                    : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-750'
+                }`}
+              >
+                <span>{label}</span>
+                <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono ${
+                  isSelected ? 'bg-black/20 text-slate-950 font-black' : 'bg-slate-800 text-cyan-400 font-bold'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -301,7 +348,7 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({ isOwner = fals
           >
             <option value="all">جميع أنواع الحسابات</option>
             <option value="google">حساب Google متزامن</option>
-            <option value="local">وضع محلي</option>
+            <option value="local">حساب زائر / محلي</option>
           </select>
 
           {(searchQuery || yearFilter !== 'all' || semesterFilter !== 'all' || accountTypeFilter !== 'all') && (
@@ -384,6 +431,8 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({ isOwner = fals
           <div className="grid grid-cols-1 gap-3 md:hidden">
             {filteredStudents.map((student) => {
               const hasLaptop = !!student.savedLaptop?.specs;
+              const isGoogle = !!(student.email && student.email.includes('@') && student.authProvider !== 'guest');
+
               return (
                 <div 
                   key={student.uid}
@@ -399,17 +448,17 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({ isOwner = fals
                           {student.displayName || 'طالب مسجل'}
                         </h4>
                         <p className="text-[11px] text-slate-400 font-mono truncate max-w-[180px]">
-                          {student.email || 'وضع محلي'}
+                          {student.email || 'زائر مسجل'}
                         </p>
                       </div>
                     </div>
 
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${
-                      student.email 
+                      isGoogle 
                         ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' 
                         : 'bg-slate-800 text-slate-300 border border-slate-700'
                     }`}>
-                      {student.email ? 'Google' : 'محلي'}
+                      {isGoogle ? 'Google' : 'زائر'}
                     </span>
                   </div>
 
@@ -417,7 +466,7 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({ isOwner = fals
                     <div>
                       <span className="text-slate-400 block text-[10px]">المرحلة:</span>
                       <span className="font-bold text-slate-200">
-                        {formatYearLabel(student.academicYear || student.currentYear)} - {student.academicSemester ? `فصل ${student.academicSemester}` : ''}
+                        {formatYearLabel(student.academicYear || student.currentYear)} - {student.academicSemester ? `فصل ${student.academicSemester}` : 'فصل 1'}
                       </span>
                     </div>
 
@@ -465,6 +514,7 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({ isOwner = fals
                 <tbody className="divide-y divide-slate-800/80 text-slate-200">
                   {filteredStudents.map((student) => {
                     const hasLaptop = !!student.savedLaptop?.specs;
+                    const isGoogle = !!(student.email && student.email.includes('@') && student.authProvider !== 'guest');
 
                     return (
                       <tr 
@@ -482,7 +532,7 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({ isOwner = fals
                                 {student.displayName || 'طالب مسجل'}
                               </div>
                               <div className="text-[11px] text-slate-400 font-mono truncate max-w-[160px]">
-                                {student.email || 'وضع محلي'}
+                                {student.email || 'زائر مسجل'}
                               </div>
                             </div>
                           </div>
@@ -495,28 +545,28 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({ isOwner = fals
                               {formatYearLabel(student.academicYear || student.currentYear)}
                             </span>
                             <div className="text-[11px] text-slate-400">
-                              {student.academicSemester ? `الفصل ${student.academicSemester}` : '—'}
+                              {student.academicSemester ? `الفصل ${student.academicSemester}` : 'الفصل 1'}
                             </div>
                           </div>
                         </td>
 
                         {/* Account Type */}
                         <td className="py-4 px-4">
-                          {student.email ? (
+                          {isGoogle ? (
                             <span className="px-2.5 py-1 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-800/80 text-[10px] font-bold inline-flex items-center gap-1">
                               <Cloud className="w-3 h-3 text-emerald-400" />
                               <span>Google Cloud</span>
                             </span>
                           ) : (
                             <span className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700 text-[10px] font-bold">
-                              زائر محلي
+                              زائر مسجل
                             </span>
                           )}
                         </td>
 
                         {/* Onboarding State */}
                         <td className="py-4 px-4">
-                          {student.onboardingCompleted ? (
+                          {student.onboardingCompleted || student.authProvider === 'guest' ? (
                             <span className="text-emerald-400 flex items-center gap-1 font-bold text-[11px]">
                               <CheckCircle2 className="w-3.5 h-3.5" />
                               <span>مكتملة</span>

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   MessageSquarePlus, 
   ThumbsUp, 
+  ThumbsDown,
   Sparkles, 
   Send, 
   BookOpen, 
@@ -10,29 +11,49 @@ import {
   AlertCircle,
   LogIn,
   Loader2,
-  ShieldCheck
+  ShieldCheck,
+  TrendingUp,
+  Clock,
+  User,
+  Filter
 } from 'lucide-react';
 import { CommunityTip } from '../types/student';
 import { firebaseSyncService, TipsStateCallback } from '../services/firebaseSync';
 import { useStudentState } from '../services/useStudentState';
+import { guestVisitorService } from '../services/guestVisitorService';
 import { COURSES_DATA } from '../data/courses';
+import { useLanguage } from '../context/LanguageContext';
 
 export const CommunityTipsSection: React.FC = () => {
   const { profile, firebaseUser, signInWithGoogle } = useStudentState();
+  const { t, isArabic } = useLanguage();
+  const storedGuest = guestVisitorService.getStoredGuest();
+
   const [tips, setTips] = useState<CommunityTip[]>([]);
   const [isLoadingTips, setIsLoadingTips] = useState(true);
   const [tipsError, setTipsError] = useState<string | null>(null);
 
+  const [sortBy, setSortBy] = useState<'likes' | 'newest'>('likes');
+  const [filterCourse, setFilterCourse] = useState<string>('all');
   const [isOpenForm, setIsOpenForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Default author name from Google account or registered profile/guest
+  const defaultAccountName = firebaseUser?.displayName || profile.name || storedGuest?.fullName || '';
+
   // Form State
   const [content, setContent] = useState('');
-  const [authorName, setAuthorName] = useState(profile.name || '');
+  const [authorName, setAuthorName] = useState(defaultAccountName);
   const [category, setCategory] = useState<'study_tip' | 'exam_advice' | 'lab_work' | 'resource'>('study_tip');
   const [selectedCourseId, setSelectedCourseId] = useState<string>('general');
+
+  useEffect(() => {
+    if (defaultAccountName && !authorName) {
+      setAuthorName(defaultAccountName);
+    }
+  }, [defaultAccountName]);
 
   useEffect(() => {
     const unsubscribe = firebaseSyncService.subscribeCommunityTips((state: TipsStateCallback) => {
@@ -43,26 +64,59 @@ export const CommunityTipsSection: React.FC = () => {
     return unsubscribe;
   }, []);
 
+  const sortedAndFilteredTips = useMemo(() => {
+    let result = [...tips];
+
+    if (filterCourse !== 'all') {
+      result = result.filter(t => t.courseId === filterCourse);
+    }
+
+    if (sortBy === 'likes') {
+      // Sort by highest likes first (descending), then dislikes (ascending), then newest
+      result.sort((a, b) => {
+        const likesA = a.likesCount || 0;
+        const likesB = b.likesCount || 0;
+        if (likesB !== likesA) {
+          return likesB - likesA;
+        }
+        const timeA = new Date(a.createdAt || 0).getTime();
+        const timeB = new Date(b.createdAt || 0).getTime();
+        return timeB - timeA;
+      });
+    } else {
+      // Newest first
+      result.sort((a, b) => {
+        const timeA = new Date(a.createdAt || 0).getTime();
+        const timeB = new Date(b.createdAt || 0).getTime();
+        return timeB - timeA;
+      });
+    }
+
+    return result;
+  }, [tips, sortBy, filterCourse]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
     if (!firebaseUser) {
-      setErrorMsg('يرجى تسجيل الدخول بحساب Google أولاً لتتمكن من نشر نصيحة موثقة في المجتمع.');
+      setErrorMsg(isArabic ? 'يرجى تسجيل الدخول بحساب Google أولاً لتتمكن من نشر نصيحة موثقة في المجتمع.' : 'Please sign in with Google to publish an authenticated advice.');
       return;
     }
 
     const trimmedContent = content.trim();
     if (trimmedContent.length < 5) {
-      setErrorMsg('يرجى كتابة نصيحة واضحة لا تقل عن 5 أحرف.');
+      setErrorMsg(isArabic ? 'يرجى كتابة نصيحة واضحة لا تقل عن 5 أحرف.' : 'Please enter advice of at least 5 characters.');
       return;
     }
 
     setIsSubmitting(true);
     try {
       const course = COURSES_DATA.find((c) => c.id === selectedCourseId);
+      const chosenName = authorName.trim() || firebaseUser.displayName || profile.name || storedGuest?.fullName || (isArabic ? 'طالب هندسة اتصالات' : 'ECE Student');
+      
       await firebaseSyncService.addCommunityTip({
-        authorName: authorName.trim() || firebaseUser.displayName || 'طالب هندسة اتصالات',
+        authorName: chosenName,
         authorYear: profile.currentYear || 'طالب',
         courseId: selectedCourseId !== 'general' ? selectedCourseId : undefined,
         courseNameAr: course?.nameAr,
@@ -72,11 +126,11 @@ export const CommunityTipsSection: React.FC = () => {
 
       setContent('');
       setIsOpenForm(false);
-      setSuccessMsg('تم نشر نصيحتك وتجربتك بنجاح في قاعدة بيانات Firestore!');
+      setSuccessMsg(isArabic ? 'تم نشر نصيحتك باسم حسابك وتجربتك بنجاح في قاعدة البيانات!' : 'Your advice was published under your account name successfully!');
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err: any) {
       console.warn('Error adding tip:', err);
-      setErrorMsg('تعذر نشر النصيحة حالياً. يرجى التحقق من اتصال الإنترنت والمحاولة مجدداً.');
+      setErrorMsg(isArabic ? 'تعذر نشر النصيحة حالياً. يرجى التحقق من اتصال الإنترنت والمحاولة مجدداً.' : 'Failed to publish tip. Please check your internet connection.');
     } finally {
       setIsSubmitting(false);
     }
@@ -84,26 +138,43 @@ export const CommunityTipsSection: React.FC = () => {
 
   const handleLike = async (tip: CommunityTip) => {
     if (!firebaseUser) {
-      setErrorMsg('يرجى تسجيل الدخول بحساب Google أولاً للتفاعل مع نصائح زملائك.');
+      setErrorMsg(isArabic ? 'يرجى تسجيل الدخول بحساب Google أولاً للتفاعل مع نصائح زملائك.' : 'Please sign in with Google to react to advice.');
       setTimeout(() => setErrorMsg(null), 3500);
       return;
     }
 
     try {
       const isLiked = tip.likedBy?.includes(firebaseUser.uid) || false;
-      await firebaseSyncService.toggleLikeTip(tip.id, isLiked);
+      const isDisliked = tip.dislikedBy?.includes(firebaseUser.uid) || false;
+      await firebaseSyncService.toggleLikeTip(tip.id, isLiked, isDisliked);
     } catch (err) {
       console.warn('Failed to like tip:', err);
     }
   };
 
+  const handleDislike = async (tip: CommunityTip) => {
+    if (!firebaseUser) {
+      setErrorMsg(isArabic ? 'يرجى تسجيل الدخول بحساب Google أولاً للتفاعل مع نصائح زملائك.' : 'Please sign in with Google to react to advice.');
+      setTimeout(() => setErrorMsg(null), 3500);
+      return;
+    }
+
+    try {
+      const isDisliked = tip.dislikedBy?.includes(firebaseUser.uid) || false;
+      const isLiked = tip.likedBy?.includes(firebaseUser.uid) || false;
+      await firebaseSyncService.toggleDislikeTip(tip.id, isDisliked, isLiked);
+    } catch (err) {
+      console.warn('Failed to dislike tip:', err);
+    }
+  };
+
   const getCategoryLabel = (cat: string) => {
     switch (cat) {
-      case 'study_tip': return 'نصيحة دراسية';
-      case 'exam_advice': return 'توجيه للامتحان';
-      case 'lab_work': return 'مخبر وعملي';
-      case 'resource': return 'مصدر مقترح';
-      default: return 'عام';
+      case 'study_tip': return isArabic ? 'نصيحة دراسية' : 'Study Method';
+      case 'exam_advice': return isArabic ? 'توجيه للامتحان' : 'Exam Advice';
+      case 'lab_work': return isArabic ? 'مخبر وعملي' : 'Lab & Practice';
+      case 'resource': return isArabic ? 'مصدر مقترح' : 'Resource';
+      default: return isArabic ? 'عام' : 'General';
     }
   };
 
@@ -111,7 +182,7 @@ export const CommunityTipsSection: React.FC = () => {
     if (!isoString) return '';
     try {
       const d = new Date(isoString);
-      return isNaN(d.getTime()) ? '' : d.toLocaleDateString('ar-SY');
+      return isNaN(d.getTime()) ? '' : d.toLocaleDateString(isArabic ? 'ar-SY' : 'en-US');
     } catch {
       return '';
     }
@@ -119,44 +190,48 @@ export const CommunityTipsSection: React.FC = () => {
 
   return (
     <div className="space-y-6 pt-6 border-t border-slate-800">
+      {/* Section Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-2 text-xs font-mono text-cyan-400 mb-1">
             <Flame className="w-3.5 h-3.5 text-amber-400" />
-            <span>مجتمع ECE الحي • قاعدة بيانات سحابية متزامنة</span>
+            <span>{isArabic ? 'مجتمع ECE الحي • قاعدة بيانات سحابية متزامنة' : 'ECE Live Community • Real-Time Database'}</span>
           </div>
-          <h3 className="text-xl font-bold text-white">
-            تجارب ونَصائح الطلاب الميدانية (Community Feed)
+          <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+            {t('tips.feed_title')}
           </h3>
-          <p className="text-xs text-slate-400 mt-0.5">
-            شارك نصائحك وتوجيهاتك للامتحانات والمخابر في كلية الهمك بكل خصوصية ومسؤولية.
+          <p className="text-xs text-slate-400 mt-0.5 max-w-2xl leading-relaxed">
+            {t('tips.feed_desc')}
           </p>
         </div>
 
         <button
           onClick={() => {
+            if (!isOpenForm && !authorName) {
+              setAuthorName(defaultAccountName);
+            }
             setIsOpenForm(!isOpenForm);
             setErrorMsg(null);
           }}
-          className="px-4 py-2.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/50 text-cyan-300 text-xs font-bold flex items-center gap-2 transition-all shrink-0 active:scale-95"
+          className="px-4 py-2.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/50 text-cyan-300 text-xs font-bold flex items-center gap-2 transition-all shrink-0 active:scale-95 shadow-lg shadow-cyan-950/30"
         >
-          <MessageSquarePlus className="w-4 h-4" />
-          <span>{isOpenForm ? 'إلغاء' : 'أضف نصيحة أو تجربة'}</span>
+          <MessageSquarePlus className="w-4 h-4 text-cyan-400" />
+          <span>{isOpenForm ? t('tips.cancel_btn') : t('tips.add_btn')}</span>
         </button>
       </div>
 
       {/* Notifications */}
       {successMsg && (
-        <div className="p-3.5 rounded-2xl bg-emerald-950/40 border border-emerald-800/60 text-emerald-300 text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
+        <div className="p-3.5 rounded-2xl bg-emerald-950/50 border border-emerald-800/70 text-emerald-300 text-xs flex items-center gap-2 animate-fadeIn">
+          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
           <span>{successMsg}</span>
         </div>
       )}
 
       {errorMsg && (
-        <div className="p-3.5 rounded-2xl bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs flex items-center justify-between gap-3">
+        <div className="p-3.5 rounded-2xl bg-rose-950/50 border border-rose-800/70 text-rose-300 text-xs flex items-center justify-between gap-3 animate-fadeIn">
           <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
             <span>{errorMsg}</span>
           </div>
           {!firebaseUser && (
@@ -168,26 +243,26 @@ export const CommunityTipsSection: React.FC = () => {
               className="px-3 py-1 rounded-lg bg-cyan-500 text-slate-950 font-bold text-xs shrink-0 flex items-center gap-1.5"
             >
               <LogIn className="w-3.5 h-3.5" />
-              <span>تسجيل الدخول</span>
+              <span>{t('nav.login')}</span>
             </button>
           )}
         </div>
       )}
 
-      {/* Add Tip Form */}
+      {/* Add Tip Form Modal/Card */}
       {isOpenForm && (
         <form 
           onSubmit={handleSubmit}
-          className="p-5 sm:p-6 rounded-3xl bg-[#081529] border border-cyan-500/40 shadow-xl space-y-4 text-xs"
+          className="p-5 sm:p-6 rounded-3xl bg-[#081529] border border-cyan-500/50 shadow-2xl space-y-4 text-xs animate-fadeIn"
         >
           <div className="flex items-center justify-between pb-2 border-b border-slate-800 text-white font-bold">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-cyan-400" />
-              <span>إضافة نصيحة أو تجربة طلابية موثقة</span>
+              <span>{t('tips.add_btn')}</span>
             </div>
             {!firebaseUser && (
               <span className="text-[11px] text-amber-400 font-normal">
-                (يتطلب تسجيل الدخول بـ Google)
+                ({isArabic ? 'يتطلب تسجيل الدخول بـ Google' : 'Requires Google Sign-in'})
               </span>
             )}
           </div>
@@ -195,7 +270,9 @@ export const CommunityTipsSection: React.FC = () => {
           {!firebaseUser ? (
             <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 text-center space-y-3">
               <p className="text-slate-300">
-                لمنع الإزعاج وحماية جودة النصائح الأكاديمية، يتطلب نشر التجارب تسجيل الدخول بحساب Google.
+                {isArabic 
+                  ? 'لمنع الإزعاج وحماية جودة النصائح الأكاديمية، يتطلب نشر التجارب تسجيل الدخول بحساب Google.' 
+                  : 'To protect content quality, sharing advice requires signing in with Google.'}
               </p>
               <button
                 type="button"
@@ -203,74 +280,85 @@ export const CommunityTipsSection: React.FC = () => {
                 className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs inline-flex items-center gap-2 shadow-lg"
               >
                 <LogIn className="w-4 h-4" />
-                <span>تسجيل الدخول بـ Google للمتابعة</span>
+                <span>{isArabic ? 'تسجيل الدخول بـ Google للمتابعة' : 'Sign In with Google to Continue'}</span>
               </button>
             </div>
           ) : (
             <>
+              {/* Info banner confirming account attribution */}
+              <div className="p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-800/40 flex items-center gap-2 text-cyan-300 text-[11px]">
+                <User className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <span>
+                  {isArabic 
+                    ? `سيتم نشر النصيحة باسم حسابك: ` 
+                    : `Advice will be published using your account name: `}
+                  <strong className="text-white font-mono">{defaultAccountName || firebaseUser.displayName || firebaseUser.email}</strong>
+                </span>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">الاسم أو اللقب المعروض:</label>
+                  <label className="block text-slate-300 font-semibold mb-1">{t('tips.author_name_label')}</label>
                   <input
                     type="text"
                     maxLength={60}
                     value={authorName}
                     onChange={(e) => setAuthorName(e.target.value)}
-                    placeholder="اسمك أو لقبك الدراسي..."
+                    placeholder={defaultAccountName || (isArabic ? 'اسمك أو لقبك الدراسي...' : 'Your display name...')}
                     className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-cyan-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">المقرر المرتبط:</label>
+                  <label className="block text-slate-300 font-semibold mb-1">{t('tips.course_label')}</label>
                   <select
                     value={selectedCourseId}
                     onChange={(e) => setSelectedCourseId(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-cyan-500"
                   >
-                    <option value="general">نصيحة عامة في القسم</option>
+                    <option value="general">{t('tips.general_course')}</option>
                     {COURSES_DATA.map((c) => (
                       <option key={c.id} value={c.id}>
-                        سنة {c.year} • {c.nameAr}
+                        {isArabic ? `سنة ${c.year} • ${c.nameAr}` : `Year ${c.year} • ${c.nameEn || c.nameAr}`}
                       </option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">نوع النصيحة:</label>
+                  <label className="block text-slate-300 font-semibold mb-1">{t('tips.category_label')}</label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value as any)}
                     className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-cyan-500"
                   >
-                    <option value="study_tip">نصيحة دراسية عامة</option>
-                    <option value="exam_advice">توجيه امتحاني ومسائل</option>
-                    <option value="lab_work">مخبر وعملي وبرمجيات</option>
-                    <option value="resource">ملخص أو كتاب مقترح</option>
+                    <option value="study_tip">{t('tips.cat_study')}</option>
+                    <option value="exam_advice">{t('tips.cat_exam')}</option>
+                    <option value="lab_work">{t('tips.cat_lab')}</option>
+                    <option value="resource">{t('tips.cat_resource')}</option>
                   </select>
                 </div>
               </div>
 
               <div>
                 <label className="block text-slate-300 font-semibold mb-1">
-                  نص النصيحة أو التجربة (بين 5 و 2000 حرف):
+                  {t('tips.content_label')} ({isArabic ? 'بين 5 و 2000 حرف' : '5 to 2000 chars'}):
                 </label>
                 <textarea
                   rows={3}
                   maxLength={2000}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  placeholder="اكتب خلاصة تجربتك أو توجيهك لزملائك الطلاب في المقرر أو المخابر..."
+                  placeholder={t('tips.content_placeholder')}
                   required
-                  className="w-full p-3 bg-slate-900 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full p-3 bg-slate-900 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-cyan-500 placeholder-slate-500"
                 />
               </div>
 
               <div className="flex items-center justify-between pt-2">
                 <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>تخزين آمن بدون نشر بريدك الإلكتروني</span>
+                  <span>{isArabic ? 'تخزين آمن وموثوق باسم حسابك' : 'Securely published under your account identity'}</span>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -279,7 +367,7 @@ export const CommunityTipsSection: React.FC = () => {
                     onClick={() => setIsOpenForm(false)}
                     className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300"
                   >
-                    إلغاء
+                    {t('tips.cancel_btn')}
                   </button>
                   <button
                     type="submit"
@@ -291,7 +379,7 @@ export const CommunityTipsSection: React.FC = () => {
                     ) : (
                       <Send className="w-3.5 h-3.5" />
                     )}
-                    <span>نشر في المجتمع</span>
+                    <span>{t('tips.publish_btn')}</span>
                   </button>
                 </div>
               </div>
@@ -300,55 +388,122 @@ export const CommunityTipsSection: React.FC = () => {
         </form>
       )}
 
-      {/* Community Tips Feed */}
+      {/* Sorting & Filter Controls Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 rounded-2xl bg-slate-900/60 border border-slate-800/80 text-xs">
+        {/* Left: Sorting Tabs */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-slate-400 font-medium whitespace-nowrap pl-1">
+            {t('tips.sort_by')}
+          </span>
+          <button
+            onClick={() => setSortBy('likes')}
+            className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
+              sortBy === 'likes'
+                ? 'bg-gradient-to-r from-amber-500/25 to-cyan-500/25 text-amber-300 border border-amber-500/50 shadow-sm'
+                : 'text-slate-400 hover:text-white bg-slate-950/60 border border-slate-800'
+            }`}
+          >
+            <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
+            <span>{t('tips.sort_likes')}</span>
+          </button>
+          <button
+            onClick={() => setSortBy('newest')}
+            className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
+              sortBy === 'newest'
+                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
+                : 'text-slate-400 hover:text-white bg-slate-950/60 border border-slate-800'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5 text-cyan-400" />
+            <span>{t('tips.sort_newest')}</span>
+          </button>
+        </div>
+
+        {/* Right: Course Filter */}
+        <div className="flex items-center gap-2">
+          <Filter className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+          <select
+            value={filterCourse}
+            onChange={(e) => setFilterCourse(e.target.value)}
+            className="px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-cyan-500/50 max-w-[220px]"
+          >
+            <option value="all">{isArabic ? 'جميع المقررات والتجارب' : 'All Courses & Tips'}</option>
+            {COURSES_DATA.map((c) => (
+              <option key={c.id} value={c.id}>
+                {isArabic ? c.nameAr : (c.nameEn || c.nameAr)}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Community Tips Feed Cards */}
       {isLoadingTips ? (
         <div className="p-8 rounded-3xl bg-[#091527] border border-slate-800/80 text-center space-y-3">
           <Loader2 className="w-6 h-6 text-cyan-400 animate-spin mx-auto" />
-          <p className="text-xs text-slate-400">جاري تحميل التجارب والنصائح من Cloud Firestore...</p>
+          <p className="text-xs text-slate-400">{t('tips.loading')}</p>
         </div>
       ) : tipsError ? (
         <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
           <p className="text-xs text-slate-400">{tipsError}</p>
           <p className="text-[11px] text-slate-500">
-            يمكنك تصفح باقي أجزاء التطبيق ومتابعة رحلتك الأكاديمية دون أي انقطاع.
+            {isArabic ? 'يمكنك تصفح باقي أجزاء التطبيق دون أي انقطاع.' : 'You can browse other sections of the app smoothly.'}
           </p>
         </div>
-      ) : tips.length === 0 ? (
+      ) : sortedAndFilteredTips.length === 0 ? (
         <div className="p-8 rounded-3xl bg-[#091527] border border-slate-800/80 text-center space-y-3">
           <div className="w-12 h-12 rounded-2xl bg-cyan-950/60 border border-cyan-800/40 flex items-center justify-center text-cyan-400 mx-auto">
             <Sparkles className="w-6 h-6" />
           </div>
-          <h4 className="text-base font-bold text-white">كن أول من يشارك تجربة أو نصيحة!</h4>
+          <h4 className="text-base font-bold text-white">{t('tips.first_to_share')}</h4>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
-            قاعدة البيانات السحابية جاهزة لاستقبال نصائح وتجارب طلاب هندسة الإلكترونيات والاتصالات.
+            {isArabic 
+              ? 'قاعدة البيانات السحابية جاهزة لاستقبال نصائح وتجارب طلاب هندسة الإلكترونيات والاتصالات.' 
+              : 'The cloud database is ready to receive experiences and tips from ECE students.'}
           </p>
           <button
             onClick={() => setIsOpenForm(true)}
             className="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs inline-flex items-center gap-1.5"
           >
             <MessageSquarePlus className="w-3.5 h-3.5" />
-            <span>أضف أول تجربة طلابية</span>
+            <span>{t('tips.add_btn')}</span>
           </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {tips.map((tip) => {
+          {sortedAndFilteredTips.map((tip) => {
             const isLiked = firebaseUser?.uid ? tip.likedBy?.includes(firebaseUser.uid) : false;
+            const isDisliked = firebaseUser?.uid ? (tip.dislikedBy?.includes(firebaseUser.uid) || false) : false;
+            const likesCount = tip.likesCount || 0;
+            const dislikesCount = tip.dislikesCount || 0;
+
             return (
               <div 
                 key={tip.id}
-                className="p-4 sm:p-5 rounded-2xl bg-[#091527] border border-slate-800/90 hover:border-cyan-500/40 transition-all flex flex-col justify-between space-y-3 shadow-lg"
+                className={`p-4 sm:p-5 rounded-2xl bg-[#091527] border transition-all flex flex-col justify-between space-y-3 shadow-lg ${
+                  likesCount >= 5 
+                    ? 'border-amber-500/30 hover:border-amber-500/60 shadow-amber-950/10' 
+                    : 'border-slate-800/90 hover:border-cyan-500/40'
+                }`}
               >
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
+                    {/* Author info (with avatar) */}
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-cyan-400 font-bold text-xs">
+                      <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700/60 flex items-center justify-center text-cyan-400 font-bold text-xs">
                         {tip.authorName ? tip.authorName.charAt(0) : 'ط'}
                       </div>
                       <div>
-                        <span className="font-bold text-white">{tip.authorName || 'طالب'}</span>
-                        <span className="text-[10px] text-slate-400 mr-1.5">
-                          ({tip.authorYear === 'graduate' ? 'خريج' : `سنة ${tip.authorYear}`})
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-white">{tip.authorName || (isArabic ? 'طالب' : 'Student')}</span>
+                          {likesCount >= 5 && (
+                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-0.5">
+                              ⭐ {isArabic ? 'مميزة' : 'Top'}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-slate-400">
+                          {tip.authorYear === 'graduate' ? (isArabic ? 'خريج' : 'Graduate') : `${isArabic ? 'سنة' : 'Year'} ${tip.authorYear}`}
                         </span>
                       </div>
                     </div>
@@ -370,22 +525,41 @@ export const CommunityTipsSection: React.FC = () => {
                   </p>
                 </div>
 
+                {/* Footer: Date & Like + Dislike Actions */}
                 <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-[11px]">
                   <span className="text-slate-500">
                     {formatDate(tip.createdAt)}
                   </span>
 
-                  <button
-                    onClick={() => handleLike(tip)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-colors ${
-                      isLiked 
-                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' 
-                        : 'text-slate-400 hover:text-cyan-300 bg-slate-900/60 hover:bg-slate-800 border border-slate-800'
-                    }`}
-                  >
-                    <ThumbsUp className={`w-3 h-3 ${isLiked ? 'fill-cyan-400 text-cyan-400' : ''}`} />
-                    <span>مفيدة ({tip.likesCount || 0})</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    {/* Like Button */}
+                    <button
+                      onClick={() => handleLike(tip)}
+                      title={isArabic ? 'نصيحة مفيدة' : 'Helpful'}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-colors ${
+                        isLiked 
+                          ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 font-bold' 
+                          : 'text-slate-400 hover:text-cyan-300 bg-slate-900/60 hover:bg-slate-800 border border-slate-800'
+                      }`}
+                    >
+                      <ThumbsUp className={`w-3.5 h-3.5 ${isLiked ? 'fill-cyan-400 text-cyan-400' : ''}`} />
+                      <span>{likesCount}</span>
+                    </button>
+
+                    {/* Dislike Button */}
+                    <button
+                      onClick={() => handleDislike(tip)}
+                      title={isArabic ? 'غير مفيدة' : 'Not helpful'}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-colors ${
+                        isDisliked 
+                          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/50 font-bold' 
+                          : 'text-slate-400 hover:text-rose-300 bg-slate-900/60 hover:bg-slate-800 border border-slate-800'
+                      }`}
+                    >
+                      <ThumbsDown className={`w-3.5 h-3.5 ${isDisliked ? 'fill-rose-400 text-rose-400' : ''}`} />
+                      <span>{dislikesCount}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             );
