@@ -238,6 +238,8 @@ class FirebaseSyncService {
             academicSemester: remoteData.academicSemester || localProfile.academicSemester,
             role: remoteData.role || localProfile.role,
             roleLabelAr: remoteData.roleLabelAr || localProfile.roleLabelAr,
+            username: localProfile.username || remoteData.username || undefined,
+            accountPassword: localProfile.accountPassword || remoteData.accountPassword || undefined,
             targetFocusTrack: remoteData.targetFocusTrack || localProfile.targetFocusTrack,
             onboardingCompleted: remoteData.onboardingCompleted ?? localProfile.onboardingCompleted,
             updatedAt: remoteData.updatedAt
@@ -245,6 +247,8 @@ class FirebaseSyncService {
         } else {
           mergedProfile = {
             ...localProfile,
+            username: localProfile.username || remoteData.username || undefined,
+            accountPassword: localProfile.accountPassword || remoteData.accountPassword || undefined,
             updatedAt: now
           };
         }
@@ -280,6 +284,8 @@ class FirebaseSyncService {
           uid: user.uid,
           displayName: user.displayName || remoteData.displayName || null,
           email: user.email || remoteData.email || null,
+          username: mergedProfile.username || null,
+          accountPassword: mergedProfile.accountPassword || null,
           academicYear: mergedProfile.academicYear,
           currentYear: mergedProfile.currentYear,
           academicSemester: mergedProfile.academicSemester,
@@ -302,6 +308,8 @@ class FirebaseSyncService {
           uid: user.uid,
           displayName: user.displayName || null,
           email: user.email || null,
+          username: localProfile.username || null,
+          accountPassword: localProfile.accountPassword || null,
           academicYear: localProfile.academicYear,
           currentYear: localProfile.currentYear,
           academicSemester: localProfile.academicSemester,
@@ -391,6 +399,8 @@ class FirebaseSyncService {
         uid: this.currentUser.uid,
         displayName: this.currentUser.displayName || null,
         email: this.currentUser.email || null,
+        username: profile.username || null,
+        accountPassword: profile.accountPassword || null,
         academicYear: profile.academicYear,
         currentYear: profile.currentYear,
         academicSemester: profile.academicSemester,

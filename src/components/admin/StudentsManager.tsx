@@ -505,6 +505,9 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({ isOwner = fals
                     <th className="py-4 px-4 sm:px-6">الطالب</th>
                     <th className="py-4 px-4">السنة / الفصل</th>
                     <th className="py-4 px-4">نوع الحساب</th>
+                    {effectiveIsOwner && (
+                      <th className="py-4 px-4 text-amber-400">بيانات الدخول (يوزر / كلمة المرور)</th>
+                    )}
                     <th className="py-4 px-4">التهيئة الأكاديمية</th>
                     <th className="py-4 px-4">مواصفات اللابتوب</th>
                     <th className="py-4 px-4">تاريخ الإنشاء / المزامنة</th>
@@ -563,6 +566,15 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({ isOwner = fals
                             </span>
                           )}
                         </td>
+
+                        {effectiveIsOwner && (
+                          <td className="py-4 px-4 font-mono">
+                            <div className="space-y-0.5 text-[11px]">
+                              <div className="text-white font-bold"><span className="text-slate-400 font-normal">يوزر:</span> {student.username || '—'}</div>
+                              <div className="text-cyan-300 font-bold"><span className="text-slate-400 font-normal">كلمة المرور:</span> {student.accountPassword || '—'}</div>
+                            </div>
+                          </td>
+                        )}
 
                         {/* Onboarding State */}
                         <td className="py-4 px-4">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Sparkles, 
   Radio, 
@@ -17,10 +17,20 @@ import {
 } from 'lucide-react';
 import { SkillCategory, SkillCourse } from '../types';
 import { SKILL_COURSES_DATA, LEARNING_PATHS, LearningPath } from '../data/skills';
+import { adminRepository } from '../services/admin/adminRepository';
 
 export const DevelopSection: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<SkillCategory | 'all'>('all');
   const [activePathId, setActivePathId] = useState<string>(LEARNING_PATHS[0].id);
+  const [skillsList, setSkillsList] = useState<SkillCourse[]>(SKILL_COURSES_DATA);
+
+  useEffect(() => {
+    adminRepository.getSkills().then(remote => {
+      if (remote && remote.length > 0) {
+        setSkillsList(remote);
+      }
+    }).catch(() => {});
+  }, []);
 
   const categories = [
     { id: 'all', label: 'جميع المهارات', icon: Sparkles },
@@ -34,8 +44,8 @@ export const DevelopSection: React.FC = () => {
   ];
 
   const filteredCourses = selectedCategory === 'all'
-    ? SKILL_COURSES_DATA
-    : SKILL_COURSES_DATA.filter((c) => c.category === selectedCategory);
+    ? skillsList
+    : skillsList.filter((c) => c.category === selectedCategory);
 
   const activePath = LEARNING_PATHS.find((p) => p.id === activePathId) || LEARNING_PATHS[0];
 

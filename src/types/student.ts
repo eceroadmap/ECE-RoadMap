@@ -11,6 +11,8 @@ export interface StudentProfile {
   academicSemester: AcademicSemester;
   onboardingCompleted: boolean;
   name?: string;
+  username?: string;
+  accountPassword?: string;
   targetFocusTrack?: string;
   createdAt?: string;
   lastSyncedAt?: string;

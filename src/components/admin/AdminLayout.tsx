@@ -41,6 +41,7 @@ import { AdminSettingsView } from './AdminSettingsView';
 import { AdminGraduationProjectsView } from './AdminGraduationProjectsView';
 import { CourseSkillsManager } from './CourseSkillsManager';
 import { ModeratorsManager } from './ModeratorsManager';
+import { DevelopManager } from './DevelopManager';
 import { GitMerge, UserPlus } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -284,6 +285,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToApp }) => {
     { id: 'courses', label: 'إدارة المقررات الدراسية', icon: BookOpen },
     { id: 'course_skills', label: 'تعديل (من المادة إلى المهارة)', icon: GitMerge },
     { id: 'software', label: 'إدارة برمجيات المحاكاة', icon: Cpu },
+    { id: 'develop', label: 'إدارة قسم "طور نفسك"', icon: Sparkles },
     { id: 'resources', label: 'موارد ومصادر فريق نُون', icon: Sparkles },
     { id: 'faq', label: 'الأسئلة الشائعة الأكاديمية', icon: HelpCircle },
     { id: 'community', label: 'الإشراف على نصائح الطلاب', icon: Users },
@@ -440,6 +442,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToApp }) => {
             {activeSection === 'course_skills' && <CourseSkillsManager />}
 
             {activeSection === 'software' && <SoftwareManager />}
+
+            {activeSection === 'develop' && <DevelopManager />}
 
             {activeSection === 'resources' && <ResourcesManager />}
 

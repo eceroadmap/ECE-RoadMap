@@ -45,15 +45,8 @@ export const CommunityTipsSection: React.FC = () => {
 
   // Form State
   const [content, setContent] = useState('');
-  const [authorName, setAuthorName] = useState(defaultAccountName);
   const [category, setCategory] = useState<'study_tip' | 'exam_advice' | 'lab_work' | 'resource'>('study_tip');
   const [selectedCourseId, setSelectedCourseId] = useState<string>('general');
-
-  useEffect(() => {
-    if (defaultAccountName && !authorName) {
-      setAuthorName(defaultAccountName);
-    }
-  }, [defaultAccountName]);
 
   useEffect(() => {
     const unsubscribe = firebaseSyncService.subscribeCommunityTips((state: TipsStateCallback) => {
@@ -113,7 +106,7 @@ export const CommunityTipsSection: React.FC = () => {
     setIsSubmitting(true);
     try {
       const course = COURSES_DATA.find((c) => c.id === selectedCourseId);
-      const chosenName = authorName.trim() || firebaseUser.displayName || profile.name || storedGuest?.fullName || (isArabic ? 'طالب هندسة اتصالات' : 'ECE Student');
+      const chosenName = defaultAccountName || firebaseUser.displayName || profile.name || storedGuest?.fullName || (isArabic ? 'طالب هندسة اتصالات' : 'ECE Student');
       
       await firebaseSyncService.addCommunityTip({
         authorName: chosenName,
@@ -207,9 +200,6 @@ export const CommunityTipsSection: React.FC = () => {
 
         <button
           onClick={() => {
-            if (!isOpenForm && !authorName) {
-              setAuthorName(defaultAccountName);
-            }
             setIsOpenForm(!isOpenForm);
             setErrorMsg(null);
           }}
@@ -296,19 +286,7 @@ export const CommunityTipsSection: React.FC = () => {
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">{t('tips.author_name_label')}</label>
-                  <input
-                    type="text"
-                    maxLength={60}
-                    value={authorName}
-                    onChange={(e) => setAuthorName(e.target.value)}
-                    placeholder={defaultAccountName || (isArabic ? 'اسمك أو لقبك الدراسي...' : 'Your display name...')}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-cyan-500"
-                  />
-                </div>
-
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">{t('tips.course_label')}</label>
                   <select

@@ -82,6 +82,7 @@ export const Header: React.FC<HeaderProps> = ({
   // Primary core navigation items (always front-and-center on md screens and above)
   const primaryNavItems: NavItem[] = [
     { id: 'home', label: t('nav.home'), icon: Compass },
+    { id: 'hub', label: t('nav.hub'), icon: Users },
     { 
       id: 'dashboard', 
       label: t('nav.dashboard'), 
@@ -103,7 +104,6 @@ export const Header: React.FC<HeaderProps> = ({
   const secondaryNavItems: NavItem[] = [
     { id: 'graduation_projects', label: t('nav.graduation_projects'), icon: FolderGit2 },
     { id: 'develop', label: t('nav.develop'), icon: Sparkles },
-    { id: 'hub', label: t('nav.hub'), icon: Users },
     { id: 'faq', label: t('nav.faq'), icon: HelpCircle },
     { id: 'admin', label: t('nav.admin'), icon: ShieldCheck },
   ];

@@ -5,6 +5,8 @@ export interface AdminStudentRecord {
   uid: string;
   displayName?: string | null;
   email?: string | null;
+  username?: string | null;
+  accountPassword?: string | null;
   academicYear?: AcademicYearNumber;
   currentYear?: AcademicYearNumber | 'graduate';
   academicSemester?: AcademicSemester;

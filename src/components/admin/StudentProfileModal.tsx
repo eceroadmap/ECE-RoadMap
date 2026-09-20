@@ -28,6 +28,7 @@ import { AdminStudentRecord } from '../../types/admin';
 import { CommunityTip } from '../../types/student';
 import { adminRepository } from '../../services/admin/adminRepository';
 import { COURSES_DATA } from '../../data/courses';
+import { adminAuthService } from '../../services/admin/adminAuth';
 
 interface StudentProfileModalProps {
   student: AdminStudentRecord | null;
@@ -331,6 +332,28 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
                       {student.email ? 'حساب سحابي متزامن (Google)' : 'وضع زائر محلي'}
                     </div>
                   </div>
+
+                  {adminAuthService.getIsOwner() && (
+                    <>
+                      <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-amber-500/40 space-y-1">
+                        <span className="text-[11px] text-amber-400 font-bold flex items-center gap-1">
+                          <User className="w-3.5 h-3.5" /> اسم المستخدم (يوزر نيم)
+                        </span>
+                        <div className="text-xs font-mono font-bold text-white">
+                          {student.username || 'غير محدد بعد'}
+                        </div>
+                      </div>
+
+                      <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-amber-500/40 space-y-1">
+                        <span className="text-[11px] text-amber-400 font-bold flex items-center gap-1">
+                          <Key className="w-3.5 h-3.5" /> كلمة المرور (للمالك فقط)
+                        </span>
+                        <div className="text-xs font-mono font-bold text-cyan-300">
+                          {student.accountPassword || 'غير محددة بعد'}
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-1">
                     <span className="text-[11px] text-slate-400">حالة التهيئة الأكاديمية (Onboarding)</span>

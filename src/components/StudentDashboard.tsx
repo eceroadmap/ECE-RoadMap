@@ -106,8 +106,60 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
     updateProfile({ academicSemester: sem });
   };
 
+  // Promotion eligibility: remaining unpassed courses in current year <= 4
+  const currentYearAllCourses = COURSES_DATA.filter((c) => c.year === profile.academicYear);
+  const unpassedCurrentYearCourses = currentYearAllCourses.filter((c) => courseProgress[c.id] !== 'completed');
+  const canPromote = unpassedCurrentYearCourses.length <= 4 && profile.academicYear < 5;
+  const [showPromotionSuccess, setShowPromotionSuccess] = useState(false);
+
+  const handlePromoteToNextYear = () => {
+    if (profile.academicYear < 5) {
+      const nextY = (profile.academicYear + 1) as AcademicYearNumber;
+      updateProfile({
+        academicYear: nextY,
+        academicSemester: 1
+      });
+      setShowPromotionSuccess(true);
+      setTimeout(() => setShowPromotionSuccess(false), 7000);
+    }
+  };
+
   return (
-    <div className="space-y-8 sm:space-y-10 max-w-7xl mx-auto w-full overflow-hidden">
+    <div className="space-y-8 sm:space-y-10 max-w-7xl mx-auto w-full overflow-hidden" dir="rtl">
+      {/* Promotion Eligibility Banner */}
+      {canPromote && (
+        <div className="relative rounded-3xl bg-gradient-to-r from-emerald-950 via-teal-950 to-[#062c26] border border-emerald-500/50 p-5 sm:p-6 shadow-2xl overflow-hidden animate-fadeIn">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-1.5 text-right">
+              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-900/80 text-emerald-300 text-xs font-bold border border-emerald-700/60">
+                <Award className="w-4 h-4 text-emerald-400" />
+                <span>شروط الترفع النظامي مستوفاة (4 مواد تحميل أو أقل)</span>
+              </div>
+              <h3 className="text-lg sm:text-xl font-black text-white">
+                🎉 مبارك! متبقي لديك {unpassedCurrentYearCourses.length} مواد غير مجتازة في السنة {profile.academicYear}
+              </h3>
+              <p className="text-xs text-emerald-200/90 leading-relaxed">
+                وفقاً لأنظمة الكلية (التحميل حتى 4 مقررات)، يحق لك الآن الترفع الإداري والدراسي إلى السنة التالية ومتابعة خطتك الهندسية.
+              </p>
+            </div>
+
+            <button
+              onClick={handlePromoteToNextYear}
+              className="px-5 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-all shadow-lg flex items-center gap-2 shrink-0 min-h-[44px]"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>ترفع إلى السنة {profile.academicYear + 1} الآن ✦</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showPromotionSuccess && (
+        <div className="p-4 rounded-2xl bg-emerald-950 border border-emerald-500 text-emerald-300 font-bold text-center text-sm shadow-xl animate-bounce">
+          🎉 ألف مبروك الترفع إلى السنة الدراسية الجديدة! تم تحديث حسابك وخطتك الهندسية بنجاح.
+        </div>
+      )}
       {/* 1. Dashboard Header */}
       <div className="relative rounded-3xl bg-gradient-to-r from-[#09172c] via-[#071324] to-[#0a1f3d] border border-cyan-500/30 p-5 sm:p-8 shadow-2xl overflow-hidden">
         <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">

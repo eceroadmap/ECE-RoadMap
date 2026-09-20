@@ -40,7 +40,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     firebaseUser, 
     isLoggedInWithGoogle, 
     signInWithGoogle, 
-    signOut 
+    signOut,
+    updateProfile
   } = useStudentState();
   const { language, setLanguage, isArabic, t } = useLanguage();
 
@@ -115,6 +116,15 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }
   };
 
+  const handleStartEdit = () => {
+    const currentFullName = isLoggedInWithGoogle ? (firebaseUser?.displayName || profile.name || '') : (storedGuest?.fullName || profile.name || '');
+    const parts = currentFullName.trim().split(' ');
+    setFirstName(parts[0] || '');
+    setLastName(parts.slice(1).join(' ') || '');
+    setAcademicYear(profile.academicYear || (storedGuest?.academicYear as any) || 3);
+    setMode('guest_form');
+  };
+
   const handleGuestSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firstName.trim() || !lastName.trim()) {
@@ -129,6 +139,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         academicYear
+      });
+
+      updateProfile({
+        name: record.fullName,
+        academicYear: academicYear === 'graduate' ? 5 : academicYear,
+        currentYear: academicYear === 'graduate' ? 5 : academicYear
       });
 
       setStoredGuest(record);
@@ -310,6 +326,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </div>
 
             <div className="space-y-2">
+              <button
+                onClick={handleStartEdit}
+                className="w-full py-2.5 px-4 rounded-2xl bg-slate-900 hover:bg-slate-850 border border-cyan-500/40 text-cyan-300 text-xs font-bold transition-colors flex items-center justify-center gap-1.5 min-h-[40px]"
+              >
+                <Sparkles className="w-4 h-4 text-cyan-400" />
+                <span>{isArabic ? 'تعديل الاسم والملف الشخصي' : 'Edit Name & Profile'}</span>
+              </button>
+
               {!isLoggedInWithGoogle && (
                 <button
                   onClick={handleGoogleSignIn}

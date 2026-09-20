@@ -76,6 +76,9 @@ export const StudentHubSection: React.FC<StudentHubSectionProps> = ({
         </p>
       </div>
 
+      {/* Community Tips & Advice Section (Displayed at Top as requested) */}
+      <CommunityTipsSection />
+
       {/* Featured Resource Spotlight: فريق نُون الأكاديمي */}
       {featuredResource && (
         <div 
@@ -217,9 +220,6 @@ export const StudentHubSection: React.FC<StudentHubSectionProps> = ({
           />
         ))}
       </div>
-
-      {/* Community Tips & Advice Section (Firebase Cloud Database Powered) */}
-      <CommunityTipsSection />
     </div>
   );
 };

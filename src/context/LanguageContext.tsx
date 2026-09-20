@@ -64,7 +64,7 @@ const translations: Record<Language, Record<string, string>> = {
     'auth.switch_account': 'تبديل الحساب',
 
     // Community Tips
-    'tips.feed_title': 'تجارب ونَصائح الطلاب الميدانية (Community Feed)',
+    'tips.feed_title': 'تجارب ونَصائح الطلاب (Community Feed)',
     'tips.feed_desc': 'شارك نصائحك وتوجيهاتك للامتحانات والمخابر في كلية الهمك بكل خصوصية ومسؤولية.',
     'tips.add_btn': 'أضف نصيحة أو تجربة',
     'tips.cancel_btn': 'إلغاء',
@@ -144,7 +144,7 @@ const translations: Record<Language, Record<string, string>> = {
     'auth.switch_account': 'Switch Account',
 
     // Community Tips
-    'tips.feed_title': 'Student Field Experiences & Tips (Community Feed)',
+    'tips.feed_title': 'Student Experiences & Tips (Community Feed)',
     'tips.feed_desc': 'Share your advice for exams and lab sessions in ECE with privacy and responsibility.',
     'tips.add_btn': 'Add Tip or Experience',
     'tips.cancel_btn': 'Cancel',

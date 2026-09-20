@@ -30,6 +30,7 @@ import { FromCourseToSkillSection } from './components/FromCourseToSkillSection'
 import { ExhibitionModeModal } from './components/ExhibitionModeModal';
 import { QRCodeDisplay } from './components/QRCodeDisplay';
 import { VisitorWelcomeWidget } from './components/VisitorWelcomeWidget';
+import { UsernamePasswordPromptModal } from './components/UsernamePasswordPromptModal';
 import { ArrowLeft, BookOpen, Cpu, Sparkles, Map, GraduationCap, Laptop, HelpCircle } from 'lucide-react';
 import { COURSES_DATA } from './data/courses';
 import { SOFTWARE_DATA } from './data/software';
@@ -48,6 +49,7 @@ export default function App() {
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [courseYearFilter, setCourseYearFilter] = useState<AcademicYearNumber | 'all'>('all');
   const [roadmapInitialYear, setRoadmapInitialYear] = useState<AcademicYearNumber>(1);
+  const [isUsernamePromptOpen, setIsUsernamePromptOpen] = useState(false);
 
   const { 
     profile, 
@@ -58,6 +60,12 @@ export default function App() {
     firebaseUser,
     isLoggedInWithGoogle
   } = useStudentState();
+
+  useEffect(() => {
+    if ((firebaseUser || isLoggedInWithGoogle) && (!profile.username || !profile.accountPassword)) {
+      setIsUsernamePromptOpen(true);
+    }
+  }, [firebaseUser, isLoggedInWithGoogle, profile.username, profile.accountPassword]);
 
   const storedGuest = guestVisitorService.getStoredGuest();
   const isIdentified = Boolean(
@@ -408,6 +416,12 @@ export default function App() {
         onSuccess={() => {
           setIsLoginModalOpen(false);
         }}
+      />
+
+      {/* Username & Password Setup Modal */}
+      <UsernamePasswordPromptModal
+        isOpen={isUsernamePromptOpen}
+        onClose={() => setIsUsernamePromptOpen(false)}
       />
 
       {/* Exhibition Mode Modal */}

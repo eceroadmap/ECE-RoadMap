@@ -25,6 +25,7 @@ import {
   AdminStudentRecord
 } from '../../types/admin';
 import { CommunityTip } from '../../types/student';
+import { SkillCourse } from '../../types';
 
 enum OperationType {
   CREATE = 'create',
@@ -483,6 +484,40 @@ export const adminRepository = {
     } catch (error) {
       console.warn('Failed to list student tips from Firestore:', error);
       return [];
+    }
+  },
+
+  // ==========================================
+  // 8. Develop / Skills Management
+  // ==========================================
+  async getSkills(): Promise<SkillCourse[]> {
+    const p = 'developSkills';
+    try {
+      const snap = await getDocs(collection(db, p));
+      return snap.docs.map(d => ({ id: d.id, ...d.data() } as SkillCourse));
+    } catch (error) {
+      console.warn('Failed to list develop skills from Firestore:', error);
+      return [];
+    }
+  },
+
+  async saveSkill(skill: SkillCourse): Promise<void> {
+    const p = `developSkills/${skill.id}`;
+    try {
+      await setDoc(doc(db, 'developSkills', skill.id), skill, { merge: true });
+      await this.logAction('COURSE_UPDATED', 'course', skill.id, `تحديث مهارة طور نفسك: ${skill.titleAr}`);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, p);
+    }
+  },
+
+  async deleteSkill(id: string): Promise<void> {
+    const p = `developSkills/${id}`;
+    try {
+      await deleteDoc(doc(db, 'developSkills', id));
+      await this.logAction('COURSE_ARCHIVED', 'course', id, `حذف مهارة طور نفسك: ${id}`);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, p);
     }
   }
 };
