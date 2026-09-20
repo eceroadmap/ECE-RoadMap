@@ -61,16 +61,13 @@ export function extractAcademicSemester(data: any): AcademicSemester {
 export function isPlatformOwnerRecord(data: any): boolean {
   if (!data) return false;
   const email = (data.email || '').toLowerCase().trim();
-  const name = (data.displayName || data.fullName || '').toLowerCase().trim();
   const role = (data.role || '').toLowerCase().trim();
 
   return (
     email === 'eceroadmap@gmail.com' ||
     email.includes('eceroadmap') ||
     role === 'super_admin' ||
-    data.isOwner === true ||
-    name.includes('المهندسة مروة') ||
-    name.includes('مدير المنصة')
+    data.isOwner === true
   );
 }
 
