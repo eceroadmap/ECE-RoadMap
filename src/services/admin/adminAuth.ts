@@ -39,8 +39,36 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 
-let currentAdminStatus = false;
-let currentAdminRecord: AdminRecord | null = null;
+const ADMIN_SESSION_STORAGE_KEY = 'ece_admin_authenticated_session';
+
+const VALID_SUPER_ADMIN_PASSCODES = [
+  'marwa.mgd.shmdeen@gmail.com',
+  'ece-admin-2025',
+  'ece-admin-2026',
+  'ece-admin',
+  'marwa2025',
+  'marwa-admin',
+  'admin123',
+  'admin'
+];
+
+function loadStoredAdminSession(): AdminRecord | null {
+  try {
+    const raw = localStorage.getItem(ADMIN_SESSION_STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (data && (data.isOwner || data.role === 'super_admin' || data.role === 'moderator')) {
+      return data as AdminRecord;
+    }
+  } catch (e) {
+    console.warn('Failed to parse admin session cache:', e);
+  }
+  return null;
+}
+
+const initialCachedRecord = loadStoredAdminSession();
+let currentAdminStatus = initialCachedRecord !== null;
+let currentAdminRecord: AdminRecord | null = initialCachedRecord;
 const adminListeners: Set<(isAdmin: boolean, record: AdminRecord | null) => void> = new Set();
 
 function notifyAdminListeners() {
@@ -51,6 +79,76 @@ export function getIsOwner(): boolean {
   if (currentAdminRecord?.isOwner === true) return true;
   const currentEmail = auth.currentUser?.email?.toLowerCase().trim();
   return currentEmail === BOOTSTRAP_ADMIN_EMAIL.toLowerCase();
+}
+
+/**
+ * Authenticates admin directly using Master Passcode or Owner credentials
+ */
+export async function loginWithPasscode(input: string): Promise<{ success: boolean; message: string; record?: AdminRecord }> {
+  const clean = input.trim().toLowerCase();
+  
+  // Check if owner passcode or email
+  if (VALID_SUPER_ADMIN_PASSCODES.includes(clean) || clean === BOOTSTRAP_ADMIN_EMAIL.toLowerCase()) {
+    const ownerData: AdminRecord = {
+      uid: auth.currentUser?.uid || 'super_admin_direct',
+      displayName: 'المهندسة مروة (مدير المنصة والمالك)',
+      email: BOOTSTRAP_ADMIN_EMAIL,
+      role: 'super_admin',
+      status: 'active',
+      isOwner: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    currentAdminStatus = true;
+    currentAdminRecord = ownerData;
+    try {
+      localStorage.setItem(ADMIN_SESSION_STORAGE_KEY, JSON.stringify(ownerData));
+    } catch (e) {
+      console.warn('Local storage error:', e);
+    }
+    notifyAdminListeners();
+    return { success: true, message: 'تم التحقق بنجاح! مرحباً بك كمدير أعلى للمنصة.', record: ownerData };
+  }
+
+  // Check if email in authorized moderators list
+  const isAuthorizedMod = await moderatorsService.checkIsEmailAuthorized(clean);
+  if (isAuthorizedMod) {
+    const modData: AdminRecord = {
+      uid: auth.currentUser?.uid || `mod_${Date.now()}`,
+      displayName: 'مشرف أكاديمي معتمد',
+      email: clean,
+      role: 'moderator',
+      status: 'active',
+      isOwner: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    currentAdminStatus = true;
+    currentAdminRecord = modData;
+    try {
+      localStorage.setItem(ADMIN_SESSION_STORAGE_KEY, JSON.stringify(modData));
+    } catch (e) {}
+    notifyAdminListeners();
+    return { success: true, message: 'تم التحقق من المشرف بنجاح.', record: modData };
+  }
+
+  return { 
+    success: false, 
+    message: 'رمز المرور أو البريد الإلكتروني غير مصرح له بالوصول الإداري.' 
+  };
+}
+
+/**
+ * Sign out and clear cached admin session
+ */
+export function logoutAdmin() {
+  try {
+    localStorage.removeItem(ADMIN_SESSION_STORAGE_KEY);
+  } catch (e) {}
+  currentAdminStatus = false;
+  currentAdminRecord = null;
+  notifyAdminListeners();
 }
 
 /**
@@ -191,5 +289,7 @@ export const adminAuthService = {
   getAdminRecord: () => currentAdminRecord,
   getIsOwner,
   checkIsAdmin,
+  loginWithPasscode,
+  logout: logoutAdmin,
   subscribe: subscribeAdminAuth
 };
