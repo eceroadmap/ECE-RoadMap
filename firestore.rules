@@ -13,7 +13,7 @@ service cloud.firestore {
     // Super Administrator Check (Platform Owner / Manager only)
     function isSuperAdmin() {
       return isAuthenticated() && (
-        (request.auth.token.email.lower() == "marwa.mgd.shmdeen@gmail.com" && request.auth.token.email_verified == true)
+        (request.auth.token.email.lower() == "eceroadmap@gmail.com" && request.auth.token.email_verified == true)
         || (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'super_admin')
       );
     }

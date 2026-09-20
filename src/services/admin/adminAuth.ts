@@ -11,7 +11,7 @@ import { AdminRecord } from '../../types/admin';
 import { moderatorsService } from './moderatorsService';
 
 // The verified initial project administrator email (from project environment)
-export const BOOTSTRAP_ADMIN_EMAIL = 'marwa.mgd.shmdeen@gmail.com';
+export const BOOTSTRAP_ADMIN_EMAIL = 'EceRoadMap@gmail.com';
 
 let currentAdminStatus = false;
 let currentAdminRecord: AdminRecord | null = null;

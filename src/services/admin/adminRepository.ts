@@ -443,8 +443,8 @@ export const adminRepository = {
           const email = s.email?.toLowerCase().trim() || '';
           const name = s.displayName?.toLowerCase().trim() || '';
           const isOwnerAccount = 
-            email === 'marwa.mgd.shmdeen@gmail.com' ||
-            email.includes('marwa.mgd.shmdeen') ||
+            email === 'eceroadmap@gmail.com' ||
+            email.includes('eceroadmap') ||
             (s.role as any) === 'super_admin' ||
             (s as any).isOwner === true ||
             name.includes('المهندسة مروة') ||

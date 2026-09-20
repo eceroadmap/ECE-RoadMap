@@ -65,8 +65,8 @@ export function isPlatformOwnerRecord(data: any): boolean {
   const role = (data.role || '').toLowerCase().trim();
 
   return (
-    email === 'marwa.mgd.shmdeen@gmail.com' ||
-    email.includes('marwa.mgd.shmdeen') ||
+    email === 'eceroadmap@gmail.com' ||
+    email.includes('eceroadmap') ||
     role === 'super_admin' ||
     data.isOwner === true ||
     name.includes('المهندسة مروة') ||
