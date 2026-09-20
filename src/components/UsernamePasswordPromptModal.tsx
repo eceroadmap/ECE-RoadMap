@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Key, ShieldCheck, Sparkles, Send, RefreshCw } from 'lucide-react';
+import { User, Key, ShieldCheck, Sparkles, Send, RefreshCw, X } from 'lucide-react';
 import { useStudentState } from '../services/useStudentState';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -22,6 +22,8 @@ export const UsernamePasswordPromptModal: React.FC<UsernamePasswordPromptModalPr
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const isMandatory = !profile.username || !profile.accountPassword;
 
   if (!isOpen) return null;
 
@@ -65,6 +67,16 @@ export const UsernamePasswordPromptModal: React.FC<UsernamePasswordPromptModalPr
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto" dir="rtl">
       <div className="w-full max-w-md bg-gradient-to-b from-[#091527] to-[#060e1a] border border-cyan-500/40 rounded-3xl shadow-2xl p-6 sm:p-8 space-y-6 relative overflow-hidden animate-scaleUp">
+        {!isMandatory && (
+          <button
+            onClick={onClose}
+            className="absolute top-5 left-5 p-2 rounded-xl text-slate-400 hover:text-white bg-slate-900/80 hover:bg-slate-800 border border-slate-800 transition-colors z-10 min-h-[36px] min-w-[36px] flex items-center justify-center"
+            aria-label="إغلاق"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+
         <div className="absolute top-0 right-0 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="text-center space-y-2 relative">

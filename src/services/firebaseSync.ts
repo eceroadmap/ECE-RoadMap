@@ -240,8 +240,6 @@ class FirebaseSyncService {
         const localUpdated = localProfile.updatedAt ? new Date(localProfile.updatedAt).getTime() : 0;
 
         const resolvedName = localProfile.name || remoteData.displayName || user.displayName || 'مهندس مستقبلي';
-        const resolvedUsername = remoteData.username || localProfile.username || (user.email ? user.email.split('@')[0] : `user_${user.uid.slice(0, 6)}`);
-        const resolvedPassword = remoteData.accountPassword || localProfile.accountPassword || 'google_authenticated';
 
         let mergedProfile: StudentProfile;
         if (remoteUpdated > localUpdated && remoteData.academicYear) {
@@ -253,8 +251,8 @@ class FirebaseSyncService {
             academicSemester: remoteData.academicSemester || localProfile.academicSemester,
             role: remoteData.role || localProfile.role,
             roleLabelAr: remoteData.roleLabelAr || localProfile.roleLabelAr,
-            username: resolvedUsername,
-            accountPassword: resolvedPassword,
+            username: localProfile.username || remoteData.username || undefined,
+            accountPassword: localProfile.accountPassword || remoteData.accountPassword || undefined,
             targetFocusTrack: remoteData.targetFocusTrack || localProfile.targetFocusTrack,
             onboardingCompleted: remoteData.onboardingCompleted ?? localProfile.onboardingCompleted ?? true,
             updatedAt: remoteData.updatedAt
@@ -263,8 +261,8 @@ class FirebaseSyncService {
           mergedProfile = {
             ...localProfile,
             name: resolvedName,
-            username: resolvedUsername,
-            accountPassword: resolvedPassword,
+            username: localProfile.username || remoteData.username || undefined,
+            accountPassword: localProfile.accountPassword || remoteData.accountPassword || undefined,
             onboardingCompleted: localProfile.onboardingCompleted ?? remoteData.onboardingCompleted ?? true,
             updatedAt: now
           };
@@ -322,13 +320,13 @@ class FirebaseSyncService {
       } else {
         // Initial migration: Upload existing local anonymous progress to the cloud document
         const initialResolvedName = localProfile.name || user.displayName || 'مهندس مستقبلي';
-        const initialResolvedUsername = localProfile.username || (user.email ? user.email.split('@')[0] : `user_${user.uid.slice(0, 6)}`);
-        const initialResolvedPassword = localProfile.accountPassword || 'google_authenticated';
+        const finalUsername = localProfile.username || undefined;
+        const finalPassword = localProfile.accountPassword || undefined;
 
         studentRepository.saveProfile({
           name: initialResolvedName,
-          username: initialResolvedUsername,
-          accountPassword: initialResolvedPassword,
+          username: finalUsername,
+          accountPassword: finalPassword,
           onboardingCompleted: true
         });
 
@@ -336,8 +334,8 @@ class FirebaseSyncService {
           uid: user.uid,
           displayName: user.displayName || initialResolvedName || null,
           email: user.email || null,
-          username: initialResolvedUsername,
-          accountPassword: initialResolvedPassword,
+          username: finalUsername || null,
+          accountPassword: finalPassword || null,
           academicYear: localProfile.academicYear,
           currentYear: localProfile.currentYear,
           academicSemester: localProfile.academicSemester,

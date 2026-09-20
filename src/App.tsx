@@ -62,21 +62,8 @@ export default function App() {
   } = useStudentState();
 
   useEffect(() => {
-    if (firebaseUser || isLoggedInWithGoogle) {
-      if (profile.username && profile.accountPassword) {
-        setIsUsernamePromptOpen(false);
-      } else {
-        const defaultUser = firebaseUser?.email 
-          ? firebaseUser.email.split('@')[0] 
-          : `user_${firebaseUser?.uid?.slice(0, 6) || 'google'}`;
-        updateProfile({
-          username: profile.username || defaultUser,
-          accountPassword: profile.accountPassword || 'google_authenticated'
-        });
-        setIsUsernamePromptOpen(false);
-      }
-    } else {
-      setIsUsernamePromptOpen(false);
+    if ((firebaseUser || isLoggedInWithGoogle) && (!profile.username || !profile.accountPassword)) {
+      setIsUsernamePromptOpen(true);
     }
   }, [firebaseUser, isLoggedInWithGoogle, profile.username, profile.accountPassword]);
 

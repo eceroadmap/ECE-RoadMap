@@ -114,11 +114,26 @@ export async function signInWithGoogleDirect(): Promise<User | null> {
       console.warn('Set persistence note:', pErr);
     }
 
-    // Use signInWithRedirect for bulletproof iframe & browser compatibility (avoids gsi/transform freeze & storage partitioning)
-    await signInWithRedirect(auth, googleProvider);
-    return null;
+    try {
+      const res = await signInWithPopup(auth, googleProvider);
+      return res.user;
+    } catch (popupErr: any) {
+      console.warn('Google Popup Sign-In note:', popupErr);
+      if (
+        popupErr?.code === 'auth/popup-closed-by-user' || 
+        popupErr?.code === 'auth/cancelled-popup-request'
+      ) {
+        throw popupErr;
+      }
+      if (popupErr?.code === 'auth/popup-blocked') {
+        console.log('Attempting redirect fallback due to popup block...');
+        await signInWithRedirect(auth, googleProvider);
+        return null;
+      }
+      throw popupErr;
+    }
   } catch (err: any) {
-    console.warn('Google Redirect Sign-In Error:', err);
+    console.warn('Google Sign-In Error:', err);
     throw err;
   }
 }
