@@ -119,6 +119,52 @@ export async function signInWithGoogleDirect(): Promise<User | null> {
       console.warn('Set persistence note:', pErr);
     }
 
+    // 1. Prefer Google Identity Services (GIS) direct token client to bypass /__/auth/handler redirects
+    if (typeof window !== 'undefined' && (window as any).google?.accounts?.oauth2) {
+      try {
+        const user = await new Promise<User | null>((resolve, reject) => {
+          let isHandled = false;
+          const google = (window as any).google;
+          const client = google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_OAUTH_CLIENT_ID,
+            scope: 'email profile openid',
+            callback: async (tokenResponse: any) => {
+              if (isHandled) return;
+              isHandled = true;
+              if (tokenResponse.error) {
+                if (tokenResponse.error === 'popup_closed' || tokenResponse.error === 'user_logged_out') {
+                  resolve(null);
+                } else {
+                  reject(new Error(tokenResponse.error_description || tokenResponse.error));
+                }
+                return;
+              }
+              try {
+                const credential = GoogleAuthProvider.credential(tokenResponse.id_token, tokenResponse.access_token);
+                const res = await signInWithCredential(auth, credential);
+                resolve(res.user);
+              } catch (credErr) {
+                reject(credErr);
+              }
+            },
+            error_callback: (err: any) => {
+              if (isHandled) return;
+              isHandled = true;
+              reject(err);
+            }
+          });
+          client.requestAccessToken();
+        });
+
+        if (user) {
+          return user;
+        }
+      } catch (gisErr: any) {
+        console.warn('GIS Token Client note, trying fallback popup:', gisErr);
+      }
+    }
+
+    // 2. Fallback to standard Firebase popup if GIS client is unavailable
     const res = await signInWithPopup(auth, googleProvider);
     return res.user;
   } catch (err: any) {
