@@ -572,36 +572,6 @@ class FirebaseSyncService {
 
         const tips = Array.from(mergedMap.values()).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         callback({ tips, isLoading: false, error: null });
-
-        // Background sync local tips to Firestore
-        setTimeout(async () => {
-          try {
-            const firestoreIds = new Set(snapshot.docs.map(d => d.id));
-            for (const t of localTips) {
-              if (!firestoreIds.has(t.id)) {
-                const syncPayload: Record<string, any> = {
-                  authorId: t.authorId || 'guest',
-                  authorName: t.authorName || 'طالب هندسة اتصالات',
-                  authorYear: t.authorYear ?? 'طالب',
-                  courseId: t.courseId || 'general',
-                  content: t.content,
-                  category: t.category,
-                  likesCount: t.likesCount || 0,
-                  likedBy: t.likedBy || [],
-                  dislikesCount: t.dislikesCount || 0,
-                  dislikedBy: t.dislikedBy || [],
-                  createdAt: t.createdAt || new Date().toISOString()
-                };
-                if (t.courseNameAr) {
-                  syncPayload.courseNameAr = t.courseNameAr;
-                }
-                await setDoc(doc(db, 'communityTips', t.id), syncPayload, { merge: true });
-              }
-            }
-          } catch (syncErr) {
-            console.warn('Background sync of local tips:', syncErr);
-          }
-        }, 1200);
       }, (err) => {
         console.warn('Notice when fetching community tips from Firestore, using local tips:', err.message);
         const localTips = getLocalTips();
@@ -632,7 +602,8 @@ class FirebaseSyncService {
       throw new Error('CONTENT_TOO_SHORT');
     }
 
-    const authorId = this.currentUser?.uid || this.sessionUser?.uid || 'guest-' + Math.random().toString(36).substring(2, 9);
+    const activeUser = this.getUser();
+    const authorId = activeUser?.uid || 'guest-' + Math.random().toString(36).substring(2, 9);
     const newTipId = 'tip-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
 
     // Build clean payload without any 'undefined' properties (Firestore rejects undefined!)
@@ -699,11 +670,12 @@ class FirebaseSyncService {
   }
 
   public async toggleLikeTip(tipId: string, currentLiked: boolean, currentDisliked: boolean = false): Promise<void> {
-    if (!this.currentUser) {
+    const user = this.getUser();
+    if (!user || !user.uid) {
       throw new Error('AUTH_REQUIRED');
     }
 
-    const uid = this.currentUser.uid;
+    const uid = user.uid;
     const tipRef = doc(db, 'communityTips', tipId);
 
     const updates: Record<string, any> = {};
@@ -728,11 +700,12 @@ class FirebaseSyncService {
   }
 
   public async toggleDislikeTip(tipId: string, currentDisliked: boolean, currentLiked: boolean = false): Promise<void> {
-    if (!this.currentUser) {
+    const user = this.getUser();
+    if (!user || !user.uid) {
       throw new Error('AUTH_REQUIRED');
     }
 
-    const uid = this.currentUser.uid;
+    const uid = user.uid;
     const tipRef = doc(db, 'communityTips', tipId);
 
     const updates: Record<string, any> = {};

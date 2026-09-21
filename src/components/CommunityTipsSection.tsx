@@ -124,16 +124,37 @@ export const CommunityTipsSection: React.FC = () => {
     }
   };
 
+  const activeUser = firebaseUser || firebaseSyncService.getUser();
+  const currentUid = activeUser?.uid || profile.uid || storedGuest?.id || '';
+  const isStudentLoggedIn = Boolean(activeUser || profile.username || profile.email || storedGuest);
+
   const handleLike = async (tip: CommunityTip) => {
-    if (!firebaseUser) {
-      setErrorMsg(isArabic ? 'يرجى تسجيل الدخول بحساب Google أولاً للتفاعل مع نصائح زملائك.' : 'Please sign in with Google to react to advice.');
+    if (!currentUid) {
+      setErrorMsg(isArabic ? 'يرجى تسجيل الدخول أولاً للتفاعل مع نصائح زملائك.' : 'Please sign in to react to advice.');
       setTimeout(() => setErrorMsg(null), 3500);
       return;
     }
 
+    const isLiked = tip.likedBy?.includes(currentUid) || false;
+    const isDisliked = tip.dislikedBy?.includes(currentUid) || false;
+
+    // Optimistic UI Update for instant user response
+    setTips(prevTips => prevTips.map(t => {
+      if (t.id !== tip.id) return t;
+      const updatedLikedBy = isLiked 
+        ? (t.likedBy || []).filter(id => id !== currentUid) 
+        : [...(t.likedBy || []), currentUid];
+      const updatedDislikedBy = isLiked ? (t.dislikedBy || []) : (t.dislikedBy || []).filter(id => id !== currentUid);
+      return {
+        ...t,
+        likesCount: Math.max(0, (t.likesCount || 0) + (isLiked ? -1 : 1)),
+        dislikesCount: isDisliked && !isLiked ? Math.max(0, (t.dislikesCount || 0) - 1) : (t.dislikesCount || 0),
+        likedBy: updatedLikedBy,
+        dislikedBy: updatedDislikedBy
+      };
+    }));
+
     try {
-      const isLiked = tip.likedBy?.includes(firebaseUser.uid) || false;
-      const isDisliked = tip.dislikedBy?.includes(firebaseUser.uid) || false;
       await firebaseSyncService.toggleLikeTip(tip.id, isLiked, isDisliked);
     } catch (err) {
       console.warn('Failed to like tip:', err);
@@ -141,15 +162,32 @@ export const CommunityTipsSection: React.FC = () => {
   };
 
   const handleDislike = async (tip: CommunityTip) => {
-    if (!firebaseUser) {
-      setErrorMsg(isArabic ? 'يرجى تسجيل الدخول بحساب Google أولاً للتفاعل مع نصائح زملائك.' : 'Please sign in with Google to react to advice.');
+    if (!currentUid) {
+      setErrorMsg(isArabic ? 'يرجى تسجيل الدخول أولاً للتفاعل مع نصائح زملائك.' : 'Please sign in to react to advice.');
       setTimeout(() => setErrorMsg(null), 3500);
       return;
     }
 
+    const isDisliked = tip.dislikedBy?.includes(currentUid) || false;
+    const isLiked = tip.likedBy?.includes(currentUid) || false;
+
+    // Optimistic UI Update for instant user response
+    setTips(prevTips => prevTips.map(t => {
+      if (t.id !== tip.id) return t;
+      const updatedDislikedBy = isDisliked 
+        ? (t.dislikedBy || []).filter(id => id !== currentUid) 
+        : [...(t.dislikedBy || []), currentUid];
+      const updatedLikedBy = isDisliked ? (t.likedBy || []) : (t.likedBy || []).filter(id => id !== currentUid);
+      return {
+        ...t,
+        dislikesCount: Math.max(0, (t.dislikesCount || 0) + (isDisliked ? -1 : 1)),
+        likesCount: isLiked && !isDisliked ? Math.max(0, (t.likesCount || 0) - 1) : (t.likesCount || 0),
+        dislikedBy: updatedDislikedBy,
+        likedBy: updatedLikedBy
+      };
+    }));
+
     try {
-      const isDisliked = tip.dislikedBy?.includes(firebaseUser.uid) || false;
-      const isLiked = tip.likedBy?.includes(firebaseUser.uid) || false;
       await firebaseSyncService.toggleDislikeTip(tip.id, isDisliked, isLiked);
     } catch (err) {
       console.warn('Failed to dislike tip:', err);
@@ -245,19 +283,19 @@ export const CommunityTipsSection: React.FC = () => {
               <Sparkles className="w-4 h-4 text-cyan-400" />
               <span>{t('tips.add_btn')}</span>
             </div>
-            {!firebaseUser && (
+            {!isStudentLoggedIn && (
               <span className="text-[11px] text-amber-400 font-normal">
-                ({isArabic ? 'يتطلب تسجيل الدخول بـ Google' : 'Requires Google Sign-in'})
+                ({isArabic ? 'يتطلب تسجيل الدخول بـ Google أو حساب الطالب' : 'Requires Sign-in'})
               </span>
             )}
           </div>
 
-          {!firebaseUser ? (
+          {!isStudentLoggedIn ? (
             <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 text-center space-y-3">
               <p className="text-slate-300">
                 {isArabic 
-                  ? 'لمنع الإزعاج وحماية جودة النصائح الأكاديمية، يتطلب نشر التجارب تسجيل الدخول بحساب Google.' 
-                  : 'To protect content quality, sharing advice requires signing in with Google.'}
+                  ? 'لمنع الإزعاج وحماية جودة النصائح الأكاديمية، يتطلب نشر التجارب تسجيل الدخول بحساب الطالب أو Google.' 
+                  : 'To protect content quality, sharing advice requires signing in.'}
               </p>
               <button
                 type="button"
@@ -277,7 +315,7 @@ export const CommunityTipsSection: React.FC = () => {
                   {isArabic 
                     ? `سيتم نشر النصيحة باسم حسابك: ` 
                     : `Advice will be published using your account name: `}
-                  <strong className="text-white font-mono">{defaultAccountName || firebaseUser.displayName || firebaseUser.email}</strong>
+                  <strong className="text-white font-mono">{defaultAccountName || firebaseUser?.displayName || profile.name || profile.username || 'طالب ECE'}</strong>
                 </span>
               </div>
 
@@ -445,8 +483,8 @@ export const CommunityTipsSection: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {sortedAndFilteredTips.map((tip) => {
-            const isLiked = firebaseUser?.uid ? tip.likedBy?.includes(firebaseUser.uid) : false;
-            const isDisliked = firebaseUser?.uid ? (tip.dislikedBy?.includes(firebaseUser.uid) || false) : false;
+            const isLiked = currentUid ? (tip.likedBy?.includes(currentUid) || false) : false;
+            const isDisliked = currentUid ? (tip.dislikedBy?.includes(currentUid) || false) : false;
             const likesCount = tip.likesCount || 0;
             const dislikesCount = tip.dislikesCount || 0;
 
