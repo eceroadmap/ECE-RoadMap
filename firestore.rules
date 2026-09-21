@@ -6,14 +6,26 @@ service cloud.firestore {
     }
 
     function isOwner() {
-      return isAuthenticated() && request.auth.token.email == "marwa.mgd.shmdeen@gmail.com";
+      return isAuthenticated() && (
+        (request.auth.token.email != null && request.auth.token.email.matches('(?i)marwa\\.mgd\\.shmdeen@gmail\\.com'))
+        || (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) 
+          && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.isOwner == true)
+        || (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) 
+          && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'super_admin')
+      );
     }
 
     function isAuthorizedModerator() {
-      return isAuthenticated() && 
-        resource != null && 
-        resource.data.keys().hasAll(['activeEmails']) && 
-        request.auth.token.email in resource.data.activeEmails;
+      return isAuthenticated() && (
+        (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) 
+          && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'moderator')
+        || (
+          exists(/databases/$(database)/documents/system_config/moderators_list) &&
+          get(/databases/$(database)/documents/system_config/moderators_list).data.keys().hasAll(['activeEmails']) &&
+          request.auth.token.email != null &&
+          request.auth.token.email in get(/databases/$(database)/documents/system_config/moderators_list).data.activeEmails
+        )
+      );
     }
 
     function isAdmin() {
@@ -30,8 +42,8 @@ service cloud.firestore {
 
     // 2. Dedicated Administrator Authorization Collection
     match /admins/{adminId} {
-      allow read: if isAuthenticated() && (request.auth.uid == adminId || isAdmin());
-      allow write: if isAdmin();
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && (request.auth.uid == adminId || isOwner() || isAdmin());
     }
 
     // 3. Managed Public Curriculum Courses
@@ -79,10 +91,10 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // 9. System Configuration & Exhibition Settings (including moderators_list)
+    // 9. System Configuration & Exhibition Settings (system_config/moderators_list)
     match /system_config/{configId} {
       allow read: if true;
-      allow write: if isOwner() || (configId == 'moderators_list' && isAdmin());
+      allow write: if isOwner() || isAdmin();
     }
 
     // 10. Public Site & Visitor Statistics Counter

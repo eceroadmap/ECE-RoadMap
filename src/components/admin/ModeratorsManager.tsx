@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { ModeratorRecord } from '../../types/admin';
 import { moderatorsService } from '../../services/admin/moderatorsService';
+import { AdminDiagnosticTool } from './AdminDiagnosticTool';
 
 export const ModeratorsManager: React.FC = () => {
   const [moderators, setModerators] = useState<ModeratorRecord[]>([]);
@@ -172,6 +173,9 @@ export const ModeratorsManager: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Diagnostic Tool */}
+      <AdminDiagnosticTool />
 
       {/* Notifications */}
       {errorMsg && (

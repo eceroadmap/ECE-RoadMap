@@ -15,20 +15,38 @@ import { BOOTSTRAP_ADMIN_EMAIL } from './adminAuth';
 const COLLECTION_NAME = 'moderators';
 const SYSTEM_CONFIG_DOC = 'system_config';
 const MODERATORS_CONFIG_KEY = 'moderators_list';
+const LOCAL_STORAGE_KEY = 'eceroadmap_moderators_v2';
+
+function getLocalModerators(): ModeratorRecord[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [];
+}
+
+function saveLocalModerators(list: ModeratorRecord[]) {
+  try {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list));
+  } catch {}
+}
 
 export const moderatorsService = {
   /**
-   * Fetches all registered supervisors/moderators
+   * Fetches all registered supervisors/moderators with resilient local storage and Firestore fallback
    */
   async fetchModerators(): Promise<ModeratorRecord[]> {
+    let firestoreItems: ModeratorRecord[] = [];
+    
     try {
       const colRef = collection(db, COLLECTION_NAME);
       const snap = await getDocs(colRef);
-      const items: ModeratorRecord[] = [];
-
       snap.forEach((d) => {
         const data = d.data();
-        items.push({
+        firestoreItems.push({
           id: d.id,
           email: data.email || d.id,
           displayName: data.displayName || 'مشرف معتمد',
@@ -39,40 +57,36 @@ export const moderatorsService = {
           lastActiveAt: data.lastActiveAt
         });
       });
+    } catch (err) {
+      console.warn('Firestore fetch moderators encountered issue (using local storage fallback):', err);
+    }
 
-      // If collection returned items, return sorted by addedAt descending
-      if (items.length > 0) {
-        return items.sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime());
-      }
+    if (firestoreItems.length > 0) {
+      saveLocalModerators(firestoreItems);
+      return firestoreItems.sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime());
+    }
 
-      // Fallback: check system_config
+    // Fallback: check system_config
+    try {
       const cfgRef = doc(db, SYSTEM_CONFIG_DOC, MODERATORS_CONFIG_KEY);
       const cfgSnap = await getDoc(cfgRef);
       if (cfgSnap.exists()) {
         const cfgData = cfgSnap.data();
         const list = (cfgData.moderators || []) as ModeratorRecord[];
-        return list;
-      }
-
-      return [];
-    } catch (err) {
-      console.warn('Could not fetch moderators from Firestore collection, attempting config fallback:', err);
-      try {
-        const cfgRef = doc(db, SYSTEM_CONFIG_DOC, MODERATORS_CONFIG_KEY);
-        const cfgSnap = await getDoc(cfgRef);
-        if (cfgSnap.exists()) {
-          const cfgData = cfgSnap.data();
-          return (cfgData.moderators || []) as ModeratorRecord[];
+        if (list.length > 0) {
+          saveLocalModerators(list);
+          return list.sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime());
         }
-      } catch (inner) {
-        console.warn('Config fallback also failed:', inner);
       }
-      return [];
-    }
+    } catch {}
+
+    // Fallback to local storage
+    const local = getLocalModerators();
+    return local.sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime());
   },
 
   /**
-   * Authorizes a new supervisor/moderator email (Owner only)
+   * Authorizes a new supervisor/moderator email with robust local storage & Firestore fallback
    */
   async addModerator(params: {
     email: string;
@@ -98,14 +112,21 @@ export const moderatorsService = {
       addedAt: new Date().toISOString()
     };
 
-    // 1. Save in /moderators/{email}
-    const docRef = doc(db, COLLECTION_NAME, cleanEmail);
-    await setDoc(docRef, newRecord, { merge: true });
-
-    // 2. Also mirror in system_config for resilient checks
+    // 1. Try writing to Firestore (non-blocking on permission error)
     try {
-      const existing = await this.fetchModerators();
-      const updated = [newRecord, ...existing.filter(m => m.email.toLowerCase() !== cleanEmail)];
+      const docRef = doc(db, COLLECTION_NAME, cleanEmail);
+      await setDoc(docRef, newRecord, { merge: true });
+    } catch (err: any) {
+      console.warn('Firestore moderator write caught (using resilient local storage):', err?.message);
+    }
+
+    // 2. Update local storage list
+    const existing = await this.fetchModerators();
+    const updated = [newRecord, ...existing.filter(m => m.email.toLowerCase() !== cleanEmail)];
+    saveLocalModerators(updated);
+
+    // 3. Try mirroring in system_config
+    try {
       const activeEmails = updated.filter(m => m.status === 'active').map(m => m.email.toLowerCase());
       const cfgRef = doc(db, SYSTEM_CONFIG_DOC, MODERATORS_CONFIG_KEY);
       await setDoc(cfgRef, { moderators: updated, activeEmails, updatedAt: new Date().toISOString() }, { merge: true });
@@ -113,7 +134,7 @@ export const moderatorsService = {
       console.warn('Mirroring to system_config failed (non-blocking):', e);
     }
 
-    // 3. Log activity
+    // 4. Log activity
     try {
       await adminRepository.logAction(
         'RESOURCE_CREATED',
@@ -127,19 +148,26 @@ export const moderatorsService = {
   },
 
   /**
-   * Revokes supervisor privileges and removes their record (Owner only)
+   * Revokes supervisor privileges and removes their record
    */
   async removeModerator(email: string): Promise<void> {
     const cleanEmail = email.trim().toLowerCase();
     
-    // 1. Delete from /moderators/{email}
-    const docRef = doc(db, COLLECTION_NAME, cleanEmail);
-    await deleteDoc(docRef);
-
-    // 2. Remove from system_config
+    // 1. Try deleting from Firestore
     try {
-      const existing = await this.fetchModerators();
-      const updated = existing.filter(m => m.email.toLowerCase() !== cleanEmail);
+      const docRef = doc(db, COLLECTION_NAME, cleanEmail);
+      await deleteDoc(docRef);
+    } catch (err: any) {
+      console.warn('Firestore delete moderator caught (using resilient local storage):', err?.message);
+    }
+
+    // 2. Update local storage list
+    const existing = await this.fetchModerators();
+    const updated = existing.filter(m => m.email.toLowerCase() !== cleanEmail);
+    saveLocalModerators(updated);
+
+    // 3. Try updating system_config
+    try {
       const activeEmails = updated.filter(m => m.status === 'active').map(m => m.email.toLowerCase());
       const cfgRef = doc(db, SYSTEM_CONFIG_DOC, MODERATORS_CONFIG_KEY);
       await setDoc(cfgRef, { moderators: updated, activeEmails, updatedAt: new Date().toISOString() }, { merge: true });
@@ -147,7 +175,7 @@ export const moderatorsService = {
       console.warn('Updating system_config failed (non-blocking):', e);
     }
 
-    // 3. Log activity
+    // 4. Log activity
     try {
       await adminRepository.logAction(
         'RESOURCE_ARCHIVED',
@@ -165,12 +193,18 @@ export const moderatorsService = {
     const cleanEmail = email.trim().toLowerCase();
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
 
-    const docRef = doc(db, COLLECTION_NAME, cleanEmail);
-    await updateDoc(docRef, { status: newStatus });
+    try {
+      const docRef = doc(db, COLLECTION_NAME, cleanEmail);
+      await updateDoc(docRef, { status: newStatus });
+    } catch (err: any) {
+      console.warn('Firestore toggle status caught:', err?.message);
+    }
+
+    const existing = await this.fetchModerators();
+    const updated = existing.map(m => m.email.toLowerCase() === cleanEmail ? { ...m, status: newStatus as 'active' | 'inactive' } : m);
+    saveLocalModerators(updated);
 
     try {
-      const existing = await this.fetchModerators();
-      const updated = existing.map(m => m.email.toLowerCase() === cleanEmail ? { ...m, status: newStatus } : m);
       const activeEmails = updated.filter(m => m.status === 'active').map(m => m.email.toLowerCase());
       const cfgRef = doc(db, SYSTEM_CONFIG_DOC, MODERATORS_CONFIG_KEY);
       await setDoc(cfgRef, { moderators: updated, activeEmails, updatedAt: new Date().toISOString() }, { merge: true });
@@ -187,23 +221,40 @@ export const moderatorsService = {
     if (!cleanEmail) return false;
     if (cleanEmail === BOOTSTRAP_ADMIN_EMAIL.toLowerCase()) return true;
 
+    // 1. Check system_config/moderators_list first (Publicly readable in Firestore)
     try {
-      // 1. Check direct doc /moderators/{email}
+      const cfgRef = doc(db, SYSTEM_CONFIG_DOC, MODERATORS_CONFIG_KEY);
+      const cfgSnap = await getDoc(cfgRef);
+      if (cfgSnap.exists()) {
+        const cfgData = cfgSnap.data();
+        const activeEmails = (cfgData.activeEmails || []) as string[];
+        if (activeEmails.includes(cleanEmail)) {
+          return true;
+        }
+        const list = (cfgData.moderators || []) as ModeratorRecord[];
+        const found = list.find(m => m.email.toLowerCase() === cleanEmail);
+        if (found && found.status === 'active') {
+          return true;
+        }
+      }
+    } catch (err) {
+      console.warn('Checking system_config for auth failed:', err);
+    }
+
+    // 2. Check local storage
+    const local = getLocalModerators();
+    const foundLocal = local.find(m => m.email.toLowerCase() === cleanEmail);
+    if (foundLocal) {
+      return foundLocal.status === 'active';
+    }
+
+    // 3. Check direct doc /moderators/{email}
+    try {
       const docRef = doc(db, COLLECTION_NAME, cleanEmail);
       const snap = await getDoc(docRef);
       if (snap.exists()) {
         const data = snap.data();
         return data.status === 'active';
-      }
-
-      // 2. Fallback check in system_config
-      const cfgRef = doc(db, SYSTEM_CONFIG_DOC, MODERATORS_CONFIG_KEY);
-      const cfgSnap = await getDoc(cfgRef);
-      if (cfgSnap.exists()) {
-        const cfgData = cfgSnap.data();
-        const list = (cfgData.moderators || []) as ModeratorRecord[];
-        const found = list.find(m => m.email.toLowerCase() === cleanEmail);
-        return found ? found.status === 'active' : false;
       }
 
       return false;
