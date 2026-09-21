@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, CheckCircle2, ShieldCheck, AlertCircle, RefreshCw } from 'lucide-react';
+import { Settings, Save, CheckCircle2, ShieldCheck, AlertCircle, RefreshCw, Database } from 'lucide-react';
 import { academicSettingsService, AcademicSettings, DEFAULT_ACADEMIC_SETTINGS } from '../../services/academicSettingsService';
+import { CatalogMigrationModal } from './CatalogMigrationModal';
 
 export const AdminSettingsView: React.FC = () => {
   const [settings, setSettings] = useState<AcademicSettings>(DEFAULT_ACADEMIC_SETTINGS);
@@ -8,6 +9,7 @@ export const AdminSettingsView: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isMigrationModalOpen, setIsMigrationModalOpen] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -67,6 +69,30 @@ export const AdminSettingsView: React.FC = () => {
             التحكم في الحد الأعلى للعلامة، علامة النجاح، وطريقة احتساب المعدلات لجميع طلاب قسم الاتصالات.
           </p>
         </div>
+      </div>
+
+      {/* Temporary Phase 1 Public Data Migration Card */}
+      <div className="p-6 rounded-3xl bg-[#091527] border border-cyan-500/30 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 text-amber-400 text-xs font-bold">
+            <Database className="w-4 h-4 text-amber-400" />
+            <span>أداة فنية مؤقتة • نقل البيانات العامة والمناهج (المرحلة الأولى)</span>
+          </div>
+          <h3 className="text-sm font-bold text-white">
+            نقل المقررات والمصادر والبرمجيات وإعدادات النظام إلى eceroadmap2027
+          </h3>
+          <p className="text-xs text-slate-400 leading-relaxed max-w-xl">
+            نقل المحتوى العام حصراً مع الحفاظ الكامل على المعرفات والتواريخ الأصلية، دون المساس ببيانات الطلاب أو المستخدمين أو المشروع الحالي.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsMigrationModalOpen(true)}
+          className="px-5 py-3 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold text-xs flex items-center gap-2 shrink-0 transition-all shadow-md"
+        >
+          <Database className="w-4 h-4 text-cyan-400" />
+          <span>فتح أداة النقل والمطابقة</span>
+        </button>
       </div>
 
       {successMessage && (
@@ -144,6 +170,11 @@ export const AdminSettingsView: React.FC = () => {
           </button>
         </div>
       </form>
+
+      <CatalogMigrationModal
+        isOpen={isMigrationModalOpen}
+        onClose={() => setIsMigrationModalOpen(false)}
+      />
     </div>
   );
 };

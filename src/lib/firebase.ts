@@ -3,11 +3,6 @@ import {
   getAuth, 
   GoogleAuthProvider, 
   signInWithPopup, 
-  signInWithRedirect,
-  getRedirectResult,
-  signInWithCredential,
-  setPersistence,
-  browserLocalPersistence,
   signOut as fbSignOut, 
   onAuthStateChanged,
   User 
@@ -93,49 +88,14 @@ googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
 
-// Handle redirect result on page load gracefully without throwing missing initial state errors
-if (typeof window !== 'undefined') {
-  getRedirectResult(auth).then((result) => {
-    if (result?.user) {
-      console.log('Successfully signed in via redirect:', result.user.email);
-    }
-  }).catch((err: any) => {
-    if (err?.code === 'auth/missing-initial-state' || err?.message?.includes('missing initial state')) {
-      // Ignore benign missing initial state caused by storage partitioning in iframe/webview environments
-      console.log('Ignored benign redirect initial state check.');
-    } else {
-      console.warn('Redirect result note:', err);
-    }
-  });
-}
-
-export const GOOGLE_OAUTH_CLIENT_ID = (firebaseConfig as any).oAuthClientId || "23606413805-88fmosta6m2kslrr1ctospidfjtqjq9e.apps.googleusercontent.com";
-
-export async function signInWithGoogleDirect(): Promise<User | null> {
-  try {
-    try {
-      await setPersistence(auth, browserLocalPersistence);
-    } catch (pErr) {
-      console.warn('Set persistence note:', pErr);
-    }
-
-    const res = await signInWithPopup(auth, googleProvider);
-    return res.user;
-  } catch (err: any) {
-    if (
-      err?.code === 'auth/popup-closed-by-user' || 
-      err?.code === 'auth/cancelled-popup-request'
-    ) {
-      console.log('Popup closed by user.');
-      return null;
-    }
-    console.warn('Google Sign-In Error:', err);
-    throw err;
-  }
-}
-
 export async function signInWithGoogle(): Promise<User | null> {
-  return await signInWithGoogleDirect();
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    return result.user;
+  } catch (error: any) {
+    console.warn('Google sign-in attempt warning:', error?.code, error?.message || error);
+    throw error;
+  }
 }
 
 export async function signOutUser(): Promise<void> {

@@ -10,21 +10,8 @@ import {
 import { AdminRecord } from '../../types/admin';
 import { moderatorsService } from './moderatorsService';
 
-// The verified initial project administrator emails
-export const BOOTSTRAP_ADMIN_EMAIL = 'eceroadmap@gmail.com';
-export const OWNER_ADMIN_EMAILS = [
-  'eceroadmap@gmail.com',
-  'marwa.mgd.shmdeen@gmail.com'
-];
-
-export function isBootstrapAdminEmail(email: string | null | undefined): boolean {
-  if (!email) return false;
-  const clean = email.toLowerCase().trim();
-  return (
-    OWNER_ADMIN_EMAILS.some(e => e.toLowerCase() === clean) ||
-    clean.includes('eceroadmap')
-  );
-}
+// The verified initial project administrator email (from project environment)
+export const BOOTSTRAP_ADMIN_EMAIL = 'marwa.mgd.shmdeen@gmail.com';
 
 let currentAdminStatus = false;
 let currentAdminRecord: AdminRecord | null = null;
@@ -36,8 +23,8 @@ function notifyAdminListeners() {
 
 export function getIsOwner(): boolean {
   if (currentAdminRecord?.isOwner === true) return true;
-  const currentEmail = auth.currentUser?.email?.toLowerCase().trim() || '';
-  return isBootstrapAdminEmail(currentEmail);
+  const currentEmail = auth.currentUser?.email?.toLowerCase().trim();
+  return currentEmail === BOOTSTRAP_ADMIN_EMAIL.toLowerCase();
 }
 
 /**
@@ -63,7 +50,7 @@ export async function checkIsAdmin(user: User | null): Promise<boolean> {
     return false;
   }
 
-  const isBootstrapOwner = isBootstrapAdminEmail(userEmail);
+  const isBootstrapOwner = userEmail === BOOTSTRAP_ADMIN_EMAIL.toLowerCase();
 
   try {
     const adminDocRef = doc(db, 'admins', user.uid);
@@ -72,7 +59,7 @@ export async function checkIsAdmin(user: User | null): Promise<boolean> {
     if (isBootstrapOwner) {
       const ownerData: AdminRecord = {
         uid: user.uid,
-        displayName: user.displayName || 'إدارة منصة ECE RoadMap (المالك)',
+        displayName: user.displayName || 'المهندسة مروة (مدير المنصة والمالك)',
         email: user.email || BOOTSTRAP_ADMIN_EMAIL,
         role: 'super_admin',
         status: 'active',
@@ -81,17 +68,15 @@ export async function checkIsAdmin(user: User | null): Promise<boolean> {
         updatedAt: new Date().toISOString()
       };
 
-      currentAdminStatus = true;
-      currentAdminRecord = ownerData;
-      notifyAdminListeners();
-
-      // Async background sync to Firestore
       try {
-        setDoc(adminDocRef, ownerData, { merge: true }).catch(e => console.warn('Saving owner admin doc caught:', e));
+        await setDoc(adminDocRef, ownerData, { merge: true });
       } catch (e) {
         console.warn('Saving owner admin doc caught:', e);
       }
 
+      currentAdminStatus = true;
+      currentAdminRecord = ownerData;
+      notifyAdminListeners();
       return true;
     }
 
@@ -183,12 +168,7 @@ export function subscribeAdminAuth(
   callback: (isAdmin: boolean, record: AdminRecord | null) => void
 ): () => void {
   adminListeners.add(callback);
-  
-  if (auth.currentUser) {
-    checkIsAdmin(auth.currentUser);
-  } else {
-    callback(currentAdminStatus, currentAdminRecord);
-  }
+  callback(currentAdminStatus, currentAdminRecord);
 
   const unsubAuth = onAuthStateChanged(auth, async (user) => {
     await checkIsAdmin(user);

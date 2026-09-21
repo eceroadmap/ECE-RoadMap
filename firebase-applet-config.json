@@ -1,11 +1,12 @@
 {
-  "projectId": "eceroadmap2027",
-  "appId": "1:23606413805:web:1532dd0867824f616fbfe4",
-  "apiKey": "AIzaSyDwZSfg8xfSnm0WSZkT64UnJjq4vcQci6w",
-  "authDomain": "eceroadmap2027.firebaseapp.com",
-  "storageBucket": "eceroadmap2027.firebasestorage.app",
-  "messagingSenderId": "23606413805",
-  "measurementId": "G-9LQYTGLHH2",
-  "oAuthClientId": "23606413805-88fmosta6m2kslrr1ctospidfjtqjq9e.apps.googleusercontent.com",
+  "projectId": "gen-lang-client-0992899684",
+  "appId": "1:273250429177:web:5199b1a8dcec560cb59a28",
+  "apiKey": "AIzaSyCVYnREmaKJDc2dFRsl1x3SXeCFreF1Ozc",
+  "authDomain": "gen-lang-client-0992899684.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-eceroadmap-92942c14-153e-4944-ad7d-20e5ea4add92",
+  "storageBucket": "gen-lang-client-0992899684.firebasestorage.app",
+  "messagingSenderId": "273250429177",
+  "measurementId": "",
+  "oAuthClientId": "273250429177-187ei1p6ck9inc4u6i9dgf6cnchnpe88.apps.googleusercontent.com",
   "recaptchaSiteKey": ""
 }

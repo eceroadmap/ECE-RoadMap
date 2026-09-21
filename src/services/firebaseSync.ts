@@ -2,10 +2,9 @@ import {
   db, 
   auth, 
   signInWithGoogle, 
-  signInWithGoogleDirect,
   signOutUser,
   doc, 
-  getDoc, 
+  getDoc,
   setDoc, 
   onSnapshot, 
   collection, 
@@ -52,15 +51,6 @@ class FirebaseSyncService {
   private init() {
     onAuthStateChanged(auth, async (user) => {
       this.currentUser = user;
-
-      if (user) {
-        const curProf = studentRepository.getProfile();
-        studentRepository.saveProfile({
-          name: curProf.name || user.displayName || 'مهندس مستقبلي',
-          onboardingCompleted: true
-        });
-      }
-
       this.notifyAuthListeners();
 
       if (user) {
@@ -133,7 +123,7 @@ class FirebaseSyncService {
   public async signInWithGoogle(): Promise<User | null> {
     this.setSyncStatus('syncing');
     try {
-      const user = await signInWithGoogleDirect();
+      const user = await signInWithGoogle();
       if (!user) {
         this.setSyncStatus(this.currentUser ? 'synced' : 'local_only');
       }
@@ -239,13 +229,10 @@ class FirebaseSyncService {
         const remoteUpdated = remoteData.updatedAt ? new Date(remoteData.updatedAt).getTime() : 0;
         const localUpdated = localProfile.updatedAt ? new Date(localProfile.updatedAt).getTime() : 0;
 
-        const resolvedName = localProfile.name || remoteData.displayName || user.displayName || 'مهندس مستقبلي';
-
         let mergedProfile: StudentProfile;
         if (remoteUpdated > localUpdated && remoteData.academicYear) {
           mergedProfile = {
             ...localProfile,
-            name: resolvedName,
             currentYear: remoteData.currentYear || localProfile.currentYear,
             academicYear: remoteData.academicYear || localProfile.academicYear,
             academicSemester: remoteData.academicSemester || localProfile.academicSemester,
@@ -254,16 +241,14 @@ class FirebaseSyncService {
             username: localProfile.username || remoteData.username || undefined,
             accountPassword: localProfile.accountPassword || remoteData.accountPassword || undefined,
             targetFocusTrack: remoteData.targetFocusTrack || localProfile.targetFocusTrack,
-            onboardingCompleted: remoteData.onboardingCompleted ?? localProfile.onboardingCompleted ?? true,
+            onboardingCompleted: remoteData.onboardingCompleted ?? localProfile.onboardingCompleted,
             updatedAt: remoteData.updatedAt
           };
         } else {
           mergedProfile = {
             ...localProfile,
-            name: resolvedName,
             username: localProfile.username || remoteData.username || undefined,
             accountPassword: localProfile.accountPassword || remoteData.accountPassword || undefined,
-            onboardingCompleted: localProfile.onboardingCompleted ?? remoteData.onboardingCompleted ?? true,
             updatedAt: now
           };
         }
@@ -319,30 +304,19 @@ class FirebaseSyncService {
 
       } else {
         // Initial migration: Upload existing local anonymous progress to the cloud document
-        const initialResolvedName = localProfile.name || user.displayName || 'مهندس مستقبلي';
-        const finalUsername = localProfile.username || undefined;
-        const finalPassword = localProfile.accountPassword || undefined;
-
-        studentRepository.saveProfile({
-          name: initialResolvedName,
-          username: finalUsername,
-          accountPassword: finalPassword,
-          onboardingCompleted: true
-        });
-
         await setDoc(userDocRef, {
           uid: user.uid,
-          displayName: user.displayName || initialResolvedName || null,
+          displayName: user.displayName || null,
           email: user.email || null,
-          username: finalUsername || null,
-          accountPassword: finalPassword || null,
+          username: localProfile.username || null,
+          accountPassword: localProfile.accountPassword || null,
           academicYear: localProfile.academicYear,
           currentYear: localProfile.currentYear,
           academicSemester: localProfile.academicSemester,
           role: localProfile.role,
           roleLabelAr: localProfile.roleLabelAr,
           targetFocusTrack: localProfile.targetFocusTrack || null,
-          onboardingCompleted: true,
+          onboardingCompleted: localProfile.onboardingCompleted,
           coursesProgress: localProgress,
           academicGrades: localGrades,
           graduationWorkspace: localWorkspace,
@@ -355,29 +329,6 @@ class FirebaseSyncService {
 
       this.setLastSyncedAt(now);
       this.setSyncStatus('synced');
-
-      // Synchronize record to guest_visitors collection as well for dual-channel admin visibility
-      try {
-        const guestDocRef = doc(db, 'guest_visitors', user.uid);
-        const resolvedFullName = user.displayName || localProfile.name || 'طالب جديد';
-        const nameParts = resolvedFullName.split(' ');
-        const first = nameParts[0] || 'طالب';
-        const last = nameParts.slice(1).join(' ') || 'جديد';
-        await setDoc(guestDocRef, {
-          id: user.uid,
-          firstName: first,
-          lastName: last,
-          fullName: resolvedFullName,
-          email: user.email || null,
-          academicYear: localProfile.academicYear || 1,
-          createdAt: now,
-          lastLoginAt: now,
-          authProvider: 'google',
-          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : ''
-        }, { merge: true });
-      } catch (guestErr) {
-        console.warn('Syncing to guest_visitors notice:', guestErr);
-      }
 
       // Setup real-time listener for multi-device sync
       this.unsubscribeFirestore = onSnapshot(userDocRef, (snap) => {

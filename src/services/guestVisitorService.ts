@@ -66,34 +66,18 @@ export const guestVisitorService = {
       roleLabelAr: data.academicYear === 'graduate' ? 'مهندس خريج' : `طالب سنة ${yearNumber}`
     });
 
-    // 3. Persist to Firestore database in both 'guest_visitors' and 'students' collections for total admin visibility
+    // 3. Persist to Firestore database in 'guest_visitors' collection
     try {
       const guestDocRef = doc(db, 'guest_visitors', guestId);
-      const studentDocRef = doc(db, 'students', guestId);
-
-      const payload = {
+      await setDoc(guestDocRef, {
         id: guestId,
-        uid: guestId,
         firstName: trimmedFirst,
         lastName: trimmedLast,
         fullName,
-        displayName: fullName,
         academicYear: data.academicYear || 1,
-        currentYear: data.academicYear || 1,
-        role: data.academicYear === 'graduate' ? 'graduate' : (yearNumber === 1 ? 'freshman' : 'current'),
-        roleLabelAr: data.academicYear === 'graduate' ? 'مهندس خريج' : `طالب سنة ${yearNumber}`,
-        onboardingCompleted: true,
-        authProvider: 'guest',
         createdAt: now,
-        lastLoginAt: now,
-        updatedAt: now,
         userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : ''
-      };
-
-      await Promise.allSettled([
-        setDoc(guestDocRef, payload, { merge: true }),
-        setDoc(studentDocRef, payload, { merge: true })
-      ]);
+      });
     } catch (firestoreError) {
       console.warn('Firestore guest registration notice:', firestoreError);
       // We do not fail the user login even if offline; local record is already set!
@@ -136,18 +120,8 @@ export const guestVisitorService = {
       });
       return list;
     } catch (e) {
-      console.warn('Could not fetch guest list with order, falling back to basic getDocs:', e);
-      try {
-        const snap = await getDocs(collection(db, 'guest_visitors'));
-        const list: GuestVisitorRecord[] = [];
-        snap.forEach((d) => {
-          list.push(d.data() as GuestVisitorRecord);
-        });
-        return list;
-      } catch (innerErr) {
-        console.warn('Could not fetch guest list fallback:', innerErr);
-        return [];
-      }
+      console.warn('Could not fetch guest list:', e);
+      return [];
     }
   }
 };

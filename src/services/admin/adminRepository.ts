@@ -26,7 +26,6 @@ import {
 } from '../../types/admin';
 import { CommunityTip } from '../../types/student';
 import { SkillCourse } from '../../types';
-import { isPlatformOwnerRecord } from './adminStats';
 
 enum OperationType {
   CREATE = 'create',
@@ -432,54 +431,26 @@ export const adminRepository = {
   // 7. Student Directory & Profiles (Read-Only)
   // ==========================================
   async getStudents(): Promise<AdminStudentRecord[]> {
+    const p = 'students';
     try {
-      const [studentsSnapResult, guestsSnapResult] = await Promise.allSettled([
-        getDocs(collection(db, 'students')),
-        getDocs(collection(db, 'guest_visitors'))
-      ]);
-
-      const unifiedMap = new Map<string, AdminStudentRecord>();
-
-      if (studentsSnapResult.status === 'fulfilled') {
-        studentsSnapResult.value.docs.forEach(d => {
-          const data = d.data();
-          if (isPlatformOwnerRecord(data)) return;
-          unifiedMap.set(d.id, {
-            uid: d.id,
-            ...(data as Omit<AdminStudentRecord, 'uid'>)
-          });
+      const snap = await getDocs(collection(db, p));
+      return snap.docs
+        .map(d => ({
+          uid: d.id,
+          ...(d.data() as Omit<AdminStudentRecord, 'uid'>)
+        }))
+        .filter(s => {
+          const email = s.email?.toLowerCase().trim() || '';
+          const name = s.displayName?.toLowerCase().trim() || '';
+          const isOwnerAccount = 
+            email === 'marwa.mgd.shmdeen@gmail.com' ||
+            email.includes('marwa.mgd.shmdeen') ||
+            (s.role as any) === 'super_admin' ||
+            (s as any).isOwner === true ||
+            name.includes('المهندسة مروة') ||
+            name.includes('مدير المنصة');
+          return !isOwnerAccount;
         });
-      }
-
-      if (guestsSnapResult.status === 'fulfilled') {
-        guestsSnapResult.value.docs.forEach(d => {
-          const data = d.data();
-          if (isPlatformOwnerRecord(data)) return;
-          const id = d.id || data.id;
-          if (!unifiedMap.has(id)) {
-            const yr = typeof data.academicYear === 'number' 
-              ? data.academicYear 
-              : (data.academicYear === 'graduate' ? 5 : (parseInt(String(data.academicYear)) || 1));
-            
-            unifiedMap.set(id, {
-              uid: id,
-              displayName: data.fullName || data.displayName || (data.firstName ? `${data.firstName} ${data.lastName || ''}`.trim() : 'طالب جديد'),
-              email: data.email || null,
-              username: data.username || undefined,
-              accountPassword: data.accountPassword || undefined,
-              academicYear: yr as any,
-              currentYear: yr as any,
-              roleLabelAr: yr === 5 ? 'مهندس خريج' : yr === 1 ? 'طالب مستجد' : `طالب سنة ${yr}`,
-              createdAt: data.createdAt || new Date().toISOString(),
-              lastLoginAt: data.lastLoginAt || data.createdAt || new Date().toISOString(),
-              authProvider: (data.authProvider || 'guest') as any,
-              onboardingCompleted: true
-            } as AdminStudentRecord);
-          }
-        });
-      }
-
-      return Array.from(unifiedMap.values());
     } catch (error) {
       console.warn('Failed to list students from Firestore:', error);
       return [];
