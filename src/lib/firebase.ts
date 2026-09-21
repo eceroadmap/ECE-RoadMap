@@ -38,14 +38,18 @@ import firebaseConfig from '../../firebase-applet-config.json';
 // Resolve environment variables with development fallback
 const env = typeof import.meta !== 'undefined' ? (import.meta as any).env || {} : {};
 
+// Filter out any stale references to the old project from container OS environment if present
+const rawProjectId = env.VITE_FIREBASE_PROJECT_ID;
+const isOldProject = rawProjectId === 'gen-lang-client-0992899684';
+
 export const resolvedFirebaseConfig = {
-  apiKey: env.VITE_FIREBASE_API_KEY || firebaseConfig.apiKey || '',
-  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfig.authDomain || '',
-  projectId: env.VITE_FIREBASE_PROJECT_ID || firebaseConfig.projectId || '',
-  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || firebaseConfig.storageBucket || '',
-  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseConfig.messagingSenderId || '',
-  appId: env.VITE_FIREBASE_APP_ID || firebaseConfig.appId || '',
-  firestoreDatabaseId: env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || (firebaseConfig as any).firestoreDatabaseId || undefined
+  apiKey: (!isOldProject && env.VITE_FIREBASE_API_KEY) || firebaseConfig.apiKey || '',
+  authDomain: (!isOldProject && env.VITE_FIREBASE_AUTH_DOMAIN) || firebaseConfig.authDomain || '',
+  projectId: (!isOldProject && env.VITE_FIREBASE_PROJECT_ID) || firebaseConfig.projectId || 'eceroadmap2027',
+  storageBucket: (!isOldProject && env.VITE_FIREBASE_STORAGE_BUCKET) || firebaseConfig.storageBucket || '',
+  messagingSenderId: (!isOldProject && env.VITE_FIREBASE_MESSAGING_SENDER_ID) || firebaseConfig.messagingSenderId || '',
+  appId: (!isOldProject && env.VITE_FIREBASE_APP_ID) || firebaseConfig.appId || '',
+  firestoreDatabaseId: (!isOldProject && env.VITE_FIREBASE_FIRESTORE_DATABASE_ID) || (firebaseConfig as any).firestoreDatabaseId || undefined
 };
 
 // Global Production Canonical URL
