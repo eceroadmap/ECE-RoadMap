@@ -9,6 +9,7 @@ import {
 } from '../../lib/firebase';
 import { AdminRecord } from '../../types/admin';
 import { moderatorsService } from './moderatorsService';
+import { firebaseSyncService } from '../firebaseSync';
 
 // The verified initial project administrator email (from project environment)
 export const BOOTSTRAP_ADMIN_EMAIL = 'marwa.mgd.shmdeen@gmail.com';
@@ -23,26 +24,25 @@ function notifyAdminListeners() {
 
 export function getIsOwner(): boolean {
   if (currentAdminRecord?.isOwner === true) return true;
-  const currentEmail = auth.currentUser?.email?.toLowerCase().trim();
+  const currentEmail = (auth.currentUser?.email || firebaseSyncService.getUser()?.email)?.toLowerCase().trim();
   return currentEmail === BOOTSTRAP_ADMIN_EMAIL.toLowerCase();
 }
 
 /**
  * Verifies whether the specified Firebase User possesses administrator privileges.
- * Validation priority (Pure Google Authentication):
- * 1. Checks if user is the bootstrapped verified project owner email.
- * 2. Checks Firestore `admins/{uid}` document existence.
- * 3. Checks if user email is authorized in `moderators` collection.
  */
 export async function checkIsAdmin(user: User | null): Promise<boolean> {
-  if (!user || user.isAnonymous) {
+  const syncUser = firebaseSyncService.getUser();
+  const effectiveUser = user || (syncUser ? { uid: syncUser.uid, email: syncUser.email, displayName: syncUser.displayName, isAnonymous: false } as User : null);
+
+  if (!effectiveUser || effectiveUser.isAnonymous) {
     currentAdminStatus = false;
     currentAdminRecord = null;
     notifyAdminListeners();
     return false;
   }
 
-  const userEmail = user.email?.toLowerCase().trim() || '';
+  const userEmail = effectiveUser.email?.toLowerCase().trim() || '';
   if (!userEmail) {
     currentAdminStatus = false;
     currentAdminRecord = null;
@@ -53,14 +53,14 @@ export async function checkIsAdmin(user: User | null): Promise<boolean> {
   const isBootstrapOwner = userEmail === BOOTSTRAP_ADMIN_EMAIL.toLowerCase();
 
   try {
-    const adminDocRef = doc(db, 'admins', user.uid);
+    const adminDocRef = doc(db, 'admins', effectiveUser.uid);
 
     // Priority 1: Bootstrapped project owner (Super Admin)
     if (isBootstrapOwner) {
       const ownerData: AdminRecord = {
-        uid: user.uid,
-        displayName: user.displayName || 'المهندسة مروة (مدير المنصة والمالك)',
-        email: user.email || BOOTSTRAP_ADMIN_EMAIL,
+        uid: effectiveUser.uid,
+        displayName: effectiveUser.displayName || 'المهندسة مروة (مدير المنصة والمالك)',
+        email: effectiveUser.email || BOOTSTRAP_ADMIN_EMAIL,
         role: 'super_admin',
         status: 'active',
         isOwner: true,
@@ -84,9 +84,9 @@ export async function checkIsAdmin(user: User | null): Promise<boolean> {
     const isAuthorizedMod = await moderatorsService.checkIsEmailAuthorized(userEmail);
     if (isAuthorizedMod) {
       const modData: AdminRecord = {
-        uid: user.uid,
-        displayName: user.displayName || 'مشرف أكاديمي معتمد',
-        email: user.email || userEmail,
+        uid: effectiveUser.uid,
+        displayName: effectiveUser.displayName || 'مشرف أكاديمي معتمد',
+        email: effectiveUser.email || userEmail,
         role: 'moderator',
         status: 'active',
         isOwner: false,
@@ -130,9 +130,9 @@ export async function checkIsAdmin(user: User | null): Promise<boolean> {
   } catch (err: any) {
     if (isBootstrapOwner) {
       const ownerData: AdminRecord = {
-        uid: user.uid,
-        displayName: user.displayName || 'المهندسة مروة (مدير المنصة)',
-        email: user.email || BOOTSTRAP_ADMIN_EMAIL,
+        uid: effectiveUser.uid,
+        displayName: effectiveUser.displayName || 'المهندسة مروة (مدير المنصة)',
+        email: effectiveUser.email || BOOTSTRAP_ADMIN_EMAIL,
         role: 'super_admin',
         status: 'active',
         isOwner: true,
@@ -171,12 +171,21 @@ export function subscribeAdminAuth(
   callback(currentAdminStatus, currentAdminRecord);
 
   const unsubAuth = onAuthStateChanged(auth, async (user) => {
-    await checkIsAdmin(user);
+    const syncUser = firebaseSyncService.getUser();
+    const effectiveUser = user || (syncUser ? { uid: syncUser.uid, email: syncUser.email, displayName: syncUser.displayName, isAnonymous: false } as User : null);
+    await checkIsAdmin(effectiveUser);
+  });
+
+  const unsubSync = firebaseSyncService.subscribeAuth(async (syncUser) => {
+    const authUser = auth.currentUser;
+    const effectiveUser = authUser || (syncUser ? { uid: syncUser.uid, email: syncUser.email, displayName: syncUser.displayName, isAnonymous: false } as User : null);
+    await checkIsAdmin(effectiveUser);
   });
 
   return () => {
     adminListeners.delete(callback);
     unsubAuth();
+    unsubSync();
   };
 }
 

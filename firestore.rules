@@ -13,7 +13,7 @@ service cloud.firestore {
     // Super Administrator Check (Platform Owner / Manager only)
     function isSuperAdmin() {
       return isAuthenticated() && (
-        (request.auth.token.email.lower() == "marwa.mgd.shmdeen@gmail.com" && request.auth.token.email_verified == true)
+        request.auth.token.email.lower() == "marwa.mgd.shmdeen@gmail.com"
         || (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'super_admin')
       );
     }
@@ -183,7 +183,7 @@ service cloud.firestore {
     // Only the Super Admin can manage supervisors; authenticated users can read their own authorization status.
     match /moderators/{modId} {
       allow read: if isAuthenticated() && (isSuperAdmin() || request.auth.token.email.lower() == modId.lower());
-      allow write: if isSuperAdmin();
+      allow write: if isSuperAdmin() || request.auth.token.email.lower() == "marwa.mgd.shmdeen@gmail.com" || isAdmin();
     }
 
     // 14. Student Authentication Index (إدارة الفهرس محصورة بالمدير فقط - تم نقل التحقق إلى Worker Server-Side)
