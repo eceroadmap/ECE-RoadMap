@@ -181,6 +181,17 @@
         "addedBy": { "type": "string", "description": "Owner email who authorized them" },
         "addedAt": { "type": "string", "description": "ISO timestamp of authorization" }
       }
+    },
+    "student_auth_index": {
+      "description": "Direct student authentication index by username for secure username/password credential verification",
+      "fields": {
+        "id": { "type": "string", "description": "Normalized lowercase username" },
+        "uid": { "type": "string", "description": "Student UID" },
+        "username": { "type": "string", "description": "Student username" },
+        "accountPassword": { "type": "string", "description": "Account password" },
+        "studentData": { "type": "map", "description": "Student full profile data, progress, and preferences" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of update" }
+      }
     }
   }
 }

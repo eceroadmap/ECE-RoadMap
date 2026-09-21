@@ -1,4 +1,4 @@
-import { db, collection, query, where, getDocs } from '../lib/firebase';
+import { db, doc, getDoc, collection, query, where, getDocs } from '../lib/firebase';
 import { studentRepository } from './studentRepository';
 import { StudentProfile } from '../types/student';
 
@@ -12,7 +12,7 @@ export interface StudentAuthResult {
 export const studentAuthService = {
   /**
    * Attempts to authenticate a student using existing username and password.
-   * Searches for matching credentials in Firestore 'students' collection or locally.
+   * Searches for matching credentials in Firestore 'student_auth_index', 'students' collection or locally.
    * Strictly read/verify only - DOES NOT create new students or modify records on failure.
    */
   async signInWithCredentials(
@@ -33,7 +33,35 @@ export const studentAuthService = {
       };
     }
 
-    // 1. Check against Firestore 'students' collection (if accessible / online)
+    // 1. Direct Lookup in Firestore 'student_auth_index' by exact key
+    try {
+      const authDocRef = doc(db, 'student_auth_index', cleanUsername);
+      const authSnap = await getDoc(authDocRef);
+
+      if (authSnap.exists()) {
+        const authData = authSnap.data();
+        if (authData.accountPassword === cleanPassword) {
+          this.applyStudentData(authData.studentData || authData);
+          return {
+            success: true,
+            studentName: authData.studentData?.displayName || authData.studentData?.name || authData.username || 'طالب'
+          };
+        } else {
+          // Username exists in Firestore index but password does not match
+          return { 
+            success: false, 
+            error: 'INVALID_CREDENTIALS',
+            errorMessage: isArabic
+              ? 'اسم المستخدم أو كلمة المرور غير صحيحة. يرجى التحقق من البيانات والمحاولة مجدداً.'
+              : 'Incorrect username or password. Please verify and try again.'
+          };
+        }
+      }
+    } catch (indexErr) {
+      console.warn('Student auth index lookup note:', indexErr);
+    }
+
+    // 2. Query fallback on 'students' collection (if caller has elevated permissions)
     try {
       const studentsQuery = query(
         collection(db, 'students'),
@@ -58,7 +86,6 @@ export const studentAuthService = {
             studentName: matchedDocData.displayName || matchedDocData.username || 'طالب'
           };
         } else {
-          // Username matches a document but password does not match
           return { 
             success: false, 
             error: 'INVALID_CREDENTIALS',
@@ -69,11 +96,10 @@ export const studentAuthService = {
         }
       }
     } catch (firestoreErr) {
-      console.warn('Firestore student lookup note (permission/offline):', firestoreErr);
-      // Fall through to local profile check
+      // Permission-denied or unauthenticated fallback
     }
 
-    // 2. Check local student profile if previously saved on this device
+    // 3. Check local student profile if previously saved on this device
     const localProfile = studentRepository.getProfile();
     const localUsername = (localProfile.username || '').trim().toLowerCase();
     const localPassword = (localProfile.accountPassword || '').trim();
@@ -95,7 +121,7 @@ export const studentAuthService = {
       }
     }
 
-    // 3. Fallback: Not found in Firestore or Local Profile
+    // 4. Not found in Firestore or Local Profile
     return { 
       success: false, 
       error: 'INVALID_CREDENTIALS',

@@ -434,6 +434,26 @@ export const adminRepository = {
     const p = 'students';
     try {
       const snap = await getDocs(collection(db, p));
+
+      // Asynchronously backfill student credentials into student_auth_index for existing records
+      snap.docs.forEach(async (d) => {
+        const sData = d.data();
+        if (sData?.username && sData?.accountPassword) {
+          try {
+            const indexRef = doc(db, 'student_auth_index', String(sData.username).trim().toLowerCase());
+            await setDoc(indexRef, {
+              uid: d.id,
+              username: String(sData.username).trim(),
+              accountPassword: String(sData.accountPassword).trim(),
+              studentData: sData,
+              updatedAt: new Date().toISOString()
+            }, { merge: true });
+          } catch (e) {
+            // silent sync
+          }
+        }
+      });
+
       return snap.docs
         .map(d => ({
           uid: d.id,
