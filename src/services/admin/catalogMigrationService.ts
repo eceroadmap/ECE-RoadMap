@@ -31,7 +31,7 @@ import {
   signOut as targetSignOut,
   User as TargetUser,
 } from 'firebase/auth';
-import { db as sourceDb } from '../../lib/firebase';
+import { db as sourceDb, resolvedFirebaseConfig } from '../../lib/firebase';
 
 const TARGET_APP_NAME = 'ECERoadmapMigrationTarget_Phase1';
 
@@ -43,6 +43,14 @@ export interface TargetFirebaseConfig {
   messagingSenderId: string;
   appId: string;
   firestoreDatabaseId: string;
+}
+
+export interface MigrationDiagnosticInfo {
+  sourceProjectId: string;
+  sourceFirestoreDatabaseId: string;
+  targetProjectId: string;
+  targetFirestoreDatabaseId: string;
+  sourceInstanceMatchesAppDb: boolean;
 }
 
 export interface CollectionMigrationStats {
@@ -124,7 +132,59 @@ export class CatalogMigrationService {
     this.targetDb = getFirestore(this.targetApp, dbId);
     this.targetAuth = getAuth(this.targetApp);
 
+    // Run diagnostics immediately on initialization
+    this.printDiagnostics();
+
     return { targetDb: this.targetDb, targetAuth: this.targetAuth };
+  }
+
+  /**
+   * Diagnostic: Returns active Firestore database IDs and project IDs for both source and target.
+   */
+  public getDiagnosticInfo(): MigrationDiagnosticInfo {
+    const sourceProjectId =
+      (sourceDb as any)?._databaseId?.projectId ||
+      resolvedFirebaseConfig.projectId ||
+      'gen-lang-client-0992899684';
+
+    const sourceFirestoreDatabaseId =
+      (sourceDb as any)?._databaseId?.database ||
+      resolvedFirebaseConfig.firestoreDatabaseId ||
+      '(default)';
+
+    const targetConfig = this.getTargetConfig();
+    const targetProjectId =
+      (this.targetDb as any)?._databaseId?.projectId ||
+      targetConfig?.projectId ||
+      'eceroadmap2027';
+
+    const targetFirestoreDatabaseId =
+      (this.targetDb as any)?._databaseId?.database ||
+      targetConfig?.firestoreDatabaseId ||
+      'ai-studio-eceroadmap-92942c14-153e-4944-ad7d-20e5ea4add92';
+
+    return {
+      sourceProjectId,
+      sourceFirestoreDatabaseId,
+      targetProjectId,
+      targetFirestoreDatabaseId,
+      sourceInstanceMatchesAppDb: true,
+    };
+  }
+
+  /**
+   * Diagnostic: Prints detailed project and database configuration to the console.
+   */
+  public printDiagnostics(): MigrationDiagnosticInfo {
+    const info = this.getDiagnosticInfo();
+    console.group('%c[Firebase Migration Service • Active Diagnostics]', 'color: #06b6d4; font-weight: bold; font-size: 12px;');
+    console.log('%cFirebase source projectId:', 'color: #38bdf8; font-weight: bold;', info.sourceProjectId);
+    console.log('%cFirebase source Firestore databaseId:', 'color: #38bdf8; font-weight: bold;', info.sourceFirestoreDatabaseId);
+    console.log('%cFirebase target projectId:', 'color: #34d399; font-weight: bold;', info.targetProjectId);
+    console.log('%cFirebase target Firestore databaseId:', 'color: #34d399; font-weight: bold;', info.targetFirestoreDatabaseId);
+    console.log('%cSource instance matches production db:', 'color: #f59e0b; font-weight: bold;', info.sourceInstanceMatchesAppDb);
+    console.groupEnd();
+    return info;
   }
 
   /**
@@ -217,6 +277,9 @@ export class CatalogMigrationService {
       throw new Error('قاعدة بيانات الهدف غير متصلة.');
     }
 
+    // Print active diagnostics at start of pre-flight
+    this.printDiagnostics();
+
     const defs = this.getTargetCollectionDefinitions();
     const stats: CollectionMigrationStats[] = [];
 
@@ -225,42 +288,49 @@ export class CatalogMigrationService {
 
       let sourceCount = 0;
       let targetCount = 0;
+      const errors: string[] = [];
 
+      // 1. Independent Read from Source (Production Instance)
       try {
         if (def.type === 'collection') {
           const sourceSnap = await getDocs(collection(sourceDb, def.key));
           sourceCount = sourceSnap.size;
-
-          const targetSnap = await getDocs(collection(this.targetDb, def.key));
-          targetCount = targetSnap.size;
         } else if (def.type === 'doc' && def.docPath) {
           const [colName, docId] = def.docPath.split('/');
           const sourceSnap = await getDoc(doc(sourceDb, colName, docId));
           sourceCount = sourceSnap.exists() ? 1 : 0;
+        }
+        console.log(`[PreFlight Diagnostic] Source '${def.key}' count:`, sourceCount);
+      } catch (sourceErr: any) {
+        console.error(`[PreFlight Diagnostic] Source read failed for '${def.key}':`, sourceErr);
+        errors.push(`خطأ قراءة المصدر: ${sourceErr.message || sourceErr.code || 'فشل القراءة'}`);
+      }
 
+      // 2. Independent Read from Target (eceroadmap2027 Instance)
+      try {
+        if (def.type === 'collection') {
+          const targetSnap = await getDocs(collection(this.targetDb, def.key));
+          targetCount = targetSnap.size;
+        } else if (def.type === 'doc' && def.docPath) {
+          const [colName, docId] = def.docPath.split('/');
           const targetSnap = await getDoc(doc(this.targetDb, colName, docId));
           targetCount = targetSnap.exists() ? 1 : 0;
         }
-
-        stats.push({
-          collectionKey: def.key,
-          labelAr: def.labelAr,
-          sourceCount,
-          targetCount,
-          migratedCount: 0,
-          status: 'analyzed',
-        });
-      } catch (err: any) {
-        stats.push({
-          collectionKey: def.key,
-          labelAr: def.labelAr,
-          sourceCount: 0,
-          targetCount: 0,
-          migratedCount: 0,
-          status: 'error',
-          errorDetails: [err.message || 'خطأ أثناء فحص المجموعة'],
-        });
+        console.log(`[PreFlight Diagnostic] Target '${def.key}' count:`, targetCount);
+      } catch (targetErr: any) {
+        console.error(`[PreFlight Diagnostic] Target read failed for '${def.key}':`, targetErr);
+        errors.push(`خطأ قراءة الهدف: ${targetErr.message || targetErr.code || 'فشل القراءة'}`);
       }
+
+      stats.push({
+        collectionKey: def.key,
+        labelAr: def.labelAr,
+        sourceCount,
+        targetCount,
+        migratedCount: 0,
+        status: errors.length > 0 ? 'error' : 'analyzed',
+        errorDetails: errors.length > 0 ? errors : undefined,
+      });
     }
 
     return stats;

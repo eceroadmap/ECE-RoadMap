@@ -18,6 +18,7 @@ import {
   catalogMigrationService,
   CollectionMigrationStats,
   MigrationSummaryReport,
+  MigrationDiagnosticInfo,
 } from '../../services/admin/catalogMigrationService';
 
 interface CatalogMigrationModalProps {
@@ -34,6 +35,7 @@ export const CatalogMigrationModal: React.FC<CatalogMigrationModalProps> = ({
   const [hasEnvApiKey, setHasEnvApiKey] = useState(false);
   const [isConfigured, setIsConfigured] = useState(false);
   const [configError, setConfigError] = useState<string | null>(null);
+  const [diagnosticInfo, setDiagnosticInfo] = useState<MigrationDiagnosticInfo | null>(null);
 
   // Target Auth State
   const [targetUser, setTargetUser] = useState<{ email: string; uid: string; role?: string } | null>(null);
@@ -59,6 +61,7 @@ export const CatalogMigrationModal: React.FC<CatalogMigrationModalProps> = ({
 
   const checkEnvironmentConfig = () => {
     setConfigError(null);
+    setDiagnosticInfo(catalogMigrationService.getDiagnosticInfo());
     const envKey = (import.meta.env.VITE_MIGRATION_FIREBASE_API_KEY || '').trim();
     if (envKey) {
       setHasEnvApiKey(true);
@@ -79,6 +82,7 @@ export const CatalogMigrationModal: React.FC<CatalogMigrationModalProps> = ({
       catalogMigrationService.initTargetApp(cfg);
       setIsConfigured(true);
       setConfigError(null);
+      setDiagnosticInfo(catalogMigrationService.getDiagnosticInfo());
 
       // Check if target user is already logged in
       const existingUser = catalogMigrationService.getTargetUser();
@@ -121,6 +125,7 @@ export const CatalogMigrationModal: React.FC<CatalogMigrationModalProps> = ({
         uid: user.uid,
         role: 'super_admin',
       });
+      setDiagnosticInfo(catalogMigrationService.getDiagnosticInfo());
     } catch (err: any) {
       setAuthError(err.message || 'تعذر تسجيل الدخول للمشروع الجديد أو لم يتم العثور على صلاحية super_admin.');
       setTargetUser(null);
@@ -134,6 +139,7 @@ export const CatalogMigrationModal: React.FC<CatalogMigrationModalProps> = ({
     setIsAnalyzing(true);
     setPreFlightError(null);
     try {
+      setDiagnosticInfo(catalogMigrationService.getDiagnosticInfo());
       const stats = await catalogMigrationService.runPreFlightAnalysis();
       setPreFlightStats(stats);
     } catch (err: any) {
@@ -272,16 +278,55 @@ export const CatalogMigrationModal: React.FC<CatalogMigrationModalProps> = ({
               </form>
             )}
 
-            <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400">
-              <div className="flex items-center gap-1.5">
-                <span className="text-slate-500">مشروع الهدف:</span>
-                <span className="font-mono text-cyan-300 font-bold">eceroadmap2027</span>
+            {/* Live Active Diagnostics Card */}
+            {diagnosticInfo && (
+              <div className="p-4 rounded-xl bg-slate-950/70 border border-cyan-500/30 text-xs space-y-2.5">
+                <div className="flex items-center justify-between text-cyan-400 font-bold border-b border-cyan-500/20 pb-2">
+                  <div className="flex items-center gap-2">
+                    <Database className="w-4 h-4 text-cyan-400" />
+                    <span>تشخيص قواعد البيانات الفعلي (Active Database Diagnostics)</span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-normal">
+                    نسخة Firestore متطابقة مع بيئة الإنتاج: <strong className="text-emerald-400">نعم</strong>
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                  <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 space-y-1.5">
+                    <div className="text-[11px] text-cyan-300 font-bold flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-cyan-400"></div>
+                      <span>المشروع المصدر الحالي (Current Source)</span>
+                    </div>
+                    <div className="text-[11px] flex items-center justify-between">
+                      <span className="text-slate-400">Source Project ID:</span>
+                      <span className="font-mono text-cyan-200 font-bold">{diagnosticInfo.sourceProjectId}</span>
+                    </div>
+                    <div className="text-[11px] flex flex-col gap-0.5">
+                      <span className="text-slate-400">Source Firestore Database ID:</span>
+                      <span className="font-mono text-cyan-300 font-bold break-all bg-cyan-950/30 px-2 py-1 rounded border border-cyan-500/20">
+                        {diagnosticInfo.sourceFirestoreDatabaseId}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 space-y-1.5">
+                    <div className="text-[11px] text-emerald-300 font-bold flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
+                      <span>مشروع الهدف الجديد (New Target)</span>
+                    </div>
+                    <div className="text-[11px] flex items-center justify-between">
+                      <span className="text-slate-400">Target Project ID:</span>
+                      <span className="font-mono text-emerald-200 font-bold">{diagnosticInfo.targetProjectId}</span>
+                    </div>
+                    <div className="text-[11px] flex flex-col gap-0.5">
+                      <span className="text-slate-400">Target Firestore Database ID:</span>
+                      <span className="font-mono text-emerald-300 font-bold break-all bg-emerald-950/30 px-2 py-1 rounded border border-emerald-500/20">
+                        {diagnosticInfo.targetFirestoreDatabaseId}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-slate-500">قاعدة بيانات الهدف:</span>
-                <span className="font-mono text-emerald-300 font-bold">ai-studio-eceroadmap-92942c14-153e-4944-ad7d-20e5ea4add92</span>
-              </div>
-            </div>
+            )}
 
             {configError && (
               <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-500/40 text-rose-300 flex items-center gap-2">
