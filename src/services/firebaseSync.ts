@@ -302,38 +302,6 @@ class FirebaseSyncService {
           lastSyncedAt: now
         }, { merge: true });
 
-        // Sync to student_auth_index for direct username credential lookup
-        if (mergedProfile.username && mergedProfile.accountPassword) {
-          try {
-            const authIndexRef = doc(db, 'student_auth_index', mergedProfile.username.trim().toLowerCase());
-            await setDoc(authIndexRef, {
-              uid: user.uid,
-              username: mergedProfile.username.trim(),
-              accountPassword: mergedProfile.accountPassword.trim(),
-              studentData: {
-                displayName: user.displayName || remoteData.displayName || mergedProfile.name || mergedProfile.username,
-                username: mergedProfile.username.trim(),
-                accountPassword: mergedProfile.accountPassword.trim(),
-                academicYear: mergedProfile.academicYear,
-                currentYear: mergedProfile.currentYear,
-                academicSemester: mergedProfile.academicSemester,
-                role: mergedProfile.role,
-                roleLabelAr: mergedProfile.roleLabelAr,
-                targetFocusTrack: mergedProfile.targetFocusTrack || null,
-                onboardingCompleted: mergedProfile.onboardingCompleted,
-                coursesProgress: mergedProgress,
-                academicGrades: mergedGrades,
-                graduationWorkspace: mergedWorkspace,
-                savedLaptop: mergedLaptop,
-                updatedAt: now
-              },
-              updatedAt: now
-            }, { merge: true });
-          } catch (indexErr) {
-            console.warn('Silent notice: student_auth_index sync skipped:', indexErr);
-          }
-        }
-
       } else {
         // Initial migration: Upload existing local anonymous progress to the cloud document
         await setDoc(userDocRef, {
@@ -447,37 +415,6 @@ class FirebaseSyncService {
         updatedAt: now,
         lastSyncedAt: now
       }, { merge: true });
-
-      if (profile.username && profile.accountPassword) {
-        try {
-          const authIndexRef = doc(db, 'student_auth_index', profile.username.trim().toLowerCase());
-          await setDoc(authIndexRef, {
-            uid: this.currentUser.uid,
-            username: profile.username.trim(),
-            accountPassword: profile.accountPassword.trim(),
-            studentData: {
-              displayName: this.currentUser.displayName || profile.name || profile.username,
-              username: profile.username.trim(),
-              accountPassword: profile.accountPassword.trim(),
-              academicYear: profile.academicYear,
-              currentYear: profile.currentYear,
-              academicSemester: profile.academicSemester,
-              role: profile.role,
-              roleLabelAr: profile.roleLabelAr,
-              targetFocusTrack: profile.targetFocusTrack || null,
-              onboardingCompleted: profile.onboardingCompleted,
-              coursesProgress,
-              academicGrades,
-              graduationWorkspace,
-              savedLaptop,
-              updatedAt: now
-            },
-            updatedAt: now
-          }, { merge: true });
-        } catch (indexErr) {
-          console.warn('Silent notice: student_auth_index sync skipped:', indexErr);
-        }
-      }
 
       this.setLastSyncedAt(now);
       this.setSyncStatus('synced');

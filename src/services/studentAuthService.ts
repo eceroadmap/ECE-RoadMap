@@ -1,4 +1,3 @@
-import { db, doc, getDoc, collection, query, where, getDocs } from '../lib/firebase';
 import { studentRepository } from './studentRepository';
 import { StudentProfile } from '../types/student';
 
@@ -12,8 +11,8 @@ export interface StudentAuthResult {
 export const studentAuthService = {
   /**
    * Attempts to authenticate a student using existing username and password.
-   * Searches for matching credentials in Firestore 'student_auth_index', 'students' collection or locally.
-   * Strictly read/verify only - DOES NOT create new students or modify records on failure.
+   * Sends credentials to secure server-side endpoint POST /api/auth/student-login.
+   * Does NOT query Firestore collections directly from the browser.
    */
   async signInWithCredentials(
     usernameInput: string, 
@@ -33,95 +32,46 @@ export const studentAuthService = {
       };
     }
 
-    // 1. Direct Lookup in Firestore 'student_auth_index' by exact key
+    // 1. Server-Side Authentication via Worker Endpoint
     try {
-      const authDocRef = doc(db, 'student_auth_index', cleanUsername);
-      const authSnap = await getDoc(authDocRef);
+      const response = await fetch('/api/auth/student-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username: cleanUsername,
+          password: cleanPassword
+        })
+      });
 
-      if (authSnap.exists()) {
-        const authData = authSnap.data();
-        if (authData.accountPassword === cleanPassword) {
-          this.applyStudentData(authData.studentData || authData);
+      if (response.ok) {
+        const result = await response.json() as any;
+        if (result.success && result.student) {
+          this.applyStudentData(result.student);
           return {
             success: true,
-            studentName: authData.studentData?.displayName || authData.studentData?.name || authData.username || 'طالب'
-          };
-        } else {
-          // Username exists in Firestore index but password does not match
-          return { 
-            success: false, 
-            error: 'INVALID_CREDENTIALS',
-            errorMessage: isArabic
-              ? 'اسم المستخدم أو كلمة المرور غير صحيحة. يرجى التحقق من البيانات والمحاولة مجدداً.'
-              : 'Incorrect username or password. Please verify and try again.'
+            studentName: result.student.displayName || result.student.name || result.student.username || 'طالب'
           };
         }
       }
-    } catch (indexErr) {
-      console.warn('Student auth index lookup note:', indexErr);
+    } catch {
+      // Network failure or development fallback
     }
 
-    // 2. Query fallback on 'students' collection (if caller has elevated permissions)
-    try {
-      const studentsQuery = query(
-        collection(db, 'students'),
-        where('username', '==', cleanUsername)
-      );
-      const snap = await getDocs(studentsQuery);
-
-      if (!snap.empty) {
-        let matchedDocData: any = null;
-        for (const docSnap of snap.docs) {
-          const data = docSnap.data();
-          if (data.accountPassword === cleanPassword) {
-            matchedDocData = data;
-            break;
-          }
-        }
-
-        if (matchedDocData) {
-          this.applyStudentData(matchedDocData);
-          return {
-            success: true,
-            studentName: matchedDocData.displayName || matchedDocData.username || 'طالب'
-          };
-        } else {
-          return { 
-            success: false, 
-            error: 'INVALID_CREDENTIALS',
-            errorMessage: isArabic
-              ? 'اسم المستخدم أو كلمة المرور غير صحيحة. يرجى التحقق من البيانات والمحاولة مجدداً.'
-              : 'Incorrect username or password. Please verify and try again.'
-          };
-        }
-      }
-    } catch (firestoreErr) {
-      // Permission-denied or unauthenticated fallback
-    }
-
-    // 3. Check local student profile if previously saved on this device
+    // 2. Offline / Local device profile check
     const localProfile = studentRepository.getProfile();
     const localUsername = (localProfile.username || '').trim().toLowerCase();
     const localPassword = (localProfile.accountPassword || '').trim();
 
-    if (localUsername && localUsername === cleanUsername) {
-      if (localPassword === cleanPassword) {
-        return {
-          success: true,
-          studentName: localProfile.name || localProfile.username || 'طالب'
-        };
-      } else {
-        return { 
-          success: false, 
-          error: 'INVALID_CREDENTIALS',
-          errorMessage: isArabic
-            ? 'اسم المستخدم أو كلمة المرور غير صحيحة. يرجى التحقق من البيانات والمحاولة مجدداً.'
-            : 'Incorrect username or password. Please verify and try again.'
-        };
-      }
+    if (localUsername && localUsername === cleanUsername && localPassword === cleanPassword) {
+      return {
+        success: true,
+        studentName: localProfile.name || localProfile.username || 'طالب'
+      };
     }
 
-    // 4. Not found in Firestore or Local Profile
+    // 3. Generic Failure Response (No sensitive hint whether username exists or not)
     return { 
       success: false, 
       error: 'INVALID_CREDENTIALS',
