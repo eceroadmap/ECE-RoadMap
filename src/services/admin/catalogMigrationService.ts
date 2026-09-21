@@ -32,6 +32,8 @@ import {
   User as TargetUser,
 } from 'firebase/auth';
 import { db as sourceDb, resolvedFirebaseConfig } from '../../lib/firebase';
+import { adminRepository } from './adminRepository';
+import { COURSES_DATA } from '../../data/courses';
 
 const TARGET_APP_NAME = 'ECERoadmapMigrationTarget_Phase1';
 
@@ -43,6 +45,30 @@ export interface TargetFirebaseConfig {
   messagingSenderId: string;
   appId: string;
   firestoreDatabaseId: string;
+}
+
+export interface CoursesDiagnosticResult {
+  directSourceFirestore: {
+    attempted: boolean;
+    success: boolean;
+    size: number;
+    first3DocIds: string[];
+    fromCache: boolean;
+    hasPendingWrites: boolean;
+    error: string | null;
+  };
+  appAdminRepository: {
+    attempted: boolean;
+    success: boolean;
+    count: number;
+    first3Ids: string[];
+    error: string | null;
+  };
+  staticCurriculumData: {
+    totalCourses: number;
+    first3Ids: string[];
+  };
+  rootCauseAnalysis: string;
 }
 
 export interface MigrationDiagnosticInfo {
@@ -61,6 +87,9 @@ export interface CollectionMigrationStats {
   migratedCount: number;
   status: 'idle' | 'analyzed' | 'migrating' | 'completed' | 'error' | 'mismatch';
   errorDetails?: string[];
+  docPath?: string;
+  sourceDocDataSummary?: string;
+  targetDocDataSummary?: string;
 }
 
 export interface MigrationSummaryReport {
@@ -188,6 +217,101 @@ export class CatalogMigrationService {
   }
 
   /**
+   * Diagnostic: Direct read of `courses` collection using `sourceDb` exported directly from `src/lib/firebase.ts`.
+   * Strictly uses getDocs(collection(sourceDb, 'courses')) with NO limit, filter, or query constraints.
+   * Compares the result with application's adminRepository.getCourses() and static COURSES_DATA.
+   */
+  public async runDirectCoursesDiagnostic(): Promise<CoursesDiagnosticResult> {
+    console.group('%c[Courses Collection Direct Diagnostic]', 'color: #38bdf8; font-weight: bold; font-size: 13px;');
+    
+    // 1. Direct getDocs(collection(sourceDb, "courses"))
+    let directResult: CoursesDiagnosticResult['directSourceFirestore'] = {
+      attempted: true,
+      success: false,
+      size: 0,
+      first3DocIds: [],
+      fromCache: false,
+      hasPendingWrites: false,
+      error: null,
+    };
+
+    try {
+      console.log('Executing direct: getDocs(collection(sourceDb, "courses"))...');
+      const snap = await getDocs(collection(sourceDb, 'courses'));
+      directResult = {
+        attempted: true,
+        success: true,
+        size: snap.size,
+        first3DocIds: snap.docs.slice(0, 3).map((d) => d.id),
+        fromCache: snap.metadata.fromCache,
+        hasPendingWrites: snap.metadata.hasPendingWrites,
+        error: null,
+      };
+      console.log('Direct snapshot.size:', snap.size);
+      console.log('Direct first 3 IDs:', directResult.first3DocIds);
+      console.log('Direct snapshot.metadata.fromCache:', snap.metadata.fromCache);
+      console.log('Direct snapshot.metadata.hasPendingWrites:', snap.metadata.hasPendingWrites);
+    } catch (err: any) {
+      console.error('Direct read failed:', err);
+      directResult.error = `${err.code ? `[${err.code}] ` : ''}${err.message || String(err)}`;
+    }
+
+    // 2. Application's adminRepository.getCourses()
+    let repoResult: CoursesDiagnosticResult['appAdminRepository'] = {
+      attempted: true,
+      success: false,
+      count: 0,
+      first3Ids: [],
+      error: null,
+    };
+
+    try {
+      console.log('Executing application adminRepository.getCourses()...');
+      const repoCourses = await adminRepository.getCourses();
+      repoResult = {
+        attempted: true,
+        success: true,
+        count: repoCourses.length,
+        first3Ids: repoCourses.slice(0, 3).map((c) => c.id),
+        error: null,
+      };
+      console.log('adminRepository.getCourses() count:', repoCourses.length);
+    } catch (err: any) {
+      console.error('adminRepository read failed:', err);
+      repoResult.error = `${err.code ? `[${err.code}] ` : ''}${err.message || String(err)}`;
+    }
+
+    // 3. Static COURSES_DATA used across student and public views
+    const staticData = {
+      totalCourses: COURSES_DATA.length,
+      first3Ids: COURSES_DATA.slice(0, 3).map((c) => c.id),
+    };
+    console.log('Static COURSES_DATA.length (used by CoursesSection, AcademicRoadmap, StudentDashboard):', staticData.totalCourses);
+
+    // 4. Comparative root cause analysis
+    let analysis = '';
+    if (directResult.size === 0 && repoResult.count === 0) {
+      analysis =
+        `مجموعة courses في قاعدة بيانات Firestore الفعلية (${this.getDiagnosticInfo().sourceFirestoreDatabaseId}) حجمها 0 وثيقة (فارغة في السحابة).\n` +
+        `التطبيق الحالي يظهر المقررات الدراسية (${staticData.totalCourses} مقرراً) لأنه يعتمد على البيانات البرمجية في الكود (src/data/courses.ts) عبر المكونات العامة، كما أن CoursesManager يحتوي على آلية Fallback ترجع إلى COURSES_DATA تلقائياً عندما تكون قاعدة Firestore خالية.`;
+    } else if (directResult.size > 0) {
+      analysis = `مجموعة courses تحتوي فعلياً على ${directResult.size} وثيقة في Firestore، وتطابقت القراءة المباشرة بنجاح مع كود التطبيق.`;
+    } else {
+      analysis = `حدث خطأ أثناء فحص Firestore: ${directResult.error || repoResult.error}`;
+    }
+
+    console.log('Analysis:', analysis);
+    console.groupEnd();
+
+    return {
+      directSourceFirestore: directResult,
+      appAdminRepository: repoResult,
+      staticCurriculumData: staticData,
+      rootCauseAnalysis: analysis,
+    };
+  }
+
+  /**
    * Get current target authentication state.
    */
   public getTargetUser(): TargetUser | null {
@@ -251,24 +375,24 @@ export class CatalogMigrationService {
   }
 
   /**
-   * Collections to migrate in Phase 1 (Strictly Catalog and System Config).
+   * Collections and documents to migrate in Phase 1 (Strictly verified data).
+   * Note: Static catalog items (courses, software, academicResources, faqs, graduation_projects,
+   * course_skill_pipelines) are loaded directly from repository code files (src/data/*.ts) and are
+   * intentionally excluded from Firestore migration to prevent querying empty collections.
    */
   public getTargetCollectionDefinitions(): { key: string; labelAr: string; type: 'collection' | 'doc'; docPath?: string }[] {
     return [
-      { key: 'courses', labelAr: 'المقررات الدراسية (courses)', type: 'collection' },
-      { key: 'software', labelAr: 'البرمجيات والأدوات الهندسية (software)', type: 'collection' },
-      { key: 'academicResources', labelAr: 'المصادر والكتب الأكاديمية (academicResources)', type: 'collection' },
-      { key: 'faqs', labelAr: 'الأسئلة الشائعة الأكاديمية (faqs)', type: 'collection' },
-      { key: 'graduation_projects', labelAr: 'مكتبة مشاريع التخرج (graduation_projects)', type: 'collection' },
-      { key: 'course_skill_pipelines', labelAr: 'مسارات الربط بين المواد والمهارات (course_skill_pipelines)', type: 'collection' },
-      { key: 'system_config_exhibition', labelAr: 'إعدادات وضع المعرض (system_config/exhibition_config)', type: 'doc', docPath: 'system_config/exhibition_config' },
-      { key: 'system_config_academic', labelAr: 'إعدادات النظام الأكاديمي (system_config/academic_settings)', type: 'doc', docPath: 'system_config/academic_settings' },
-      { key: 'moderators', labelAr: 'سجلات المشرفين المعتمدين (moderators)', type: 'collection' },
+      {
+        key: 'system_config_moderators_list',
+        labelAr: 'قائمة المشرفين المعتمدين (system_config/moderators_list)',
+        type: 'doc',
+        docPath: 'system_config/moderators_list',
+      },
     ];
   }
 
   /**
-   * Pre-Flight Analysis: Reads document counts from Source and Target without writing anything.
+   * Pre-Flight Analysis: Reads document counts and details from Source and Target without writing anything.
    */
   public async runPreFlightAnalysis(
     onProgress?: (colKey: string, status: string) => void
@@ -288,6 +412,8 @@ export class CatalogMigrationService {
 
       let sourceCount = 0;
       let targetCount = 0;
+      let sourceDocDataSummary: string | undefined;
+      let targetDocDataSummary: string | undefined;
       const errors: string[] = [];
 
       // 1. Independent Read from Source (Production Instance)
@@ -299,6 +425,13 @@ export class CatalogMigrationService {
           const [colName, docId] = def.docPath.split('/');
           const sourceSnap = await getDoc(doc(sourceDb, colName, docId));
           sourceCount = sourceSnap.exists() ? 1 : 0;
+          if (sourceSnap.exists() && docId === 'moderators_list') {
+            const data = sourceSnap.data();
+            const mods = data?.moderators || [];
+            sourceDocDataSummary = `الوثيقة موجودة (${mods.length} مشرف: ${mods.map((m: any) => `${m.displayName || m.email}`).join('، ')})`;
+          } else if (!sourceSnap.exists()) {
+            sourceDocDataSummary = 'الوثيقة غير موجودة في قاعدة بيانات المصدر';
+          }
         }
         console.log(`[PreFlight Diagnostic] Source '${def.key}' count:`, sourceCount);
       } catch (sourceErr: any) {
@@ -315,6 +448,13 @@ export class CatalogMigrationService {
           const [colName, docId] = def.docPath.split('/');
           const targetSnap = await getDoc(doc(this.targetDb, colName, docId));
           targetCount = targetSnap.exists() ? 1 : 0;
+          if (targetSnap.exists() && docId === 'moderators_list') {
+            const data = targetSnap.data();
+            const mods = data?.moderators || [];
+            targetDocDataSummary = `الوثيقة موجودة بالهدف بالفعل (${mods.length} مشرف مسجل)`;
+          } else {
+            targetDocDataSummary = 'الوثيقة غير موجودة بالهدف بعد (جاهزة للنقل)';
+          }
         }
         console.log(`[PreFlight Diagnostic] Target '${def.key}' count:`, targetCount);
       } catch (targetErr: any) {
@@ -325,8 +465,11 @@ export class CatalogMigrationService {
       stats.push({
         collectionKey: def.key,
         labelAr: def.labelAr,
+        docPath: def.docPath,
         sourceCount,
         targetCount,
+        sourceDocDataSummary,
+        targetDocDataSummary,
         migratedCount: 0,
         status: errors.length > 0 ? 'error' : 'analyzed',
         errorDetails: errors.length > 0 ? errors : undefined,
@@ -359,6 +502,7 @@ export class CatalogMigrationService {
       const currentStats: CollectionMigrationStats = {
         collectionKey: def.key,
         labelAr: def.labelAr,
+        docPath: def.docPath,
         sourceCount: 0,
         targetCount: 0,
         migratedCount: 0,
@@ -379,7 +523,7 @@ export class CatalogMigrationService {
               const docId = docSnap.id;
               const rawData = docSnap.data();
 
-              // Write to target with preserved exact ID and native Timestamp preservation
+              // Write to target with preserved exact ID and merge: true
               const targetDocRef = doc(this.targetDb, def.key, docId);
               await setDoc(targetDocRef, rawData, { merge: true });
               successCount++;
@@ -405,6 +549,7 @@ export class CatalogMigrationService {
             try {
               const rawData = sourceDocSnap.data();
               const targetDocRef = doc(this.targetDb, colName, docId);
+              // Safe, idempotent write using fixed doc ID and merge: true
               await setDoc(targetDocRef, rawData, { merge: true });
               currentStats.migratedCount = 1;
 
@@ -426,7 +571,7 @@ export class CatalogMigrationService {
         }
       } catch (colErr: any) {
         currentStats.status = 'error';
-        currentStats.errorDetails?.push(colErr.message || 'فشل في معالجة المجموعة');
+        currentStats.errorDetails?.push(colErr.message || 'فشل في معالجة الوثيقة');
         allFailures.push({ collection: def.key, docId: '*', error: colErr.message });
       }
 
@@ -434,24 +579,13 @@ export class CatalogMigrationService {
       onCollectionProgress(currentStats);
     }
 
-    // Also migrate system_config/moderators_config if present in source
-    try {
-      const sourceModCfg = await getDoc(doc(sourceDb, 'system_config', 'moderators_config'));
-      if (sourceModCfg.exists()) {
-        await setDoc(doc(this.targetDb, 'system_config', 'moderators_config'), sourceModCfg.data(), { merge: true });
-      }
-    } catch {
-      // Non-blocking
-    }
-
     const endTime = new Date().toISOString();
 
-    // Verify system_config documents exist in target
+    // Verify system_config/moderators_list document exists in target
     let systemConfigVerified = true;
     try {
-      const exSnap = await getDoc(doc(this.targetDb, 'system_config', 'exhibition_config'));
-      const acSnap = await getDoc(doc(this.targetDb, 'system_config', 'academic_settings'));
-      systemConfigVerified = exSnap.exists() && acSnap.exists();
+      const modSnap = await getDoc(doc(this.targetDb, 'system_config', 'moderators_list'));
+      systemConfigVerified = modSnap.exists();
     } catch {
       systemConfigVerified = false;
     }
