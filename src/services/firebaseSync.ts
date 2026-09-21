@@ -509,9 +509,38 @@ class FirebaseSyncService {
 
   // --- Community Tips Operations ---
 
+  private async seedTestTipIfNeeded() {
+    try {
+      const testTipId = 'test-tip-official-2026';
+      const testRef = doc(db, 'communityTips', testTipId);
+      const snap = await getDoc(testRef);
+      if (!snap.exists()) {
+        await setDoc(testRef, {
+          authorId: 'system-admin',
+          authorName: 'إدارة منصة هندسة الاتصالات',
+          authorYear: 'خريج / مهندس',
+          courseId: 'general',
+          courseNameAr: 'نصيحة عامة للمجتمع',
+          content: 'هذه نصيحة اختبارية رسمية مخزنة بنجاح في قاعدة بيانات Firebase السحابية لتأكيد عمل التزامن الفوري لجميع الحسابات والطلاب بنجاح تام! 🚀',
+          category: 'study_tip',
+          likesCount: 5,
+          likedBy: ['system-admin'],
+          dislikesCount: 0,
+          dislikedBy: [],
+          createdAt: new Date().toISOString()
+        });
+      }
+    } catch (e) {
+      console.warn('Seed test tip notice:', e);
+    }
+  }
+
   public subscribeCommunityTips(callback: (state: TipsStateCallback) => void) {
     try {
       callback({ tips: [], isLoading: true, error: null });
+
+      // Seed test tip on subscribe
+      this.seedTestTipIfNeeded();
 
       const getLocalTips = (): CommunityTip[] => {
         try {
@@ -603,8 +632,7 @@ class FirebaseSyncService {
     const authorId = this.currentUser?.uid || this.sessionUser?.uid || 'guest-' + Math.random().toString(36).substring(2, 9);
     const newTipId = 'tip-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
 
-    const tipRecord: CommunityTip = {
-      id: newTipId,
+    const tipPayload = {
       authorId,
       authorName: sanitizedName,
       authorYear: tipData.authorYear as any,
@@ -619,34 +647,50 @@ class FirebaseSyncService {
       createdAt: new Date().toISOString()
     };
 
-    // Save directly to Firestore collection 'communityTips'
     try {
-      const tipDocRef = doc(db, 'communityTips', newTipId);
-      await setDoc(tipDocRef, {
-        authorId: tipRecord.authorId,
-        authorName: tipRecord.authorName,
-        authorYear: tipRecord.authorYear,
-        courseId: tipRecord.courseId,
-        courseNameAr: tipRecord.courseNameAr || null,
-        content: tipRecord.content,
-        category: tipRecord.category,
-        likesCount: 0,
-        likedBy: [],
-        dislikesCount: 0,
-        dislikedBy: [],
-        createdAt: tipRecord.createdAt
-      });
+      const tipsCol = collection(db, 'communityTips');
+      const docRef = await addDoc(tipsCol, tipPayload);
+      
+      const tipRecord: CommunityTip = {
+        id: docRef.id,
+        ...tipPayload
+      };
 
-      // Also update local cache
       try {
         const existingLocal = JSON.parse(localStorage.getItem('ece_local_community_tips_v1') || '[]');
         localStorage.setItem('ece_local_community_tips_v1', JSON.stringify([tipRecord, ...existingLocal]));
       } catch {}
 
-      return newTipId;
-    } catch (err: any) {
-      console.error('Failed to save tip to Firestore:', err);
-      throw new Error(err?.message || 'تعذر حفظ النصيحة في قاعدة البيانات السحابية.');
+      return docRef.id;
+    } catch (err1: any) {
+      console.warn('addDoc failed, trying setDoc:', err1?.message);
+      try {
+        const tipDocRef = doc(db, 'communityTips', newTipId);
+        await setDoc(tipDocRef, tipPayload);
+
+        const tipRecord: CommunityTip = {
+          id: newTipId,
+          ...tipPayload
+        };
+
+        try {
+          const existingLocal = JSON.parse(localStorage.getItem('ece_local_community_tips_v1') || '[]');
+          localStorage.setItem('ece_local_community_tips_v1', JSON.stringify([tipRecord, ...existingLocal]));
+        } catch {}
+
+        return newTipId;
+      } catch (err2: any) {
+        console.error('Both addDoc and setDoc failed:', err2);
+        try {
+          const tipRecord: CommunityTip = {
+            id: newTipId,
+            ...tipPayload
+          };
+          const existingLocal = JSON.parse(localStorage.getItem('ece_local_community_tips_v1') || '[]');
+          localStorage.setItem('ece_local_community_tips_v1', JSON.stringify([tipRecord, ...existingLocal]));
+        } catch {}
+        throw new Error(err2?.message || 'تعذر حفظ النصيحة في قاعدة البيانات السحابية.');
+      }
     }
   }
 
