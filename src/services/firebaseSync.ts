@@ -543,6 +543,33 @@ class FirebaseSyncService {
 
         const tips = Array.from(mergedMap.values()).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         callback({ tips, isLoading: false, error: null });
+
+        // Background sync local tips to Firestore
+        setTimeout(async () => {
+          try {
+            const firestoreIds = new Set(snapshot.docs.map(d => d.id));
+            for (const t of localTips) {
+              if (!firestoreIds.has(t.id)) {
+                await setDoc(doc(db, 'communityTips', t.id), {
+                  authorId: t.authorId,
+                  authorName: t.authorName,
+                  authorYear: t.authorYear,
+                  courseId: t.courseId,
+                  courseNameAr: t.courseNameAr || null,
+                  content: t.content,
+                  category: t.category,
+                  likesCount: t.likesCount || 0,
+                  likedBy: t.likedBy || [],
+                  dislikesCount: t.dislikesCount || 0,
+                  dislikedBy: t.dislikedBy || [],
+                  createdAt: t.createdAt
+                }, { merge: true });
+              }
+            }
+          } catch (syncErr) {
+            console.warn('Background sync of local tips:', syncErr);
+          }
+        }, 1200);
       }, (err) => {
         console.warn('Notice when fetching community tips from Firestore, using local tips:', err.message);
         const localTips = getLocalTips();
