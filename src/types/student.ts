@@ -4,15 +4,18 @@ import { CourseGrade, GraduationProjectWorkspace } from './academicIntelligence'
 export type StudentRole = 'high_school' | 'freshman' | 'current' | 'graduate';
 
 export interface StudentProfile {
+  uid?: string;
+  email?: string;
+  displayName?: string;
+  name?: string;
+  username?: string;
+  accountPassword?: string;
   role: StudentRole;
   roleLabelAr: string;
   academicYear: AcademicYearNumber;
   currentYear?: AcademicYearNumber | 'graduate';
   academicSemester: AcademicSemester;
   onboardingCompleted: boolean;
-  name?: string;
-  username?: string;
-  accountPassword?: string;
   targetFocusTrack?: string;
   createdAt?: string;
   lastSyncedAt?: string;

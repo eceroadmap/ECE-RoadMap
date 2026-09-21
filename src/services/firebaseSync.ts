@@ -31,6 +31,7 @@ export interface TipsStateCallback {
 
 class FirebaseSyncService {
   private currentUser: User | null = null;
+  private sessionUser: { uid: string; email: string | null; displayName: string | null } | null = null;
   private syncStatus: CloudSyncStatus = 'local_only';
   private lastSyncedAt: string | null = null;
   private isSyncingFromRemote = false;
@@ -42,8 +43,16 @@ class FirebaseSyncService {
   constructor() {
     try {
       this.lastSyncedAt = localStorage.getItem('ece_last_synced_at') || null;
+      const storedSession = localStorage.getItem('ece_authenticated_student_session');
+      if (storedSession) {
+        this.sessionUser = JSON.parse(storedSession);
+        if (this.sessionUser) {
+          this.syncStatus = 'synced';
+        }
+      }
     } catch {
       this.lastSyncedAt = null;
+      this.sessionUser = null;
     }
     this.init();
   }
@@ -51,14 +60,43 @@ class FirebaseSyncService {
   private init() {
     onAuthStateChanged(auth, async (user) => {
       this.currentUser = user;
+      if (user) {
+        this.sessionUser = null;
+        try {
+          localStorage.removeItem('ece_authenticated_student_session');
+        } catch {}
+      }
       this.notifyAuthListeners();
 
       if (user) {
         await this.handleUserSignIn(user);
-      } else {
+      } else if (!this.sessionUser) {
         this.handleUserSignOut();
       }
     });
+  }
+
+  public setAuthenticatedStudentSession(student: { uid: string; email?: string | null; displayName?: string | null } | null) {
+    if (student && student.uid) {
+      this.sessionUser = {
+        uid: student.uid,
+        email: student.email || null,
+        displayName: student.displayName || null
+      };
+      try {
+        localStorage.setItem('ece_authenticated_student_session', JSON.stringify(this.sessionUser));
+      } catch {}
+      this.setSyncStatus('synced');
+      this.notifyAuthListeners();
+    } else {
+      this.sessionUser = null;
+      try {
+        localStorage.removeItem('ece_authenticated_student_session');
+      } catch {}
+      if (!this.currentUser) {
+        this.handleUserSignOut();
+      }
+    }
   }
 
   public getSyncStatus(): CloudSyncStatus {
@@ -105,19 +143,29 @@ class FirebaseSyncService {
   }
 
   private notifyAuthListeners() {
-    this.authListeners.forEach((cb) => cb(this.currentUser));
+    const userToReport = this.getUser();
+    this.authListeners.forEach((cb) => cb(userToReport as User | null));
   }
 
   public subscribeAuth(callback: (user: User | null) => void) {
     this.authListeners.add(callback);
-    callback(this.currentUser);
+    callback(this.getUser() as User | null);
     return () => {
       this.authListeners.delete(callback);
     };
   }
 
   public getUser(): User | null {
-    return this.currentUser;
+    if (this.currentUser) return this.currentUser;
+    if (this.sessionUser) {
+      return {
+        uid: this.sessionUser.uid,
+        email: this.sessionUser.email,
+        displayName: this.sessionUser.displayName,
+        photoURL: null
+      } as unknown as User;
+    }
+    return null;
   }
 
   public async signInWithGoogle(): Promise<User | null> {
@@ -125,18 +173,25 @@ class FirebaseSyncService {
     try {
       const user = await signInWithGoogle();
       if (!user) {
-        this.setSyncStatus(this.currentUser ? 'synced' : 'local_only');
+        this.setSyncStatus(this.currentUser || this.sessionUser ? 'synced' : 'local_only');
       }
       return user;
     } catch (err) {
-      this.setSyncStatus(this.currentUser ? 'synced' : 'local_only');
+      this.setSyncStatus(this.currentUser || this.sessionUser ? 'synced' : 'local_only');
       throw err;
     }
   }
 
   public async signOut(): Promise<void> {
-    await signOutUser();
+    try {
+      await signOutUser();
+    } catch {}
+    this.sessionUser = null;
+    try {
+      localStorage.removeItem('ece_authenticated_student_session');
+    } catch {}
     this.handleUserSignOut();
+    this.notifyAuthListeners();
   }
 
   private handleUserSignOut() {
@@ -280,7 +335,7 @@ class FirebaseSyncService {
         }
 
         // Save unified merged state to Firestore
-        await setDoc(userDocRef, {
+        const cloudRecord = {
           uid: user.uid,
           displayName: user.displayName || remoteData.displayName || null,
           email: user.email || remoteData.email || null,
@@ -300,7 +355,22 @@ class FirebaseSyncService {
           createdAt: remoteData.createdAt || localProfile.createdAt || now,
           updatedAt: now,
           lastSyncedAt: now
-        }, { merge: true });
+        };
+
+        if (mergedProfile.username && mergedProfile.accountPassword) {
+          try {
+            const { studentAuthService } = await import('./studentAuthService');
+            studentAuthService.registerStudentAccount({
+              ...cloudRecord,
+              email: user.email || remoteData.email,
+              displayName: user.displayName || remoteData.displayName || mergedProfile.name,
+              username: mergedProfile.username,
+              accountPassword: mergedProfile.accountPassword
+            });
+          } catch {}
+        }
+
+        await setDoc(userDocRef, cloudRecord, { merge: true });
 
       } else {
         // Initial migration: Upload existing local anonymous progress to the cloud document
@@ -395,10 +465,10 @@ class FirebaseSyncService {
       const graduationWorkspace = studentRepository.getGraduationWorkspace();
 
       const userDocRef = doc(db, 'students', this.currentUser.uid);
-      await setDoc(userDocRef, {
+      const studentPayload = {
         uid: this.currentUser.uid,
-        displayName: this.currentUser.displayName || null,
-        email: this.currentUser.email || null,
+        displayName: this.currentUser.displayName || profile.name || null,
+        email: this.currentUser.email || profile.email || null,
         username: profile.username || null,
         accountPassword: profile.accountPassword || null,
         academicYear: profile.academicYear,
@@ -414,7 +484,20 @@ class FirebaseSyncService {
         savedLaptop,
         updatedAt: now,
         lastSyncedAt: now
-      }, { merge: true });
+      };
+
+      if (profile.username && profile.accountPassword) {
+        try {
+          const { studentAuthService } = await import('./studentAuthService');
+          studentAuthService.registerStudentAccount({
+            ...studentPayload,
+            email: this.currentUser.email || profile.email,
+            displayName: this.currentUser.displayName || profile.name
+          });
+        } catch {}
+      }
+
+      await setDoc(userDocRef, studentPayload, { merge: true });
 
       this.setLastSyncedAt(now);
       this.setSyncStatus('synced');

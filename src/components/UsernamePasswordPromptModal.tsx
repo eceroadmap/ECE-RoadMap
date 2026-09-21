@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User, Key, ShieldCheck, Sparkles, Send, RefreshCw, X, LogOut } from 'lucide-react';
 import { useStudentState } from '../services/useStudentState';
+import { studentAuthService } from '../services/studentAuthService';
 import { useLanguage } from '../context/LanguageContext';
 
 interface UsernamePasswordPromptModalProps {
@@ -50,6 +51,19 @@ export const UsernamePasswordPromptModal: React.FC<UsernamePasswordPromptModalPr
       updateProfile({
         username: username.trim(),
         accountPassword: accountPassword.trim()
+      });
+
+      studentAuthService.registerStudentAccount({
+        uid: firebaseUser?.uid || profile.uid || username.trim(),
+        email: firebaseUser?.email || profile.email,
+        displayName: firebaseUser?.displayName || profile.name || username.trim(),
+        username: username.trim(),
+        accountPassword: accountPassword.trim(),
+        academicYear: profile.academicYear,
+        currentYear: profile.currentYear,
+        academicSemester: profile.academicSemester,
+        role: profile.role,
+        roleLabelAr: profile.roleLabelAr
       });
 
       setSuccessMsg(isArabic ? 'تم حفظ وتأمين بيانات الحساب بنجاح!' : 'Account credentials saved successfully!');

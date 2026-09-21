@@ -168,24 +168,24 @@ export const AuthSyncModal: React.FC<AuthSyncModalProps> = ({ isOpen, onClose })
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2.5">
               <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-cyan-400 font-bold text-sm border border-slate-700">
-                {isLoggedInWithGoogle && firebaseUser?.displayName 
-                  ? firebaseUser.displayName.charAt(0)
+                {(isLoggedInWithGoogle && firebaseUser?.displayName) || profile.displayName || profile.name
+                  ? ((firebaseUser?.displayName || profile.displayName || profile.name || '').charAt(0).toUpperCase())
                   : 'ط'}
               </div>
               <div>
                 <div className="text-sm font-bold text-white flex items-center gap-1.5">
                   <span>
-                    {isLoggedInWithGoogle && firebaseUser?.displayName 
+                    {(isLoggedInWithGoogle && firebaseUser?.displayName) 
                       ? firebaseUser.displayName 
-                      : (profile.name || 'طالب هندسة اتصالات')}
+                      : (profile.displayName || profile.name || 'طالب هندسة اتصالات')}
                   </span>
-                  {isLoggedInWithGoogle && (
+                  {(isLoggedInWithGoogle || profile.username) && (
                     <UserCheck className="w-3.5 h-3.5 text-cyan-400" />
                   )}
                 </div>
-                {isLoggedInWithGoogle && firebaseUser?.email ? (
-                  <div className="text-xs text-slate-400 font-mono">
-                    {firebaseUser.email}
+                {(isLoggedInWithGoogle && firebaseUser?.email) || profile.email ? (
+                  <div className="text-xs text-cyan-300 font-mono">
+                    {firebaseUser?.email || profile.email}
                   </div>
                 ) : (
                   <div className="text-xs text-slate-400">
@@ -199,16 +199,21 @@ export const AuthSyncModal: React.FC<AuthSyncModalProps> = ({ isOpen, onClose })
             <span className={`text-[11px] font-mono px-2.5 py-1 rounded-lg border flex items-center gap-1.5 ${
               isLoggedInWithGoogle
                 ? 'bg-emerald-950/70 text-emerald-300 border-emerald-800/60'
-                : 'bg-cyan-950/70 text-cyan-300 border-cyan-800/60'
+                : (profile.username ? 'bg-cyan-950/70 text-cyan-300 border-cyan-800/60' : 'bg-slate-900 text-slate-300 border-slate-800')
             }`}>
               {isLoggedInWithGoogle ? (
                 <>
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   <span>حساب Google متزامن</span>
                 </>
+              ) : profile.username ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                  <span>حساب معتمد ({profile.username})</span>
+                </>
               ) : (
                 <>
-                  <HardDrive className="w-3 h-3 text-cyan-400" />
+                  <HardDrive className="w-3 h-3 text-slate-400" />
                   <span>تخزين محلي (Offline)</span>
                 </>
               )}

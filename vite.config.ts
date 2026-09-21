@@ -30,41 +30,7 @@ export default defineConfig(() => {
       'import.meta.env.VITE_FIREBASE_API_KEY': JSON.stringify(primaryFirebaseConfig.VITE_FIREBASE_API_KEY),
       'import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID': JSON.stringify(primaryFirebaseConfig.VITE_FIREBASE_FIRESTORE_DATABASE_ID),
     },
-    plugins: [
-      react(), 
-      tailwindcss(),
-      {
-        name: 'student-auth-dev-api',
-        configureServer(server) {
-          server.middlewares.use('/api/auth/student-login', (req, res) => {
-            if (req.method !== 'POST') {
-              res.statusCode = 405;
-              res.setHeader('Content-Type', 'application/json');
-              res.end(JSON.stringify({ success: false, code: 'METHOD_NOT_ALLOWED' }));
-              return;
-            }
-
-            let body = '';
-            req.on('data', chunk => {
-              body += chunk;
-            });
-
-            req.on('end', () => {
-              try {
-                // In local dev without Worker secrets, return standard invalid credentials
-                res.statusCode = 200;
-                res.setHeader('Content-Type', 'application/json');
-                res.end(JSON.stringify({ success: false, code: 'INVALID_CREDENTIALS' }));
-              } catch {
-                res.statusCode = 400;
-                res.setHeader('Content-Type', 'application/json');
-                res.end(JSON.stringify({ success: false, code: 'INVALID_REQUEST' }));
-              }
-            });
-          });
-        }
-      }
-    ],
+    plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
         '@': path.resolve(import.meta.dirname ?? __dirname, '.'),

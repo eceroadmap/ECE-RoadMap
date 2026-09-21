@@ -365,14 +365,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 <div className="space-y-0.5 overflow-hidden">
                   <div className="flex items-center gap-2">
                     <h4 className="text-sm font-black text-white truncate">
-                      {isLoggedInWithGoogle ? firebaseUser?.displayName : storedGuest?.fullName || profile.name}
+                      {isLoggedInWithGoogle ? firebaseUser?.displayName : profile.displayName || profile.name || storedGuest?.fullName}
                     </h4>
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800">
-                      {isLoggedInWithGoogle ? (isArabic ? 'حساب Google متصل' : 'Google Connected') : (isArabic ? 'دخول بالاسم' : 'Name Login')}
+                      {isLoggedInWithGoogle 
+                        ? (isArabic ? 'حساب Google متصل' : 'Google Connected') 
+                        : (profile.username ? (isArabic ? 'حساب معتمد' : 'Verified Account') : (isArabic ? 'دخول بالاسم' : 'Name Login'))}
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-400 truncate">
-                    {isLoggedInWithGoogle ? firebaseUser?.email : `${isArabic ? 'سنة دراسية:' : 'Year:'} ${storedGuest?.academicYear || profile.academicYear || 1}`}
+                  <p className="text-[11px] text-slate-400 truncate font-mono">
+                    {firebaseUser?.email || profile.email || `${isArabic ? 'سنة دراسية:' : 'Year:'} ${storedGuest?.academicYear || profile.academicYear || 1}`}
                   </p>
                 </div>
               </div>
