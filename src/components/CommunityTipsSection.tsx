@@ -92,11 +92,6 @@ export const CommunityTipsSection: React.FC = () => {
     e.preventDefault();
     setErrorMsg(null);
 
-    if (!firebaseUser) {
-      setErrorMsg(isArabic ? 'يرجى تسجيل الدخول بحساب Google أولاً لتتمكن من نشر نصيحة موثقة في المجتمع.' : 'Please sign in with Google to publish an authenticated advice.');
-      return;
-    }
-
     const trimmedContent = content.trim();
     if (trimmedContent.length < 5) {
       setErrorMsg(isArabic ? 'يرجى كتابة نصيحة واضحة لا تقل عن 5 أحرف.' : 'Please enter advice of at least 5 characters.');
@@ -106,7 +101,7 @@ export const CommunityTipsSection: React.FC = () => {
     setIsSubmitting(true);
     try {
       const course = COURSES_DATA.find((c) => c.id === selectedCourseId);
-      const chosenName = defaultAccountName || firebaseUser.displayName || profile.name || storedGuest?.fullName || (isArabic ? 'طالب هندسة اتصالات' : 'ECE Student');
+      const chosenName = defaultAccountName || firebaseUser?.displayName || profile.name || storedGuest?.fullName || (isArabic ? 'طالب هندسة اتصالات' : 'ECE Student');
       
       await firebaseSyncService.addCommunityTip({
         authorName: chosenName,
