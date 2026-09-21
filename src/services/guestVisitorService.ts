@@ -66,18 +66,34 @@ export const guestVisitorService = {
       roleLabelAr: data.academicYear === 'graduate' ? 'مهندس خريج' : `طالب سنة ${yearNumber}`
     });
 
-    // 3. Persist to Firestore database in 'guest_visitors' collection
+    // 3. Persist to Firestore database in both 'guest_visitors' and 'students' collections for total admin visibility
     try {
       const guestDocRef = doc(db, 'guest_visitors', guestId);
-      await setDoc(guestDocRef, {
+      const studentDocRef = doc(db, 'students', guestId);
+
+      const payload = {
         id: guestId,
+        uid: guestId,
         firstName: trimmedFirst,
         lastName: trimmedLast,
         fullName,
+        displayName: fullName,
         academicYear: data.academicYear || 1,
+        currentYear: data.academicYear || 1,
+        role: data.academicYear === 'graduate' ? 'graduate' : (yearNumber === 1 ? 'freshman' : 'current'),
+        roleLabelAr: data.academicYear === 'graduate' ? 'مهندس خريج' : `طالب سنة ${yearNumber}`,
+        onboardingCompleted: true,
+        authProvider: 'guest',
         createdAt: now,
+        lastLoginAt: now,
+        updatedAt: now,
         userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : ''
-      });
+      };
+
+      await Promise.allSettled([
+        setDoc(guestDocRef, payload, { merge: true }),
+        setDoc(studentDocRef, payload, { merge: true })
+      ]);
     } catch (firestoreError) {
       console.warn('Firestore guest registration notice:', firestoreError);
       // We do not fail the user login even if offline; local record is already set!
