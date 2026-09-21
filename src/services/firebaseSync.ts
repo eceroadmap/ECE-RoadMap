@@ -579,20 +579,23 @@ class FirebaseSyncService {
             const firestoreIds = new Set(snapshot.docs.map(d => d.id));
             for (const t of localTips) {
               if (!firestoreIds.has(t.id)) {
-                await setDoc(doc(db, 'communityTips', t.id), {
-                  authorId: t.authorId,
-                  authorName: t.authorName,
-                  authorYear: t.authorYear,
-                  courseId: t.courseId,
-                  courseNameAr: t.courseNameAr || null,
+                const syncPayload: Record<string, any> = {
+                  authorId: t.authorId || 'guest',
+                  authorName: t.authorName || 'طالب هندسة اتصالات',
+                  authorYear: t.authorYear ?? 'طالب',
+                  courseId: t.courseId || 'general',
                   content: t.content,
                   category: t.category,
                   likesCount: t.likesCount || 0,
                   likedBy: t.likedBy || [],
                   dislikesCount: t.dislikesCount || 0,
                   dislikedBy: t.dislikedBy || [],
-                  createdAt: t.createdAt
-                }, { merge: true });
+                  createdAt: t.createdAt || new Date().toISOString()
+                };
+                if (t.courseNameAr) {
+                  syncPayload.courseNameAr = t.courseNameAr;
+                }
+                await setDoc(doc(db, 'communityTips', t.id), syncPayload, { merge: true });
               }
             }
           } catch (syncErr) {
@@ -632,12 +635,12 @@ class FirebaseSyncService {
     const authorId = this.currentUser?.uid || this.sessionUser?.uid || 'guest-' + Math.random().toString(36).substring(2, 9);
     const newTipId = 'tip-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
 
-    const tipPayload = {
+    // Build clean payload without any 'undefined' properties (Firestore rejects undefined!)
+    const cleanPayload: Record<string, any> = {
       authorId,
       authorName: sanitizedName,
-      authorYear: tipData.authorYear as any,
+      authorYear: tipData.authorYear ?? 'طالب',
       courseId: tipData.courseId || 'general',
-      courseNameAr: tipData.courseNameAr || undefined,
       content: sanitizedContent,
       category: tipData.category,
       likesCount: 0,
@@ -647,13 +650,28 @@ class FirebaseSyncService {
       createdAt: new Date().toISOString()
     };
 
+    if (tipData.courseNameAr) {
+      cleanPayload.courseNameAr = tipData.courseNameAr;
+    }
+
     try {
       const tipsCol = collection(db, 'communityTips');
-      const docRef = await addDoc(tipsCol, tipPayload);
+      const docRef = await addDoc(tipsCol, cleanPayload);
       
       const tipRecord: CommunityTip = {
         id: docRef.id,
-        ...tipPayload
+        authorId: cleanPayload.authorId,
+        authorName: cleanPayload.authorName,
+        authorYear: cleanPayload.authorYear,
+        courseId: cleanPayload.courseId,
+        courseNameAr: cleanPayload.courseNameAr,
+        content: cleanPayload.content,
+        category: cleanPayload.category,
+        likesCount: cleanPayload.likesCount,
+        likedBy: cleanPayload.likedBy,
+        dislikesCount: cleanPayload.dislikesCount,
+        dislikedBy: cleanPayload.dislikedBy,
+        createdAt: cleanPayload.createdAt
       };
 
       try {
@@ -663,14 +681,25 @@ class FirebaseSyncService {
 
       return docRef.id;
     } catch (err1: any) {
-      console.warn('addDoc failed, trying setDoc:', err1?.message);
+      console.warn('addDoc failed, attempting setDoc:', err1?.message);
       try {
         const tipDocRef = doc(db, 'communityTips', newTipId);
-        await setDoc(tipDocRef, tipPayload);
+        await setDoc(tipDocRef, cleanPayload);
 
         const tipRecord: CommunityTip = {
           id: newTipId,
-          ...tipPayload
+          authorId: cleanPayload.authorId,
+          authorName: cleanPayload.authorName,
+          authorYear: cleanPayload.authorYear,
+          courseId: cleanPayload.courseId,
+          courseNameAr: cleanPayload.courseNameAr,
+          content: cleanPayload.content,
+          category: cleanPayload.category,
+          likesCount: cleanPayload.likesCount,
+          likedBy: cleanPayload.likedBy,
+          dislikesCount: cleanPayload.dislikesCount,
+          dislikedBy: cleanPayload.dislikedBy,
+          createdAt: cleanPayload.createdAt
         };
 
         try {
@@ -681,14 +710,6 @@ class FirebaseSyncService {
         return newTipId;
       } catch (err2: any) {
         console.error('Both addDoc and setDoc failed:', err2);
-        try {
-          const tipRecord: CommunityTip = {
-            id: newTipId,
-            ...tipPayload
-          };
-          const existingLocal = JSON.parse(localStorage.getItem('ece_local_community_tips_v1') || '[]');
-          localStorage.setItem('ece_local_community_tips_v1', JSON.stringify([tipRecord, ...existingLocal]));
-        } catch {}
         throw new Error(err2?.message || 'تعذر حفظ النصيحة في قاعدة البيانات السحابية.');
       }
     }

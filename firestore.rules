@@ -80,7 +80,7 @@ service cloud.firestore {
     match /communityTips/{tipId} {
       allow read: if true;
       allow create: if true;
-      allow update: if isAuthenticated() && (isAdmin() || resource.data.authorId == request.auth.uid);
+      allow update: if true;
       allow delete: if isAuthenticated() && (resource.data.authorId == request.auth.uid || isAdmin());
     }
 
