@@ -212,6 +212,29 @@ export const studentAuthService = {
       }
     }
 
+    // Try full Firestore students scan for case-insensitive matching
+    try {
+      const allStudentsSnap = await getDocs(collection(db, 'students'));
+      for (const dSnap of allStudentsSnap.docs) {
+        const docData = dSnap.data();
+        const studentData: Record<string, any> = { ...docData, uid: docData.uid || dSnap.id };
+        const u = (studentData.username || '').trim().toLowerCase();
+        const e = (studentData.email || '').trim().toLowerCase();
+        const docId = dSnap.id.toLowerCase();
+        if ((u === cleanLower || e === cleanLower || docId === cleanLower) && checkPasswordMatch(studentData)) {
+          this.registerStudentAccount(studentData);
+          this.applyStudentData(studentData);
+          return {
+            success: true,
+            studentName: studentData.displayName || studentData.name || studentData.username || rawUsername,
+            studentEmail: studentData.email
+          };
+        }
+      }
+    } catch (err) {
+      console.warn('Firestore full scan for credentials error:', err);
+    }
+
     // 2. Check Local Accounts Index (Registry of all accounts seen/registered on this device)
     const localAccounts = this.getLocalAccounts();
     const candidateKeys = [cleanLower, rawUsername, cleanUpper];
