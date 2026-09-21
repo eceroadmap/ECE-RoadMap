@@ -15,10 +15,14 @@ import {
   Cloud,
   ChevronRight,
   Send,
-  Globe
+  Globe,
+  Key,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { useStudentState } from '../services/useStudentState';
 import { guestVisitorService, GuestVisitorRecord } from '../services/guestVisitorService';
+import { studentAuthService } from '../services/studentAuthService';
 import { AcademicYearNumber } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { soundEffects } from '../utils/soundEffects';
@@ -46,10 +50,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   } = useStudentState();
   const { language, setLanguage, isArabic, t } = useLanguage();
 
-  const [mode, setMode] = useState<'choose' | 'guest_form'>('choose');
+  const [mode, setMode] = useState<'choose' | 'guest_form' | 'credentials'>('choose');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [academicYear, setAcademicYear] = useState<AcademicYearNumber | 'graduate'>(profile.academicYear || 3);
+  
+  // Credentials Login State
+  const [usernameInput, setUsernameInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -62,6 +72,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       setErrorMsg(null);
       setSuccessMsg(null);
       setMode('choose');
+      setUsernameInput('');
+      setPasswordInput('');
+      setShowPassword(false);
       if (guest && !firstName) {
         setFirstName(guest.firstName);
         setLastName(guest.lastName);
@@ -114,6 +127,48 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       } else {
         setErrorMsg(isArabic ? 'تعذر إتمام الدخول بـ Google في بيئة الاستضافة الحالية. يمكنك المتابعة فوراً بالدخول السريع بالاسم والكنية.' : 'Google Sign-in failed. Please use Quick Name Entry.');
       }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCredentialsSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!usernameInput.trim() || !passwordInput.trim()) {
+      setErrorMsg(isArabic ? 'يرجى إدخال اسم المستخدم وكلمة المرور للمتابعة.' : 'Please enter both username and password.');
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMsg(null);
+    try {
+      const result = await studentAuthService.signInWithCredentials(
+        usernameInput,
+        passwordInput,
+        isArabic
+      );
+
+      if (result.success) {
+        soundEffects.playSuccess();
+        setSuccessMsg(
+          isArabic 
+            ? `أهلاً بك مجدداً يا ${result.studentName || 'مهندسنا العزيز'}! تم تسجيل الدخول بنجاح.`
+            : `Welcome back ${result.studentName || 'Engineer'}! Successfully signed in.`
+        );
+        setTimeout(() => {
+          onClose();
+          if (onSuccess) onSuccess();
+        }, 1100);
+      } else {
+        setErrorMsg(
+          result.errorMessage || 
+          (isArabic 
+            ? 'اسم المستخدم أو كلمة المرور غير صحيحة. يرجى التحقق والمحاولة مجدداً.' 
+            : 'Incorrect username or password. Please verify and try again.')
+        );
+      }
+    } catch (err: any) {
+      setErrorMsg(isArabic ? 'حدث خطأ أثناء تسجيل الدخول. يرجى التحقق من البيانات.' : 'Error signing in. Please check credentials.');
     } finally {
       setIsLoading(false);
     }
@@ -180,6 +235,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       setStoredGuest(null);
       setFirstName('');
       setLastName('');
+      setUsernameInput('');
+      setPasswordInput('');
       setMode('choose');
       setErrorMsg(null);
       setSuccessMsg(isArabic ? 'تم تسجيل الخروج بنجاح.' : 'Signed out successfully.');
@@ -369,9 +426,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </div>
           </div>
         ) : mode === 'choose' ? (
-          /* Choice Screen: Google vs Name entry */
-          <div className="space-y-4 pt-1">
-            {/* Google Login Card */}
+          /* Choice Screen: 1. Google  2. Username & Password  3. Guest Name Entry */
+          <div className="space-y-3.5 pt-1">
+            {/* 1. Google Login Card */}
             <button
               id="auth-google-button"
               onClick={handleGoogleSignIn}
@@ -411,8 +468,33 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 group-hover:-translate-x-1 transition-all" />
             </button>
 
+            {/* 2. Username & Password Login Card */}
+            <button
+              id="auth-credentials-button"
+              onClick={() => {
+                setErrorMsg(null);
+                setMode('credentials');
+              }}
+              className="w-full p-4 rounded-2xl bg-gradient-to-r from-[#0c1c2e] to-[#122842] hover:from-[#112740] hover:to-[#183659] border border-blue-500/30 hover:border-blue-400 text-right transition-all group shadow-md flex items-center justify-between min-h-[70px]"
+            >
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-blue-950/80 border border-blue-500/40 flex items-center justify-center text-blue-300 shrink-0 group-hover:scale-105 transition-transform shadow-md">
+                  <Key className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-sm font-black text-white group-hover:text-blue-300 transition-colors">
+                    {t('auth.credentials_login_title')}
+                  </div>
+                  <div className="text-[11px] text-slate-400">
+                    {t('auth.credentials_login_desc')}
+                  </div>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-blue-400 group-hover:-translate-x-1 transition-all" />
+            </button>
+
             {/* Divider */}
-            <div className="flex items-center gap-3 my-3">
+            <div className="flex items-center gap-3 my-2.5">
               <div className="flex-1 h-px bg-slate-800" />
               <span className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">
                 {t('auth.or_quick_guest')}
@@ -420,10 +502,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               <div className="flex-1 h-px bg-slate-800" />
             </div>
 
-            {/* Guest / Name Entry Login Option */}
+            {/* 3. Guest / Name Entry Login Option */}
             <button
               id="auth-guest-button"
-              onClick={() => setMode('guest_form')}
+              onClick={() => {
+                setErrorMsg(null);
+                setMode('guest_form');
+              }}
               className="w-full p-4 rounded-2xl bg-gradient-to-r from-[#071324] to-[#0a182d] hover:from-[#0b1d36] hover:to-[#0e223f] border border-slate-800 hover:border-cyan-500/40 text-right transition-all group flex items-center justify-between min-h-[70px]"
             >
               <div className="flex items-center gap-3.5">
@@ -454,6 +539,101 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               </div>
             </div>
           </div>
+        ) : mode === 'credentials' ? (
+          /* Credentials Login Screen: Username & Password */
+          <form onSubmit={handleCredentialsSubmit} className="space-y-4 animate-fadeIn">
+            <div className="p-3.5 rounded-2xl bg-blue-950/40 border border-blue-700/40 flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-blue-900/80 flex items-center justify-center text-blue-300 shrink-0">
+                <Key className="w-4 h-4" />
+              </div>
+              <div className="text-[11px] text-slate-300 leading-relaxed">
+                {isArabic 
+                  ? 'سجّل الدخول باسم المستخدم وكلمة المرور الخاصة بحسابك للوصول إلى بياناتك وخطتك الدراسية.'
+                  : 'Sign in with your username and account password to access your academic profile.'}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {/* Username Input */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-blue-400" />
+                  <span>{t('auth.username_label')} *</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  value={usernameInput}
+                  onChange={(e) => setUsernameInput(e.target.value)}
+                  placeholder={t('auth.username_placeholder')}
+                  className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none min-h-[44px]"
+                />
+              </div>
+
+              {/* Password Input with Show/Hide Toggle */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                  <Key className="w-3.5 h-3.5 text-blue-400" />
+                  <span>{t('auth.password_label')} *</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    placeholder={t('auth.password_placeholder')}
+                    className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none min-h-[44px] pl-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors p-1"
+                    title={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="pt-2 flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setErrorMsg(null);
+                  setMode('choose');
+                }}
+                className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-850 text-slate-400 hover:text-white border border-slate-800 text-xs font-bold transition-colors min-h-[44px]"
+              >
+                {t('auth.back')}
+              </button>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white text-xs font-black transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-950 min-h-[44px]"
+              >
+                {isLoading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>{isArabic ? 'جاري التحقق...' : 'Verifying...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="w-4 h-4" />
+                    <span>{t('auth.login_btn')}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
         ) : (
           /* Form Screen: First Name & Last Name */
           <form onSubmit={handleGuestSubmit} className="space-y-4 animate-fadeIn">

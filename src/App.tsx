@@ -62,10 +62,12 @@ export default function App() {
   } = useStudentState();
 
   useEffect(() => {
-    if (!firebaseUser && !isLoggedInWithGoogle) {
+    if ((firebaseUser || isLoggedInWithGoogle) && (!profile.username || !profile.accountPassword)) {
+      setIsUsernamePromptOpen(true);
+    } else if (!firebaseUser && !isLoggedInWithGoogle) {
       setIsUsernamePromptOpen(false);
     }
-  }, [firebaseUser, isLoggedInWithGoogle]);
+  }, [firebaseUser, isLoggedInWithGoogle, profile.username, profile.accountPassword]);
 
   const storedGuest = guestVisitorService.getStoredGuest();
   const isIdentified = Boolean(
@@ -418,9 +420,10 @@ export default function App() {
         }}
       />
 
-      {/* Username & Password Setup Modal */}
+      {/* Username & Password Setup Modal (Mandatory on First Google Login) */}
       <UsernamePasswordPromptModal
         isOpen={isUsernamePromptOpen}
+        isMandatory={Boolean((firebaseUser || isLoggedInWithGoogle) && (!profile.username || !profile.accountPassword))}
         onClose={() => setIsUsernamePromptOpen(false)}
       />
 
