@@ -272,6 +272,17 @@ export const CatalogMigrationModal: React.FC<CatalogMigrationModalProps> = ({
               </form>
             )}
 
+            <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400">
+              <div className="flex items-center gap-1.5">
+                <span className="text-slate-500">مشروع الهدف:</span>
+                <span className="font-mono text-cyan-300 font-bold">eceroadmap2027</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-slate-500">قاعدة بيانات الهدف:</span>
+                <span className="font-mono text-emerald-300 font-bold">ai-studio-eceroadmap-92942c14-153e-4944-ad7d-20e5ea4add92</span>
+              </div>
+            </div>
+
             {configError && (
               <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-500/40 text-rose-300 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />

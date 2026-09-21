@@ -42,6 +42,7 @@ export interface TargetFirebaseConfig {
   storageBucket: string;
   messagingSenderId: string;
   appId: string;
+  firestoreDatabaseId: string;
 }
 
 export interface CollectionMigrationStats {
@@ -76,13 +77,18 @@ export class CatalogMigrationService {
   /**
    * Retrieves target Firebase configuration from environment variables or overrides.
    */
-  public getTargetConfig(apiKeyOverride?: string): TargetFirebaseConfig | null {
+  public getTargetConfig(apiKeyOverride?: string, databaseIdOverride?: string): TargetFirebaseConfig | null {
     const apiKey = (apiKeyOverride || import.meta.env.VITE_MIGRATION_FIREBASE_API_KEY || '').trim();
     const authDomain = (import.meta.env.VITE_MIGRATION_FIREBASE_AUTH_DOMAIN || 'eceroadmap2027.firebaseapp.com').trim();
     const projectId = (import.meta.env.VITE_MIGRATION_FIREBASE_PROJECT_ID || 'eceroadmap2027').trim();
     const storageBucket = (import.meta.env.VITE_MIGRATION_FIREBASE_STORAGE_BUCKET || 'eceroadmap2027.firebasestorage.app').trim();
     const messagingSenderId = (import.meta.env.VITE_MIGRATION_FIREBASE_MESSAGING_SENDER_ID || '23606413805').trim();
     const appId = (import.meta.env.VITE_MIGRATION_FIREBASE_APP_ID || '1:23606413805:web:1532dd0867824f616fbfe4').trim();
+    const firestoreDatabaseId = (
+      databaseIdOverride ||
+      import.meta.env.VITE_MIGRATION_FIREBASE_FIRESTORE_DATABASE_ID ||
+      'ai-studio-eceroadmap-92942c14-153e-4944-ad7d-20e5ea4add92'
+    ).trim();
 
     if (!apiKey) {
       return null;
@@ -95,6 +101,7 @@ export class CatalogMigrationService {
       storageBucket,
       messagingSenderId,
       appId,
+      firestoreDatabaseId,
     };
   }
 
@@ -109,8 +116,12 @@ export class CatalogMigrationService {
       this.targetApp = initializeApp(config, TARGET_APP_NAME);
     }
 
-    // Default firestore instance for target project
-    this.targetDb = getFirestore(this.targetApp);
+    // Connect to the specific named Firestore database instance in the target project
+    const dbId = config.firestoreDatabaseId && config.firestoreDatabaseId !== '(default)'
+      ? config.firestoreDatabaseId
+      : 'ai-studio-eceroadmap-92942c14-153e-4944-ad7d-20e5ea4add92';
+
+    this.targetDb = getFirestore(this.targetApp, dbId);
     this.targetAuth = getAuth(this.targetApp);
 
     return { targetDb: this.targetDb, targetAuth: this.targetAuth };
@@ -156,7 +167,7 @@ export class CatalogMigrationService {
 
     if (!adminSnap.exists()) {
       throw new Error(
-        `الحساب المسجل (${user.email || user.uid}) لا يملك وثيقة في مجموعة admins في المشروع الجديد (admins/${user.uid}). يرجى التحقق من وجود الوثيقة في المشروع الجديد قبل المتابعة.`
+        `الحساب المسجل (${user.email || user.uid}) لا يملك وثيقة في مجموعة admins في قاعدة بيانات الهدف (admins/${user.uid}) ضمن قاعدة البيانات (ai-studio-eceroadmap-92942c14-153e-4944-ad7d-20e5ea4add92) في مشروع eceroadmap2027. يرجى التحقق من وجود الوثيقة في المشروع الجديد قبل المتابعة.`
       );
     }
 
