@@ -83,6 +83,9 @@ export const db = (function() {
   }
 })();
 
+// Default Firestore instance fallback for (default) database
+export const defaultDb = getFirestore(app);
+
 // Initialize Firebase Auth
 export const auth = getAuth(app);
 

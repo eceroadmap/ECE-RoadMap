@@ -1,5 +1,6 @@
 import { 
   db, 
+  defaultDb,
   auth, 
   signInWithGoogle, 
   signOutUser,
@@ -654,65 +655,62 @@ class FirebaseSyncService {
       cleanPayload.courseNameAr = tipData.courseNameAr;
     }
 
+    let createdId: string | null = null;
+
+    // 1. Try writing to primary configured db
     try {
       const tipsCol = collection(db, 'communityTips');
       const docRef = await addDoc(tipsCol, cleanPayload);
-      
-      const tipRecord: CommunityTip = {
-        id: docRef.id,
-        authorId: cleanPayload.authorId,
-        authorName: cleanPayload.authorName,
-        authorYear: cleanPayload.authorYear,
-        courseId: cleanPayload.courseId,
-        courseNameAr: cleanPayload.courseNameAr,
-        content: cleanPayload.content,
-        category: cleanPayload.category,
-        likesCount: cleanPayload.likesCount,
-        likedBy: cleanPayload.likedBy,
-        dislikesCount: cleanPayload.dislikesCount,
-        dislikedBy: cleanPayload.dislikedBy,
-        createdAt: cleanPayload.createdAt
-      };
-
-      try {
-        const existingLocal = JSON.parse(localStorage.getItem('ece_local_community_tips_v1') || '[]');
-        localStorage.setItem('ece_local_community_tips_v1', JSON.stringify([tipRecord, ...existingLocal]));
-      } catch {}
-
-      return docRef.id;
+      createdId = docRef.id;
     } catch (err1: any) {
-      console.warn('addDoc failed, attempting setDoc:', err1?.message);
+      console.warn('addDoc on db failed, attempting setDoc:', err1?.message);
       try {
         const tipDocRef = doc(db, 'communityTips', newTipId);
         await setDoc(tipDocRef, cleanPayload);
-
-        const tipRecord: CommunityTip = {
-          id: newTipId,
-          authorId: cleanPayload.authorId,
-          authorName: cleanPayload.authorName,
-          authorYear: cleanPayload.authorYear,
-          courseId: cleanPayload.courseId,
-          courseNameAr: cleanPayload.courseNameAr,
-          content: cleanPayload.content,
-          category: cleanPayload.category,
-          likesCount: cleanPayload.likesCount,
-          likedBy: cleanPayload.likedBy,
-          dislikesCount: cleanPayload.dislikesCount,
-          dislikedBy: cleanPayload.dislikedBy,
-          createdAt: cleanPayload.createdAt
-        };
-
-        try {
-          const existingLocal = JSON.parse(localStorage.getItem('ece_local_community_tips_v1') || '[]');
-          localStorage.setItem('ece_local_community_tips_v1', JSON.stringify([tipRecord, ...existingLocal]));
-        } catch {}
-
-        return newTipId;
+        createdId = newTipId;
       } catch (err2: any) {
-        console.error('Both addDoc and setDoc failed:', err2);
-        throw new Error(err2?.message || 'تعذر حفظ النصيحة في قاعدة البيانات السحابية.');
+        console.warn('setDoc on db failed:', err2?.message);
       }
     }
+
+    // 2. Dual write / fallback to defaultDb (e.g. if default database (default) is used in Firebase console)
+    try {
+      if (defaultDb && defaultDb !== db) {
+        const targetId = createdId || newTipId;
+        await setDoc(doc(defaultDb, 'communityTips', targetId), cleanPayload, { merge: true });
+        if (!createdId) {
+          createdId = targetId;
+        }
+      }
+    } catch (errDefault: any) {
+      console.warn('Write to defaultDb failed:', errDefault?.message);
+    }
+
+    const finalTipId = createdId || newTipId;
+
+    // Always update local storage cache for immediate local availability
+    const tipRecord: CommunityTip = {
+      id: finalTipId,
+      authorId: cleanPayload.authorId,
+      authorName: cleanPayload.authorName,
+      authorYear: cleanPayload.authorYear,
+      courseId: cleanPayload.courseId,
+      courseNameAr: cleanPayload.courseNameAr,
+      content: cleanPayload.content,
+      category: cleanPayload.category,
+      likesCount: cleanPayload.likesCount,
+      likedBy: cleanPayload.likedBy,
+      dislikesCount: cleanPayload.dislikesCount,
+      dislikedBy: cleanPayload.dislikedBy,
+      createdAt: cleanPayload.createdAt
+    };
+
+    try {
+      const existingLocal = JSON.parse(localStorage.getItem('ece_local_community_tips_v1') || '[]');
+      localStorage.setItem('ece_local_community_tips_v1', JSON.stringify([tipRecord, ...existingLocal]));
+    } catch {}
+
+    return finalTipId;
   }
 
   public async toggleLikeTip(tipId: string, currentLiked: boolean, currentDisliked: boolean = false): Promise<void> {
