@@ -5,6 +5,7 @@
   "authDomain": "eceroadmap2027.firebaseapp.com",
   "storageBucket": "eceroadmap2027.firebasestorage.app",
   "messagingSenderId": "23606413805",
+  "firestoreDatabaseId": "ai-studio-eceroadmap-92942c14-153e-4944-ad7d-20e5ea4add92",
   "measurementId": "",
   "oAuthClientId": "",
   "recaptchaSiteKey": ""

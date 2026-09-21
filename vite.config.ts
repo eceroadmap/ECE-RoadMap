@@ -11,7 +11,7 @@ const primaryFirebaseConfig = {
   VITE_FIREBASE_MESSAGING_SENDER_ID: '23606413805',
   VITE_FIREBASE_APP_ID: '1:23606413805:web:1532dd0867824f616fbfe4',
   VITE_FIREBASE_API_KEY: 'AIzaSyDwZSfg8xfSnm0WSZkT64UnJjq4vcQci6w',
-  VITE_FIREBASE_FIRESTORE_DATABASE_ID: '',
+  VITE_FIREBASE_FIRESTORE_DATABASE_ID: 'ai-studio-eceroadmap-92942c14-153e-4944-ad7d-20e5ea4add92',
 };
 
 for (const [key, val] of Object.entries(primaryFirebaseConfig)) {
