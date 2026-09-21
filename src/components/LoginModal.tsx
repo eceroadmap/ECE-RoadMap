@@ -61,6 +61,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       setStoredGuest(guest);
       setErrorMsg(null);
       setSuccessMsg(null);
+      setMode('choose');
       if (guest && !firstName) {
         setFirstName(guest.firstName);
         setLastName(guest.lastName);

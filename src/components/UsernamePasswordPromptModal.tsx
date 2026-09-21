@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Key, ShieldCheck, Sparkles, Send, RefreshCw } from 'lucide-react';
+import { User, Key, ShieldCheck, Sparkles, Send, RefreshCw, X } from 'lucide-react';
 import { useStudentState } from '../services/useStudentState';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -14,7 +14,7 @@ export const UsernamePasswordPromptModal: React.FC<UsernamePasswordPromptModalPr
   onClose,
   onSuccess
 }) => {
-  const { profile, updateProfile, firebaseUser } = useStudentState();
+  const { profile, updateProfile, firebaseUser, isLoggedInWithGoogle } = useStudentState();
   const { isArabic } = useLanguage();
 
   const [username, setUsername] = useState(profile.username || (firebaseUser?.email ? firebaseUser.email.split('@')[0] : ''));
@@ -23,7 +23,7 @@ export const UsernamePasswordPromptModal: React.FC<UsernamePasswordPromptModalPr
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  if (!isOpen) return null;
+  if (!isOpen || (!firebaseUser && !isLoggedInWithGoogle)) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +66,15 @@ export const UsernamePasswordPromptModal: React.FC<UsernamePasswordPromptModalPr
     <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto" dir="rtl">
       <div className="w-full max-w-md bg-gradient-to-b from-[#091527] to-[#060e1a] border border-cyan-500/40 rounded-3xl shadow-2xl p-6 sm:p-8 space-y-6 relative overflow-hidden animate-scaleUp">
         <div className="absolute top-0 right-0 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-5 left-5 p-2 rounded-xl text-slate-400 hover:text-white bg-slate-900/80 hover:bg-slate-800 border border-slate-800 transition-colors z-10 min-h-[40px] min-w-[40px] flex items-center justify-center"
+          aria-label="إغلاق"
+        >
+          <X className="w-4 h-4" />
+        </button>
 
         <div className="text-center space-y-2 relative">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/90 border border-cyan-500/40 text-cyan-300 text-[11px] font-mono">

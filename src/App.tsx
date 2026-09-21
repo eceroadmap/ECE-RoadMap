@@ -62,10 +62,10 @@ export default function App() {
   } = useStudentState();
 
   useEffect(() => {
-    if ((firebaseUser || isLoggedInWithGoogle) && (!profile.username || !profile.accountPassword)) {
-      setIsUsernamePromptOpen(true);
+    if (!firebaseUser && !isLoggedInWithGoogle) {
+      setIsUsernamePromptOpen(false);
     }
-  }, [firebaseUser, isLoggedInWithGoogle, profile.username, profile.accountPassword]);
+  }, [firebaseUser, isLoggedInWithGoogle]);
 
   const storedGuest = guestVisitorService.getStoredGuest();
   const isIdentified = Boolean(
