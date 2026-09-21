@@ -8,9 +8,12 @@ import {
   MessageSquare, 
   AlertTriangle,
   CheckCircle2,
-  Calendar
+  Calendar,
+  RefreshCw,
+  Sparkles
 } from 'lucide-react';
 import { adminRepository } from '../../services/admin/adminRepository';
+import { firebaseSyncService } from '../../services/firebaseSync';
 
 interface TipItem {
   id: string;
@@ -106,6 +109,28 @@ export const CommunityModeration: React.FC = () => {
             تتيح هذه اللوحة للإدارة الأكاديمية مراجعة النصائح المشتركة وحجب المحتوى غير اللائق أو المضلل.
           </p>
         </div>
+
+        <button
+          onClick={async () => {
+            if (window.confirm('هل ترغب في إعادة بناء وتطهير مجموعة النصائح الطلابية (communityTips) في قاعدة البيانات السحابية وضخ النصائح الرسمية الموثوقة؟')) {
+              setIsLoading(true);
+              try {
+                await firebaseSyncService.rebuildCommunityTipsCollection();
+                await loadTips();
+                alert('تمت إعادة بناء وتنشيط مجموعة النصائح في قاعدة البيانات السحابية بنجاح! 🚀');
+              } catch (e) {
+                console.error('Rebuild failed:', e);
+                alert('حدث خطأ أثناء إعادة بناء المجموعة.');
+              } finally {
+                setIsLoading(false);
+              }
+            }
+          }}
+          className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs inline-flex items-center gap-2 shadow-lg transition-all shrink-0"
+        >
+          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          <span>إعادة بناء وتطهير مجموعة النصائح السحابية</span>
+        </button>
       </div>
 
       {/* Filter Ribbon */}

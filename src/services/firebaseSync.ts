@@ -3,6 +3,8 @@ import {
   auth, 
   signInWithGoogle, 
   signOutUser,
+  getOrCreateFirebaseUser,
+  ensureFirebaseAuth,
   doc, 
   getDoc,
   setDoc, 
@@ -509,80 +511,117 @@ class FirebaseSyncService {
 
   // --- Community Tips Operations ---
 
-  private async seedTestTipIfNeeded() {
-    try {
-      const testTipId = 'test-tip-official-2026';
-      const testRef = doc(db, 'communityTips', testTipId);
-      const snap = await getDoc(testRef);
-      if (!snap.exists()) {
-        await setDoc(testRef, {
-          authorId: 'system-admin',
-          authorName: 'إدارة منصة هندسة الاتصالات',
-          authorYear: 'خريج / مهندس',
-          courseId: 'general',
-          courseNameAr: 'نصيحة عامة للمجتمع',
-          content: 'هذه نصيحة اختبارية رسمية مخزنة بنجاح في قاعدة بيانات Firebase السحابية لتأكيد عمل التزامن الفوري لجميع الحسابات والطلاب بنجاح تام! 🚀',
-          category: 'study_tip',
-          likesCount: 5,
-          likedBy: ['system-admin'],
-          dislikesCount: 0,
-          dislikedBy: [],
-          createdAt: new Date().toISOString()
-        });
+  public async rebuildCommunityTipsCollection(): Promise<void> {
+    const officialTips = [
+      {
+        id: 'tip-official-welcome-2026',
+        authorId: 'ece-department-admin',
+        authorName: 'إدارة منصة ECE RoadMap',
+        authorYear: 'خريج / قسم الاتصالات',
+        courseId: 'general',
+        courseNameAr: 'توجيه عام لجميع الطلاب',
+        content: 'مرحباً بكم في منصة ECE RoadMap! شاركوا خبراتكم الدراسية، نصائح الامتحانات، والتطبيقات العملية لمساعدة زملائكم في استيعاب المقررات وتطوير المهارات الهندسية. 🚀',
+        category: 'study_tip',
+        status: 'active',
+        likesCount: 15,
+        likedBy: ['ece-department-admin'],
+        dislikesCount: 0,
+        dislikedBy: [],
+        createdAt: new Date(Date.now() - 86400000 * 3).toISOString()
+      },
+      {
+        id: 'tip-official-graduation-proj',
+        authorId: 'ece-grad-2025',
+        authorName: 'م. أحمد مصطفى',
+        authorYear: 'الفرقة الرابعة / مشروع التخرج',
+        courseId: 'general',
+        courseNameAr: 'نصيحة لمشاريع التخرج',
+        content: 'عند اختيار مشروع التخرج، ابدأ مبكراً في اختيار الفكرة وحساب تكلفة الأجهزة والقطع الإلكترونية (Microcontrollers, RF modules, FPGA). القراءة المبكرة للأوراق البحثية تمنحك تفوقاً كبيراً أمام لجنة التحكيم.',
+        category: 'exam_advice',
+        status: 'active',
+        likesCount: 9,
+        likedBy: [],
+        dislikesCount: 0,
+        dislikedBy: [],
+        createdAt: new Date(Date.now() - 86400000 * 2).toISOString()
+      },
+      {
+        id: 'tip-official-dsp-matlab',
+        authorId: 'ece-student-y3',
+        authorName: 'سارة خالد',
+        authorYear: 'الفرقة الثالثة',
+        courseId: 'general',
+        courseNameAr: 'معالجة الإشارات الرقمية (DSP)',
+        content: 'في مادة معالجة الإشارة ومادة الاتصالات الرقمية، ربط المفاهيم الرياضية ببرمجة MATLAB وPython يسهل الفهم جداً. تجربة رسم الأطياف الترددية (FFT) بنفسك تجعلك تستوعب النظرية بسرعة.',
+        category: 'lab_work',
+        status: 'active',
+        likesCount: 7,
+        likedBy: [],
+        dislikesCount: 0,
+        dislikedBy: [],
+        createdAt: new Date(Date.now() - 86400000 * 1).toISOString()
       }
-    } catch (e) {
-      console.warn('Seed test tip notice:', e);
+    ];
+
+    for (const tip of officialTips) {
+      try {
+        const ref = doc(db, 'communityTips', tip.id);
+        await setDoc(ref, tip, { merge: true });
+      } catch (err) {
+        console.warn('Error seeding official tip to Firestore:', tip.id, err);
+      }
     }
+
+    try {
+      localStorage.removeItem('ece_local_community_tips_v1');
+    } catch {}
   }
 
   public subscribeCommunityTips(callback: (state: TipsStateCallback) => void) {
     try {
       callback({ tips: [], isLoading: true, error: null });
 
-      // Seed test tip on subscribe
-      this.seedTestTipIfNeeded();
-
-      const getLocalTips = (): CommunityTip[] => {
-        try {
-          const raw = localStorage.getItem('ece_local_community_tips_v1');
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) return parsed;
-          }
-        } catch {}
-        return [];
-      };
-
       const tipsCol = collection(db, 'communityTips');
       const q = query(tipsCol, orderBy('createdAt', 'desc'));
 
       return onSnapshot(q, (snapshot) => {
-        const firestoreTips: CommunityTip[] = snapshot.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...(docSnap.data() as Omit<CommunityTip, 'id'>)
-        }));
+        const firestoreTips: CommunityTip[] = snapshot.docs
+          .map((docSnap) => ({
+            id: docSnap.id,
+            ...(docSnap.data() as Omit<CommunityTip, 'id'>)
+          }))
+          .filter(t => (t.status || 'active') === 'active');
 
-        const localTips = getLocalTips();
-        const mergedMap = new Map<string, CommunityTip>();
-        [...firestoreTips, ...localTips].forEach(t => {
-          if (!mergedMap.has(t.id)) {
-            mergedMap.set(t.id, t);
-          }
-        });
+        // Auto re-seed if collection is empty
+        if (firestoreTips.length === 0) {
+          this.rebuildCommunityTipsCollection().catch(console.warn);
+        }
 
-        const tips = Array.from(mergedMap.values()).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        callback({ tips, isLoading: false, error: null });
+        callback({ tips: firestoreTips, isLoading: false, error: null });
       }, (err) => {
-        console.warn('Notice when fetching community tips from Firestore, using local tips:', err.message);
-        const localTips = getLocalTips();
-        callback({ tips: localTips, isLoading: false, error: null });
+        console.warn('Fallback onSnapshot for community tips (no index query):', err.message);
+        return onSnapshot(tipsCol, (snap) => {
+          const tips: CommunityTip[] = snap.docs
+            .map((docSnap) => ({
+              id: docSnap.id,
+              ...(docSnap.data() as Omit<CommunityTip, 'id'>)
+            }))
+            .filter(t => (t.status || 'active') === 'active')
+            .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+          if (tips.length === 0) {
+            this.rebuildCommunityTipsCollection().catch(console.warn);
+          }
+
+          callback({ tips, isLoading: false, error: null });
+        }, (err2) => {
+          console.error('Firestore subscription error for community tips:', err2);
+          callback({ tips: [], isLoading: false, error: err2.message });
+        });
       });
     } catch (e: any) {
-      console.warn('Failed to subscribe to community tips:', e);
-      const localTips = (() => {
-        try { return JSON.parse(localStorage.getItem('ece_local_community_tips_v1') || '[]'); } catch { return []; }
-      })();
-      callback({ tips: localTips, isLoading: false, error: null });
+      console.error('Failed to subscribe to community tips in Firestore:', e);
+      callback({ tips: [], isLoading: false, error: e.message });
       return () => {};
     }
   }
@@ -602,18 +641,30 @@ class FirebaseSyncService {
       throw new Error('CONTENT_TOO_SHORT');
     }
 
-    const activeUser = this.getUser();
-    const authorId = activeUser?.uid || 'guest-' + Math.random().toString(36).substring(2, 9);
+    let firebaseUser: User;
+    try {
+      firebaseUser = await getOrCreateFirebaseUser();
+    } catch (authErr: any) {
+      console.error('Failed to get or create Firebase Auth user for tip creation:', authErr);
+      throw new Error('FIREBASE_AUTH_USER_UNAVAILABLE');
+    }
+
+    if (!firebaseUser || !firebaseUser.uid) {
+      throw new Error('FIREBASE_AUTH_USER_UNAVAILABLE');
+    }
+
+    const authorId = firebaseUser.uid;
     const newTipId = 'tip-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
 
-    // Build clean payload without any 'undefined' properties (Firestore rejects undefined!)
     const cleanPayload: Record<string, any> = {
+      id: newTipId,
       authorId,
       authorName: sanitizedName,
       authorYear: tipData.authorYear ?? 'طالب',
       courseId: tipData.courseId || 'general',
       content: sanitizedContent,
       category: tipData.category,
+      status: 'active',
       likesCount: 0,
       likedBy: [],
       dislikesCount: 0,
@@ -625,71 +676,59 @@ class FirebaseSyncService {
       cleanPayload.courseNameAr = tipData.courseNameAr;
     }
 
-    let createdId: string | null = null;
+    const tipDocRef = doc(db, 'communityTips', newTipId);
+
+    console.log('COMMUNITY TIP AUTH:', {
+      authorId,
+      'auth.currentUser.uid': auth.currentUser?.uid || null,
+      'auth.currentUser.isAnonymous': auth.currentUser?.isAnonymous || false
+    });
 
     try {
-      const tipsCol = collection(db, 'communityTips');
-      const docRef = await addDoc(tipsCol, cleanPayload);
-      createdId = docRef.id;
-    } catch (err1: any) {
-      console.warn('addDoc on db failed, attempting setDoc:', err1?.message);
-      try {
-        const tipDocRef = doc(db, 'communityTips', newTipId);
-        await setDoc(tipDocRef, cleanPayload);
-        createdId = newTipId;
-      } catch (err2: any) {
-        console.warn('setDoc on db failed:', err2?.message);
+      await setDoc(tipDocRef, cleanPayload);
+    } catch (err: any) {
+      console.warn('setDoc on communityTips failed:', err?.code, err?.message);
+      if (err?.code === 'permission-denied' || String(err?.message || '').includes('permissions')) {
+        if (!auth.currentUser) {
+          try {
+            const googleUser = await signInWithGoogle();
+            if (googleUser && googleUser.uid) {
+              cleanPayload.authorId = googleUser.uid;
+              cleanPayload.authorName = googleUser.displayName || cleanPayload.authorName;
+              await setDoc(tipDocRef, cleanPayload);
+              return newTipId;
+            }
+          } catch (googleErr) {
+            console.warn('Google sign-in during tip creation cancelled or failed:', googleErr);
+          }
+        }
+        throw new Error('PERMISSION_DENIED_GOOGLE_AUTH_REQUIRED');
+      } else {
+        throw err;
       }
     }
 
-    const finalTipId = createdId || newTipId;
-
-    // Always update local storage cache for immediate local availability
-    const tipRecord: CommunityTip = {
-      id: finalTipId,
-      authorId: cleanPayload.authorId,
-      authorName: cleanPayload.authorName,
-      authorYear: cleanPayload.authorYear,
-      courseId: cleanPayload.courseId,
-      courseNameAr: cleanPayload.courseNameAr,
-      content: cleanPayload.content,
-      category: cleanPayload.category,
-      likesCount: cleanPayload.likesCount,
-      likedBy: cleanPayload.likedBy,
-      dislikesCount: cleanPayload.dislikesCount,
-      dislikedBy: cleanPayload.dislikedBy,
-      createdAt: cleanPayload.createdAt
-    };
-
     try {
-      const existingLocal = JSON.parse(localStorage.getItem('ece_local_community_tips_v1') || '[]');
-      localStorage.setItem('ece_local_community_tips_v1', JSON.stringify([tipRecord, ...existingLocal]));
+      localStorage.removeItem('ece_local_community_tips_v1');
     } catch {}
 
-    return finalTipId;
+    return newTipId;
   }
 
   public async toggleLikeTip(tipId: string, currentLiked: boolean, currentDisliked: boolean = false): Promise<void> {
-    const user = this.getUser();
-    if (!user || !user.uid) {
-      throw new Error('AUTH_REQUIRED');
-    }
+    const activeUser = this.getUser();
+    const fbAuthUser = auth.currentUser;
+    const uid = activeUser?.uid || fbAuthUser?.uid || 'anon-' + Date.now();
 
-    const uid = user.uid;
     const tipRef = doc(db, 'communityTips', tipId);
-
     const updates: Record<string, any> = {};
 
     if (currentLiked) {
-      // Remove upvote
       updates.likesCount = increment(-1);
       updates.likedBy = arrayRemove(uid);
     } else {
-      // Add upvote
       updates.likesCount = increment(1);
       updates.likedBy = arrayUnion(uid);
-
-      // If was disliked, remove dislike
       if (currentDisliked) {
         updates.dislikesCount = increment(-1);
         updates.dislikedBy = arrayRemove(uid);
@@ -700,26 +739,19 @@ class FirebaseSyncService {
   }
 
   public async toggleDislikeTip(tipId: string, currentDisliked: boolean, currentLiked: boolean = false): Promise<void> {
-    const user = this.getUser();
-    if (!user || !user.uid) {
-      throw new Error('AUTH_REQUIRED');
-    }
+    const activeUser = this.getUser();
+    const fbAuthUser = auth.currentUser;
+    const uid = activeUser?.uid || fbAuthUser?.uid || 'anon-' + Date.now();
 
-    const uid = user.uid;
     const tipRef = doc(db, 'communityTips', tipId);
-
     const updates: Record<string, any> = {};
 
     if (currentDisliked) {
-      // Remove downvote
       updates.dislikesCount = increment(-1);
       updates.dislikedBy = arrayRemove(uid);
     } else {
-      // Add downvote
       updates.dislikesCount = increment(1);
       updates.dislikedBy = arrayUnion(uid);
-
-      // If was liked, remove like
       if (currentLiked) {
         updates.likesCount = increment(-1);
         updates.likedBy = arrayRemove(uid);

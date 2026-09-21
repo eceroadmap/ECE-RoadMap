@@ -118,7 +118,13 @@ export const CommunityTipsSection: React.FC = () => {
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err: any) {
       console.warn('Error adding tip:', err);
-      setErrorMsg(isArabic ? 'تعذر نشر النصيحة حالياً. يرجى التحقق من اتصال الإنترنت والمحاولة مجدداً.' : 'Failed to publish tip. Please check your internet connection.');
+      if (err?.message === 'PERMISSION_DENIED_GOOGLE_AUTH_REQUIRED' || String(err?.message || '').includes('permissions')) {
+        setErrorMsg(isArabic 
+          ? 'يتطلب الحفظ المباشر في قاعدة البيانات السحابية تسجيل الدخول بـ Google. يرجى الضغط على زر "تسجيل الدخول بـ Google" ثم إعادة المحاولة.' 
+          : 'Direct cloud database write requires Google Sign-In. Please sign in with Google and try again.');
+      } else {
+        setErrorMsg(isArabic ? 'تعذر نشر النصيحة حالياً. يرجى التحقق من اتصال الإنترنت أو تسجيل الدخول بـ Google والمحاولة مجدداً.' : 'Failed to publish tip. Please check your internet connection or sign in with Google.');
+      }
     } finally {
       setIsSubmitting(false);
     }

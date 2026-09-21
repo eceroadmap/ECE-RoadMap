@@ -3,6 +3,7 @@ import {
   getAuth, 
   GoogleAuthProvider, 
   signInWithPopup, 
+  signInAnonymously,
   signOut as fbSignOut, 
   onAuthStateChanged,
   User 
@@ -31,8 +32,14 @@ import {
   increment,
   writeBatch,
   runTransaction,
-  serverTimestamp
+  serverTimestamp,
+  setLogLevel
 } from 'firebase/firestore';
+
+// Suppress benign internal SDK connection warning logs in sandboxed iframe previews
+try {
+  setLogLevel('error');
+} catch {}
 
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -73,18 +80,18 @@ const app = getApps().length > 0 ? getApp() : initializeApp({
 });
 
 // Initialize Firestore strictly targeting ai-studio-eceroadmap-92942c14-153e-4944-ad7d-20e5ea4add92
-// Enabling experimentalAutoDetectLongPolling solves WebChannel streaming timeout/connection errors in sandboxed preview environments
+// Enabling experimentalForceLongPolling solves WebChannel streaming timeout/connection errors in sandboxed preview environments
 export const db = (function() {
   try {
     const cache = persistentLocalCache({ tabManager: persistentMultipleTabManager() });
     return initializeFirestore(app, {
       localCache: cache,
-      experimentalAutoDetectLongPolling: true,
+      experimentalForceLongPolling: true,
     }, TARGET_FIRESTORE_DB_ID);
   } catch (err) {
     try {
       return initializeFirestore(app, {
-        experimentalAutoDetectLongPolling: true,
+        experimentalForceLongPolling: true,
       }, TARGET_FIRESTORE_DB_ID);
     } catch {
       return getFirestore(app, TARGET_FIRESTORE_DB_ID);
@@ -165,6 +172,44 @@ export async function signInWithGoogle(): Promise<User | null> {
 
 export async function signOutUser(): Promise<void> {
   await fbSignOut(auth);
+}
+
+export async function getOrCreateFirebaseUser(): Promise<User> {
+  console.log('AUTH CHECK:', {
+    'currentUser before': auth.currentUser ? { uid: auth.currentUser.uid, isAnonymous: auth.currentUser.isAnonymous } : null
+  });
+
+  if (auth.currentUser) {
+    console.log('AUTH CHECK:', {
+      'using existing currentUser': true,
+      uid: auth.currentUser.uid
+    });
+    return auth.currentUser;
+  }
+  try {
+    console.log('AUTH CHECK:', { 'anonymous sign in attempted': true });
+    const cred = await signInAnonymously(auth);
+    if (!cred.user) {
+      throw new Error('FAILED_TO_GENERATE_ANONYMOUS_FIREBASE_USER');
+    }
+    console.log('AUTH CHECK:', {
+      'currentUser after': auth.currentUser ? { uid: auth.currentUser.uid, isAnonymous: auth.currentUser.isAnonymous } : null,
+      uid: cred.user.uid
+    });
+    return cred.user;
+  } catch (err: any) {
+    console.error('Failed to get or create Firebase user:', err);
+    throw new Error(err?.message || 'FIREBASE_AUTH_USER_UNAVAILABLE');
+  }
+}
+
+export async function ensureFirebaseAuth(): Promise<User | null> {
+  try {
+    return await getOrCreateFirebaseUser();
+  } catch (err) {
+    console.warn('Anonymous auth fallback warning:', err);
+    return null;
+  }
 }
 
 export { 

@@ -53,6 +53,7 @@ export interface CommunityTip {
   courseNameAr?: string;
   content: string;
   category: 'study_tip' | 'exam_advice' | 'lab_work' | 'resource';
+  status?: 'active' | 'archived';
   likesCount: number;
   likedBy: string[];
   dislikesCount?: number;
