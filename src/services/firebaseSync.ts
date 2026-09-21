@@ -619,21 +619,15 @@ class FirebaseSyncService {
       createdAt: new Date().toISOString()
     };
 
-    // 1. Save in localStorage first for instant publication
+    // Save directly to Firestore collection 'communityTips'
     try {
-      const existingLocal = JSON.parse(localStorage.getItem('ece_local_community_tips_v1') || '[]');
-      localStorage.setItem('ece_local_community_tips_v1', JSON.stringify([tipRecord, ...existingLocal]));
-    } catch {}
-
-    // 2. Try writing to Firestore (non-blocking)
-    try {
-      const tipsCol = collection(db, 'communityTips');
-      const docRef = await addDoc(tipsCol, {
+      const tipDocRef = doc(db, 'communityTips', newTipId);
+      await setDoc(tipDocRef, {
         authorId: tipRecord.authorId,
         authorName: tipRecord.authorName,
         authorYear: tipRecord.authorYear,
         courseId: tipRecord.courseId,
-        courseNameAr: tipRecord.courseNameAr,
+        courseNameAr: tipRecord.courseNameAr || null,
         content: tipRecord.content,
         category: tipRecord.category,
         likesCount: 0,
@@ -642,10 +636,17 @@ class FirebaseSyncService {
         dislikedBy: [],
         createdAt: tipRecord.createdAt
       });
-      return docRef.id;
-    } catch (err: any) {
-      console.warn('Firestore addCommunityTip caught (saved locally):', err?.message);
+
+      // Also update local cache
+      try {
+        const existingLocal = JSON.parse(localStorage.getItem('ece_local_community_tips_v1') || '[]');
+        localStorage.setItem('ece_local_community_tips_v1', JSON.stringify([tipRecord, ...existingLocal]));
+      } catch {}
+
       return newTipId;
+    } catch (err: any) {
+      console.error('Failed to save tip to Firestore:', err);
+      throw new Error(err?.message || 'تعذر حفظ النصيحة في قاعدة البيانات السحابية.');
     }
   }
 
