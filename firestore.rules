@@ -1,7 +1,6 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Basic Authentication Helpers
     function isAuthenticated() {
       return request.auth != null;
     }
@@ -10,19 +9,20 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Super Administrator Check (Platform Owner / Manager only)
     function isSuperAdmin() {
-      return true;
+      return isAuthenticated() && (
+        request.auth.token.email.lower() == "marwa.mgd.shmdeen@gmail.com"
+      );
     }
 
-    // Secure Administrator & Supervisor Check
-    // Grants editing permissions to Super Admin, registered Admins, or authorized Moderators
     function isAdmin() {
-      return true;
+      return isAuthenticated() && (
+        isSuperAdmin()
+        || request.auth.token.email.lower() == "marwa.mgd.shmdeen@gmail.com"
+      );
     }
 
     // 1. Private Student Journey & Progress Documents
-    // Public read for student profile and credentials lookup; authenticated/owner updates.
     match /students/{userId} {
       allow read: if true;
       allow create: if isOwner(userId) || (request.resource.data.uid == userId) || isAdmin();
@@ -31,157 +31,97 @@ service cloud.firestore {
     }
 
     // 2. Dedicated Administrator Authorization Collection
-    // Only verified administrators and authenticated users checking their own status can read.
     match /admins/{adminId} {
       allow read: if isAuthenticated() && (request.auth.uid == adminId || isAdmin());
-      allow write: if isAdmin() || (isAuthenticated() && request.auth.uid == adminId && exists(/databases/$(database)/documents/moderators/$(request.auth.token.email.lower())));
+      allow write: if isAdmin();
     }
 
     // 3. Managed Public Curriculum Courses
-    // Public read for all students and visitors.
-    // Write operations (create, update, archive) are strictly restricted to administrators.
     match /courses/{courseId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
     // 4. Managed Public Simulation & Engineering Software
-    // Public read for all students and visitors.
-    // Write operations are strictly restricted to administrators.
     match /software/{softwareId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // 5. Managed Academic Resources (Team Noon, Telegram, University Drives, etc.)
-    // Public read for all students and visitors.
-    // Write operations are strictly restricted to administrators.
+    // 5. Managed Academic Resources
     match /academicResources/{resourceId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
     // 6. Frequently Asked Questions (FAQ)
-    // Public read for all students and visitors.
-    // Write operations are strictly restricted to administrators.
     match /faqs/{faqId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // 6b. Graduation Projects (Navigator & Admin CMS)
-    // Public read for all students and visitors.
-    // Write operations are strictly restricted to administrators.
+    // 6b. Graduation Projects
     match /graduation_projects/{projectId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // Validation helper for community tips
-    function isValidTip(data) {
-      return data.authorId == request.auth.uid
-        && data.authorName is string
-        && data.authorName.size() >= 2
-        && data.authorName.size() <= 60
-        && data.content is string
-        && data.content.size() >= 5
-        && data.content.size() <= 2000
-        && data.category in ['study_tip', 'exam_advice', 'lab_work', 'resource']
-        && (!('likesCount' in data) || data.likesCount is number)
-        && (!('likedBy' in data) || data.likedBy is list)
-        && (!('dislikesCount' in data) || data.dislikesCount is number)
-        && (!('dislikedBy' in data) || data.dislikedBy is list);
-    }
-
     // 7. Community Tips & Moderation
-    // Public read for all.
-    // Students can post and edit their own tips.
-    // Administrators have full moderation capabilities (archive, restore, delete).
     match /communityTips/{tipId} {
       allow read: if true;
-
-      allow create: if isAuthenticated()
-        && isValidTip(request.resource.data)
-        && (!('likesCount' in request.resource.data) || request.resource.data.likesCount == 0)
-        && (!('likedBy' in request.resource.data) || request.resource.data.likedBy.size() == 0)
-        && (!('dislikesCount' in request.resource.data) || request.resource.data.dislikesCount == 0)
-        && (!('dislikedBy' in request.resource.data) || request.resource.data.dislikedBy.size() == 0);
-
-      allow update: if isAuthenticated() && (
-        isAdmin() ||
-        (resource.data.authorId == request.auth.uid
-          && request.resource.data.authorId == resource.data.authorId
-          && isValidTip(request.resource.data)
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['content', 'category', 'courseId', 'courseNameAr', 'updatedAt', 'status']))
-        ||
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount', 'likedBy', 'dislikesCount', 'dislikedBy'])
-          && request.resource.data.authorId == resource.data.authorId
-          && request.resource.data.content == resource.data.content
-        )
-      );
-
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (isAdmin() || resource.data.authorId == request.auth.uid);
       allow delete: if isAuthenticated() && (resource.data.authorId == request.auth.uid || isAdmin());
     }
 
     // 8. Administrator Activity Audit Log
-    // Read strictly restricted to the Super Admin (Platform Owner / Manager).
-    // Supervisors / Moderators can create logs for operations, but CANNOT view the audit log.
-    // Updates and deletions are forbidden to ensure an immutable audit log.
     match /adminLogs/{logId} {
       allow read: if isSuperAdmin();
       allow create: if isAdmin();
       allow update, delete: if false;
     }
 
-    // 9. System Configuration & Exhibition Settings
-    // Public read for visitors and students; writes restricted to verified administrators.
+    // 9. System Configuration & Exhibition Settings (including moderators_list)
     match /system_config/{configId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAuthenticated() && (
+        isSuperAdmin()
+        || request.auth.token.email.lower() == "marwa.mgd.shmdeen@gmail.com"
+        || (configId == 'moderators_list' && request.auth.token.email != null)
+      );
     }
 
     // 10. Public Site & Visitor Statistics Counter
-    // Allows public read and atomic increment for real sequential visitor tracking
     match /site_stats/{statId} {
       allow read: if true;
-      allow create: if request.resource.data.totalVisits is number;
-      allow update: if (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalVisits', 'lastVisitedAt', 'createdAt'])
-        && request.resource.data.totalVisits is number
-        && request.resource.data.totalVisits >= resource.data.totalVisits
-      ) || isAdmin();
+      allow create, update: if true;
     }
 
     // 11. Guest Student Visitors Registration
-    // Allows guest students to register their first name and last name into the database
     match /guest_visitors/{guestId} {
       allow read: if isAdmin();
-      allow create: if request.resource.data.firstName is string
-        && request.resource.data.firstName.size() >= 1
-        && request.resource.data.firstName.size() <= 60
-        && request.resource.data.lastName is string
-        && request.resource.data.lastName.size() >= 1
-        && request.resource.data.lastName.size() <= 60;
+      allow create: if true;
       allow update, delete: if isAdmin();
     }
 
-    // 12. Course to Skill Pipelines (من المادة إلى المهارة)
-    // Public read for all students; editable only by authorized administrators
+    // 12. Course to Skill Pipelines
     match /course_skill_pipelines/{pipelineId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
     // 13. Authorized Supervisors / Moderators (إدارة المشرفين)
-    // Only the Super Admin can manage supervisors; authenticated users can read their own authorization status.
     match /moderators/{modId} {
-      allow read: if isAuthenticated() && (isSuperAdmin() || request.auth.token.email.lower() == modId.lower());
-      allow write: if isSuperAdmin() || request.auth.token.email.lower() == "marwa.mgd.shmdeen@gmail.com" || isAdmin();
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && (
+        isSuperAdmin()
+        || request.auth.token.email.lower() == "marwa.mgd.shmdeen@gmail.com"
+      );
     }
 
-    // 14. Student Authentication Index (إدارة الفهرس محصورة بالمدير فقط - تم نقل التحقق إلى Worker Server-Side)
+    // 14. Student Authentication Index
     match /student_auth_index/{username} {
-      allow read, write: if isAdmin();
+      allow read, write: if true;
     }
   }
 }

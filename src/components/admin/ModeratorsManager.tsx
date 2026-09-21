@@ -76,6 +76,7 @@ export const ModeratorsManager: React.FC = () => {
       setNewNotes('');
       await loadModerators();
     } catch (err: any) {
+      console.error("ADD ADMIN ERROR", err);
       console.error('Error adding moderator:', err);
       setErrorMsg(err.message || 'حدث خطأ أثناء إضافة المشرف.');
     } finally {
@@ -102,6 +103,7 @@ export const ModeratorsManager: React.FC = () => {
       setSuccessMsg(`تم إلغاء صلاحيات المشرف (${moderatorToDelete.email}) بنجاح.`);
       setModeratorToDelete(null);
     } catch (err) {
+      console.error("DELETE ADMIN ERROR", err);
       console.error('Error deleting moderator:', err);
       setErrorMsg('تعذر حذف المشرف.');
     }
