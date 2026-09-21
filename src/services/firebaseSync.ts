@@ -1,6 +1,5 @@
 import { 
   db, 
-  defaultDb,
   auth, 
   signInWithGoogle, 
   signOutUser,
@@ -657,7 +656,6 @@ class FirebaseSyncService {
 
     let createdId: string | null = null;
 
-    // 1. Try writing to primary configured db
     try {
       const tipsCol = collection(db, 'communityTips');
       const docRef = await addDoc(tipsCol, cleanPayload);
@@ -671,19 +669,6 @@ class FirebaseSyncService {
       } catch (err2: any) {
         console.warn('setDoc on db failed:', err2?.message);
       }
-    }
-
-    // 2. Dual write / fallback to defaultDb (e.g. if default database (default) is used in Firebase console)
-    try {
-      if (defaultDb && defaultDb !== db) {
-        const targetId = createdId || newTipId;
-        await setDoc(doc(defaultDb, 'communityTips', targetId), cleanPayload, { merge: true });
-        if (!createdId) {
-          createdId = targetId;
-        }
-      }
-    } catch (errDefault: any) {
-      console.warn('Write to defaultDb failed:', errDefault?.message);
     }
 
     const finalTipId = createdId || newTipId;

@@ -42,6 +42,8 @@ const env = typeof import.meta !== 'undefined' ? (import.meta as any).env || {} 
 const rawProjectId = env.VITE_FIREBASE_PROJECT_ID;
 const isOldProject = rawProjectId === 'gen-lang-client-0992899684';
 
+export const TARGET_FIRESTORE_DB_ID = 'ai-studio-eceroadmap-92942c14-153e-4944-ad7d-20e5ea4add92';
+
 export const resolvedFirebaseConfig = {
   apiKey: (!isOldProject && env.VITE_FIREBASE_API_KEY) || firebaseConfig.apiKey || '',
   authDomain: (!isOldProject && env.VITE_FIREBASE_AUTH_DOMAIN) || firebaseConfig.authDomain || '',
@@ -49,7 +51,7 @@ export const resolvedFirebaseConfig = {
   storageBucket: (!isOldProject && env.VITE_FIREBASE_STORAGE_BUCKET) || firebaseConfig.storageBucket || '',
   messagingSenderId: (!isOldProject && env.VITE_FIREBASE_MESSAGING_SENDER_ID) || firebaseConfig.messagingSenderId || '',
   appId: (!isOldProject && env.VITE_FIREBASE_APP_ID) || firebaseConfig.appId || '',
-  firestoreDatabaseId: (!isOldProject && env.VITE_FIREBASE_FIRESTORE_DATABASE_ID) || (firebaseConfig as any).firestoreDatabaseId || undefined
+  firestoreDatabaseId: TARGET_FIRESTORE_DB_ID
 };
 
 // Global Production Canonical URL
@@ -69,22 +71,15 @@ const app = getApps().length > 0 ? getApp() : initializeApp({
   messagingSenderId: resolvedFirebaseConfig.messagingSenderId,
 });
 
-// Initialize Firestore with persistent local cache and fallback
+// Initialize Firestore strictly targeting ai-studio-eceroadmap-92942c14-153e-4944-ad7d-20e5ea4add92
 export const db = (function() {
   try {
     const cache = persistentLocalCache({ tabManager: persistentMultipleTabManager() });
-    return resolvedFirebaseConfig.firestoreDatabaseId
-      ? initializeFirestore(app, { localCache: cache }, resolvedFirebaseConfig.firestoreDatabaseId)
-      : initializeFirestore(app, { localCache: cache });
+    return initializeFirestore(app, { localCache: cache }, TARGET_FIRESTORE_DB_ID);
   } catch (err) {
-    return resolvedFirebaseConfig.firestoreDatabaseId
-      ? getFirestore(app, resolvedFirebaseConfig.firestoreDatabaseId)
-      : getFirestore(app);
+    return getFirestore(app, TARGET_FIRESTORE_DB_ID);
   }
 })();
-
-// Default Firestore instance fallback for (default) database
-export const defaultDb = getFirestore(app);
 
 // Initialize Firebase Auth
 export const auth = getAuth(app);
