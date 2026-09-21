@@ -54,6 +54,10 @@ export const CommunityModeration: React.FC = () => {
   }, []);
 
   const handleToggleArchive = async (tip: TipItem) => {
+    console.log("ARCHIVE BUTTON CLICKED", tip);
+    console.log("TIP OBJECT FROM ADMIN", tip);
+    console.log("ARCHIVE TARGET ID", tip.id);
+
     const isArchiving = (tip.status || 'active') === 'active';
     const confirmMsg = isArchiving
       ? `هل ترغب في حجب وأرشفة هذه النصيحة من الواجهة العامة للطلاب؟`

@@ -587,8 +587,8 @@ class FirebaseSyncService {
       return onSnapshot(q, (snapshot) => {
         const firestoreTips: CommunityTip[] = snapshot.docs
           .map((docSnap) => ({
-            id: docSnap.id,
-            ...(docSnap.data() as Omit<CommunityTip, 'id'>)
+            ...(docSnap.data() as CommunityTip),
+            id: docSnap.id
           }))
           .filter(t => (t.status || 'active') === 'active');
 
@@ -603,8 +603,8 @@ class FirebaseSyncService {
         return onSnapshot(tipsCol, (snap) => {
           const tips: CommunityTip[] = snap.docs
             .map((docSnap) => ({
-              id: docSnap.id,
-              ...(docSnap.data() as Omit<CommunityTip, 'id'>)
+              ...(docSnap.data() as CommunityTip),
+              id: docSnap.id
             }))
             .filter(t => (t.status || 'active') === 'active')
             .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());

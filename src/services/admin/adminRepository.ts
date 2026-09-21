@@ -1,6 +1,7 @@
 import { 
   db, 
   auth, 
+  getOrCreateFirebaseUser,
   doc, 
   getDoc, 
   getDocs, 
@@ -384,7 +385,10 @@ export const adminRepository = {
     const p = 'communityTips';
     try {
       const snap = await getDocs(collection(db, p));
-      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      return snap.docs.map(d => ({
+        ...d.data(),
+        id: d.id // Ensure 'id' is ALWAYS the true Firestore Document Key
+      }));
     } catch (error) {
       console.warn('Failed to list community tips from Firestore:', error);
       return [];
@@ -393,11 +397,24 @@ export const adminRepository = {
 
   async archiveCommunityTip(tipId: string, tipContentPreview: string): Promise<void> {
     const p = `communityTips/${tipId}`;
+    const data = {
+      status: 'archived',
+      updatedAt: new Date().toISOString()
+    };
+    console.log("ARCHIVE FUNCTION START", tipId);
+    console.log("ARCHIVE TIP REQUEST", tipId, data);
     try {
-      await updateDoc(doc(db, 'communityTips', tipId), {
-        status: 'archived',
-        updatedAt: new Date().toISOString()
+      await getOrCreateFirebaseUser();
+      console.log("ARCHIVE UPDATE TARGET", {
+        collection: "communityTips",
+        documentId: tipId,
+        data: {
+          status: "archived",
+          updatedAt: new Date().toISOString()
+        }
       });
+      await updateDoc(doc(db, 'communityTips', tipId), data);
+      console.log("ARCHIVE UPDATE SUCCESS");
       await this.logAction(
         'TIP_ARCHIVED',
         'community_tip',
@@ -405,17 +422,23 @@ export const adminRepository = {
         `حجب نصيحة طلابية: ${tipContentPreview.substring(0, 30)}`
       );
     } catch (error) {
+      console.error("ARCHIVE UPDATE FAILED", error);
+      console.error("ARCHIVE TIP ERROR", error);
       handleFirestoreError(error, OperationType.UPDATE, p);
     }
   },
 
   async restoreCommunityTip(tipId: string, tipContentPreview: string): Promise<void> {
     const p = `communityTips/${tipId}`;
+    const data = {
+      status: 'active',
+      updatedAt: new Date().toISOString()
+    };
+    console.log("RESTORE TIP REQUEST", tipId, data);
     try {
-      await updateDoc(doc(db, 'communityTips', tipId), {
-        status: 'active',
-        updatedAt: new Date().toISOString()
-      });
+      await getOrCreateFirebaseUser();
+      await updateDoc(doc(db, 'communityTips', tipId), data);
+      console.log("RESTORE TIP SUCCESS");
       await this.logAction(
         'TIP_RESTORED',
         'community_tip',
@@ -423,6 +446,7 @@ export const adminRepository = {
         `استعادة نصيحة طلابية: ${tipContentPreview.substring(0, 30)}`
       );
     } catch (error) {
+      console.error("RESTORE TIP ERROR", error);
       handleFirestoreError(error, OperationType.UPDATE, p);
     }
   },

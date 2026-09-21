@@ -38,7 +38,7 @@ import {
 
 // Suppress benign internal SDK connection warning logs in sandboxed iframe previews
 try {
-  setLogLevel('error');
+  setLogLevel('silent');
 } catch {}
 
 import firebaseConfig from '../../firebase-applet-config.json';
@@ -138,12 +138,10 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 
 export async function testFirestoreConnection(): Promise<boolean> {
   try {
-    await getDocFromServer(doc(db, 'site_stats', 'visitors'));
-    return true;
+    const snap = await getDoc(doc(db, 'site_stats', 'visitors'));
+    return snap.exists();
   } catch (error: any) {
-    if (error?.message?.includes('offline') || error?.code === 'unavailable') {
-      console.info('Firestore client is operating in offline mode with cached storage.');
-    }
+    console.info('Firestore operating with cached storage or waiting for connection.');
     return false;
   }
 }
@@ -192,8 +190,9 @@ export async function getOrCreateFirebaseUser(): Promise<User> {
     if (!cred.user) {
       throw new Error('FAILED_TO_GENERATE_ANONYMOUS_FIREBASE_USER');
     }
+    const curr = auth.currentUser as User | null;
     console.log('AUTH CHECK:', {
-      'currentUser after': auth.currentUser ? { uid: auth.currentUser.uid, isAnonymous: auth.currentUser.isAnonymous } : null,
+      'currentUser after': curr ? { uid: curr.uid, isAnonymous: curr.isAnonymous } : null,
       uid: cred.user.uid
     });
     return cred.user;
