@@ -36,6 +36,7 @@ export const CommunityModeration: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'archived'>('all');
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [tipToConfirm, setTipToConfirm] = useState<TipItem | null>(null);
 
   const loadTips = async () => {
     setIsLoading(true);
@@ -59,11 +60,6 @@ export const CommunityModeration: React.FC = () => {
     console.log("ARCHIVE TARGET ID", tip.id);
 
     const isArchiving = (tip.status || 'active') === 'active';
-    const confirmMsg = isArchiving
-      ? `هل ترغب في حجب وأرشفة هذه النصيحة من الواجهة العامة للطلاب؟`
-      : `هل ترغب في استعادة ظهور هذه النصيحة؟`;
-
-    if (!window.confirm(confirmMsg)) return;
 
     setActionLoadingId(tip.id);
     try {
@@ -227,7 +223,7 @@ export const CommunityModeration: React.FC = () => {
                   </div>
 
                   <button
-                    onClick={() => handleToggleArchive(tip)}
+                    onClick={() => setTipToConfirm(tip)}
                     disabled={actionLoadingId === tip.id}
                     className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors ${
                       isArchived
@@ -262,6 +258,69 @@ export const CommunityModeration: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Custom Confirmation Modal */}
+      {tipToConfirm && (() => {
+        const isArchiving = (tipToConfirm.status || 'active') === 'active';
+        return (
+          <div 
+            className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-150"
+            onClick={() => setTipToConfirm(null)}
+          >
+            <div 
+              className="bg-[#091527] border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative space-y-4 animate-in zoom-in-95 duration-200"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start gap-4">
+                <div className={`p-3 rounded-2xl ${isArchiving ? 'bg-rose-950/40 text-rose-400 border border-rose-800/50' : 'bg-emerald-950/40 text-emerald-400 border border-emerald-800/50'}`}>
+                  {isArchiving ? <AlertTriangle className="w-6 h-6" /> : <CheckCircle2 className="w-6 h-6" />}
+                </div>
+                <div className="space-y-1 flex-1" dir="rtl">
+                  <h3 className="text-base font-bold text-white">
+                    {isArchiving ? 'تأكيد حجب النصيحة' : 'تأكيد استعادة النصيحة'}
+                  </h3>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    {isArchiving 
+                      ? 'هل أنت متأكد من حجب هذه النصيحة؟ لن تظهر للطلاب بعد الحجب.' 
+                      : 'هل ترغب في استعادة ظهور هذه النصيحة مجدداً للطلاب؟'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Preview of content */}
+              <div className="p-3 bg-slate-900/40 border border-slate-800/50 rounded-xl text-[11px] text-slate-400 max-h-24 overflow-y-auto" dir="rtl">
+                <span className="font-bold text-slate-300 block mb-1">محتوى النصيحة:</span>
+                "{tipToConfirm.content}"
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setTipToConfirm(null)}
+                  className="px-4 py-2 rounded-xl border border-slate-800 text-xs font-bold text-slate-400 bg-slate-900 hover:bg-slate-800/60 transition-colors"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const tip = tipToConfirm;
+                    setTipToConfirm(null);
+                    await handleToggleArchive(tip);
+                  }}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors text-white ${
+                    isArchiving 
+                      ? 'bg-rose-600 hover:bg-rose-500' 
+                      : 'bg-emerald-600 hover:bg-emerald-500'
+                  }`}
+                >
+                  {isArchiving ? 'تأكيد الحجب' : 'استعادة الظهور'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
