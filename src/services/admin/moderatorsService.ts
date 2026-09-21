@@ -106,8 +106,9 @@ export const moderatorsService = {
     try {
       const existing = await this.fetchModerators();
       const updated = [newRecord, ...existing.filter(m => m.email.toLowerCase() !== cleanEmail)];
+      const activeEmails = updated.filter(m => m.status === 'active').map(m => m.email.toLowerCase());
       const cfgRef = doc(db, SYSTEM_CONFIG_DOC, MODERATORS_CONFIG_KEY);
-      await setDoc(cfgRef, { moderators: updated, updatedAt: new Date().toISOString() }, { merge: true });
+      await setDoc(cfgRef, { moderators: updated, activeEmails, updatedAt: new Date().toISOString() }, { merge: true });
     } catch (e) {
       console.warn('Mirroring to system_config failed (non-blocking):', e);
     }
@@ -139,8 +140,9 @@ export const moderatorsService = {
     try {
       const existing = await this.fetchModerators();
       const updated = existing.filter(m => m.email.toLowerCase() !== cleanEmail);
+      const activeEmails = updated.filter(m => m.status === 'active').map(m => m.email.toLowerCase());
       const cfgRef = doc(db, SYSTEM_CONFIG_DOC, MODERATORS_CONFIG_KEY);
-      await setDoc(cfgRef, { moderators: updated, updatedAt: new Date().toISOString() }, { merge: true });
+      await setDoc(cfgRef, { moderators: updated, activeEmails, updatedAt: new Date().toISOString() }, { merge: true });
     } catch (e) {
       console.warn('Updating system_config failed (non-blocking):', e);
     }
@@ -169,8 +171,9 @@ export const moderatorsService = {
     try {
       const existing = await this.fetchModerators();
       const updated = existing.map(m => m.email.toLowerCase() === cleanEmail ? { ...m, status: newStatus } : m);
+      const activeEmails = updated.filter(m => m.status === 'active').map(m => m.email.toLowerCase());
       const cfgRef = doc(db, SYSTEM_CONFIG_DOC, MODERATORS_CONFIG_KEY);
-      await setDoc(cfgRef, { moderators: updated, updatedAt: new Date().toISOString() }, { merge: true });
+      await setDoc(cfgRef, { moderators: updated, activeEmails, updatedAt: new Date().toISOString() }, { merge: true });
     } catch {}
 
     return newStatus;

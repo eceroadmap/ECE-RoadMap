@@ -5,29 +5,27 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
+    function isOwner() {
+      return isAuthenticated() && request.auth.token.email == "marwa.mgd.shmdeen@gmail.com";
     }
 
-    function isSuperAdmin() {
-      return isAuthenticated() && (
-        request.auth.token.email.lower() == "marwa.mgd.shmdeen@gmail.com"
-      );
+    function isAuthorizedModerator() {
+      return isAuthenticated() && 
+        resource != null && 
+        resource.data.keys().hasAll(['activeEmails']) && 
+        request.auth.token.email in resource.data.activeEmails;
     }
 
     function isAdmin() {
-      return isAuthenticated() && (
-        isSuperAdmin()
-        || request.auth.token.email.lower() == "marwa.mgd.shmdeen@gmail.com"
-      );
+      return isOwner() || isAuthorizedModerator();
     }
 
     // 1. Private Student Journey & Progress Documents
     match /students/{userId} {
       allow read: if true;
-      allow create: if isOwner(userId) || (request.resource.data.uid == userId) || isAdmin();
-      allow update: if isOwner(userId) || (resource.data.accountPassword != null && request.resource.data.accountPassword == resource.data.accountPassword) || isAdmin();
-      allow delete: if isOwner(userId) || isAdmin();
+      allow create: if request.auth.uid == userId || isAdmin();
+      allow update: if request.auth.uid == userId || isAdmin();
+      allow delete: if request.auth.uid == userId || isAdmin();
     }
 
     // 2. Dedicated Administrator Authorization Collection
@@ -76,7 +74,7 @@ service cloud.firestore {
 
     // 8. Administrator Activity Audit Log
     match /adminLogs/{logId} {
-      allow read: if isSuperAdmin();
+      allow read: if isOwner();
       allow create: if isAdmin();
       allow update, delete: if false;
     }
@@ -84,11 +82,7 @@ service cloud.firestore {
     // 9. System Configuration & Exhibition Settings (including moderators_list)
     match /system_config/{configId} {
       allow read: if true;
-      allow write: if isAuthenticated() && (
-        isSuperAdmin()
-        || request.auth.token.email.lower() == "marwa.mgd.shmdeen@gmail.com"
-        || (configId == 'moderators_list' && request.auth.token.email != null)
-      );
+      allow write: if isOwner() || (configId == 'moderators_list' && isAdmin());
     }
 
     // 10. Public Site & Visitor Statistics Counter
@@ -113,15 +107,12 @@ service cloud.firestore {
     // 13. Authorized Supervisors / Moderators (إدارة المشرفين)
     match /moderators/{modId} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && (
-        isSuperAdmin()
-        || request.auth.token.email.lower() == "marwa.mgd.shmdeen@gmail.com"
-      );
+      allow write: if isOwner() || isAdmin();
     }
 
     // 14. Student Authentication Index
     match /student_auth_index/{username} {
-      allow read, write: if true;
+      allow read, write: if isAuthenticated();
     }
   }
 }
