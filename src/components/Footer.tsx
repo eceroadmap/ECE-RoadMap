@@ -204,17 +204,6 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
 
             {/* قائمة المساهمين وفِرق العمل */}
             <div className="space-y-3 text-sm">
-              {/* فريق ملتقى وجهتك الأكاديمية */}
-              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-cyan-500/30 transition-colors">
-                <div className="font-semibold text-cyan-200 text-xs mb-1.5 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 inline-block"></span>
-                  <span>فريق ملتقى وجهتك الأكاديمية 2026:</span>
-                </div>
-                <p className="text-slate-200 text-xs font-medium leading-relaxed pr-3">
-                  غياث عثمان &bull; سنا ذوالغنى &bull; ليلاس ادلبي &bull; فاطمة دريع
-                </p>
-              </div>
-
               {/* الهيئة الطلابية */}
               <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-cyan-500/30 transition-colors flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 inline-block"></span>
