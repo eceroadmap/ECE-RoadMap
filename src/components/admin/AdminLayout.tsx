@@ -37,6 +37,7 @@ import { CommunityModeration } from './CommunityModeration';
 import { ActivityLogView } from './ActivityLogView';
 import { CurriculumSeederModal } from './CurriculumSeederModal';
 import { ExhibitionManager } from './ExhibitionManager';
+import { Exhibition2Manager } from './Exhibition2Manager';
 import { AdminSettingsView } from './AdminSettingsView';
 import { AdminGraduationProjectsView } from './AdminGraduationProjectsView';
 import { CourseSkillsManager } from './CourseSkillsManager';
@@ -280,6 +281,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToApp }) => {
     { id: 'overview', label: 'لوحة القيادة والإحصائيات', icon: LayoutDashboard },
     ...(isOwner ? [{ id: 'moderators', label: 'إدارة المشرفين والصلاحيات', icon: UserPlus }] : []),
     { id: 'exhibition', label: 'إدارة شرائح وضع الملتقى', icon: MonitorPlay },
+    { id: 'exhibition2', label: 'إدارة وضع الملتقى 2 ⚡ (3D)', icon: Sparkles },
     { id: 'graduation_projects', label: 'إدارة مشاريع التخرج', icon: FolderGit2 },
     { id: 'students', label: 'إدارة الطلاب', icon: GraduationCap },
     { id: 'courses', label: 'إدارة المقررات الدراسية', icon: BookOpen },
@@ -432,6 +434,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToApp }) => {
             {activeSection === 'moderators' && isOwner && <ModeratorsManager />}
 
             {activeSection === 'exhibition' && <ExhibitionManager />}
+
+            {activeSection === 'exhibition2' && <Exhibition2Manager />}
 
             {activeSection === 'graduation_projects' && <AdminGraduationProjectsView />}
 

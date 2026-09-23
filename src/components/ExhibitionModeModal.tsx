@@ -36,6 +36,7 @@ import { COURSES_DATA } from '../data/courses';
 import { GRADUATION_PROJECTS_DATA } from '../data/graduationProjects';
 import { QRCodeDisplay } from './QRCodeDisplay';
 import { CircuitBackground } from './CircuitBackground';
+import { Microcontroller3DScene, SCENE_CAMERA_PRESETS } from './3d/Microcontroller3DScene';
 import { exhibitionRepository } from '../services/admin/exhibitionRepository';
 import { ExhibitionFullConfig, ExhibitionSlideId } from '../types/exhibition';
 import { DEFAULT_EXHIBITION_CONFIG } from '../data/defaultExhibition';
@@ -117,6 +118,13 @@ export const ExhibitionModeModal: React.FC<ExhibitionModeModalProps> = ({
 
   // Skills Pipeline active index
   const [activeSkillPipelineIndex, setActiveSkillPipelineIndex] = useState(0);
+
+  // 3D Microcontroller Selected Component Inspection
+  const [selected3DComponent, setSelected3DComponent] = useState<{
+    nameAr: string;
+    descAr: string;
+    type: string;
+  } | null>(null);
 
   // Timer reference & idle controls timer
   const idleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -440,6 +448,13 @@ export const ExhibitionModeModal: React.FC<ExhibitionModeModalProps> = ({
 
         {/* Header Action Tools */}
         <div className="flex items-center gap-2">
+          {/* Synchronized 3D Hardware Live Indicator */}
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-950/70 border border-cyan-800/60 text-cyan-300 text-xs font-mono shadow-inner">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+            <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="font-bold">المجسم 3D متزامن مع الشرائح</span>
+          </div>
+
           {/* AutoPlay Toggle */}
           <button
             onClick={() => setIsAutoPlay(!isAutoPlay)}
@@ -490,17 +505,20 @@ export const ExhibitionModeModal: React.FC<ExhibitionModeModalProps> = ({
       <main 
         className="flex-1 flex flex-col relative w-full overflow-y-auto overflow-x-hidden custom-scrollbar"
         style={{
-          paddingInline: 'clamp(12px, 3vw, 80px)',
-          paddingBlock: 'clamp(12px, 2.5vh, 40px)'
+          paddingInline: 'clamp(12px, 2.5vw, 60px)',
+          paddingBlock: 'clamp(12px, 2vh, 32px)'
         }}
       >
-        <div 
-          className={`w-full my-auto flex flex-col justify-center transition-all duration-500 ease-out py-2 ${
-            isTransitioning 
-              ? 'opacity-0 scale-[0.985] blur-[1px]' 
-              : 'opacity-100 scale-100 blur-0'
-          }`}
-        >
+        {/* Unified Exhibition Presentation Stage */}
+        <div className="w-full max-w-7xl 2xl:max-w-[1680px] mx-auto my-auto flex flex-col lg:flex-row items-stretch justify-center gap-6 xl:gap-8 py-2">
+          {/* Slide Content Column */}
+          <div 
+            className={`flex-1 min-w-0 flex flex-col justify-center transition-all duration-500 ease-out ${
+              isTransitioning 
+                ? 'opacity-0 scale-[0.985] blur-[1px]' 
+                : 'opacity-100 scale-100 blur-0'
+            }`}
+          >
         {/* ===================================================================== */}
         {/* SCENE 01: HERO & OPENING REVEAL                                       */}
         {/* ===================================================================== */}
@@ -931,6 +949,89 @@ export const ExhibitionModeModal: React.FC<ExhibitionModeModalProps> = ({
             </div>
           </div>
         )}
+            </div>
+
+          {/* INTEGRATED 3D HARDWARE CIRCUIT DISPLAY (NATIVE SLIDE PRESENTATION STAGE) */}
+          <div 
+            className="w-full lg:w-[420px] xl:w-[480px] 2xl:w-[540px] shrink-0 my-auto flex flex-col rounded-3xl bg-gradient-to-b from-[#071324]/90 via-[#06101e]/95 to-[#040a14]/98 border-2 border-cyan-500/35 shadow-2xl relative overflow-hidden backdrop-blur-md animate-fadeIn"
+            dir="rtl"
+          >
+            {/* Holographic Subtle Top Ambient Glow & Radial Burst */}
+            <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-cyan-500/10 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-72 h-72 bg-cyan-400/10 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Integrated Hardware Header Synced with Slide Transition */}
+            <div className="px-4 py-3.5 border-b border-cyan-900/50 bg-[#07152b]/85 relative z-10 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500/25 to-blue-600/25 border border-cyan-400/50 flex items-center justify-center text-cyan-300 shadow-md shadow-cyan-950">
+                  <Cpu className="w-4 h-4 text-cyan-400 animate-pulse" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-white font-mono tracking-tight">
+                      {SCENE_CAMERA_PRESETS[currentScene]?.hardwareFocusAr || 'منصة المعالجة والدارة الإلكترونية'}
+                    </span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                  </div>
+                  <span className="text-[10px] text-cyan-300/90 font-mono block">
+                    {SCENE_CAMERA_PRESETS[currentScene]?.nameAr || 'منظور عتادي متزامن'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="px-2.5 py-1 rounded-full bg-cyan-950/90 border border-cyan-700/60 text-[10px] font-mono text-cyan-300 font-bold shrink-0">
+                STM32 CORTEX-M4
+              </div>
+            </div>
+
+            {/* Live 3D Microcontroller Canvas with Transparent BG & Pedestal Orbit Ring */}
+            <div className="h-[320px] sm:h-[380px] lg:h-[480px] xl:h-[520px] w-full relative flex items-center justify-center">
+              {/* Visual Pedestal Aura & Holographic Orbit Ring */}
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-64 h-24 bg-cyan-500/15 rounded-full blur-2xl pointer-events-none" />
+              <div 
+                className="absolute bottom-10 left-1/2 -translate-x-1/2 w-56 h-16 border border-cyan-500/20 rounded-full pointer-events-none" 
+                style={{ transform: 'translateX(-50%) rotateX(65deg)' }} 
+              />
+
+              <Microcontroller3DScene
+                currentScene={currentScene}
+                isInteractive={true}
+                showControls={true}
+                subtleHud={true}
+                compact={false}
+                onSelectComponent={(c) => setSelected3DComponent(c)}
+              />
+            </div>
+
+            {/* Contextual Hardware Correlation for Active Slide */}
+            <div className="px-4 py-3 bg-[#050f1d]/95 border-t border-cyan-950/80 relative z-10 text-[11px] space-y-1">
+              {selected3DComponent ? (
+                <div className="space-y-0.5 animate-in fade-in duration-200">
+                  <div className="font-bold text-cyan-300 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>{selected3DComponent.nameAr}</span>
+                  </div>
+                  <p className="text-[10px] text-slate-300 leading-relaxed">
+                    {selected3DComponent.descAr}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-0.5">
+                  <div className="text-cyan-300 font-bold flex items-center justify-between">
+                    <span className="flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-cyan-400" />
+                      <span>الربط العتادي مع محتوى الشريحة:</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">اسحب 360° &bull; انقر للفحص</span>
+                  </div>
+                  <p className="text-[10px] text-slate-300 leading-relaxed">
+                    {SCENE_CAMERA_PRESETS[currentScene]?.descAr}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
         </div>
       </main>
 

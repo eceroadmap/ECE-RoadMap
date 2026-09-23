@@ -15,7 +15,8 @@ import {
   TrendingUp,
   Clock,
   User,
-  Filter
+  Filter,
+  Cpu
 } from 'lucide-react';
 import { CommunityTip } from '../types/student';
 import { firebaseSyncService, TipsStateCallback } from '../services/firebaseSync';
@@ -23,6 +24,7 @@ import { useStudentState } from '../services/useStudentState';
 import { guestVisitorService } from '../services/guestVisitorService';
 import { COURSES_DATA } from '../data/courses';
 import { useLanguage } from '../context/LanguageContext';
+import { Microcontroller3DScene } from './3d/Microcontroller3DScene';
 
 export const CommunityTipsSection: React.FC = () => {
   const { profile, firebaseUser, signInWithGoogle } = useStudentState();
@@ -36,6 +38,7 @@ export const CommunityTipsSection: React.FC = () => {
   const [sortBy, setSortBy] = useState<'likes' | 'newest'>('likes');
   const [filterCourse, setFilterCourse] = useState<string>('all');
   const [isOpenForm, setIsOpenForm] = useState(false);
+  const [show3DPreview, setShow3DPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -237,17 +240,71 @@ export const CommunityTipsSection: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            setIsOpenForm(!isOpenForm);
-            setErrorMsg(null);
-          }}
-          className="px-4 py-2.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/50 text-cyan-300 text-xs font-bold flex items-center gap-2 transition-all shrink-0 active:scale-95 shadow-lg shadow-cyan-950/30"
-        >
-          <MessageSquarePlus className="w-4 h-4 text-cyan-400" />
-          <span>{isOpenForm ? t('tips.cancel_btn') : t('tips.add_btn')}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {/* 3D Microcontroller Model Toggle */}
+          <button
+            onClick={() => setShow3DPreview(!show3DPreview)}
+            className={`px-3.5 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all shrink-0 active:scale-95 ${
+              show3DPreview
+                ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-md shadow-cyan-500/30'
+                : 'bg-slate-900/80 hover:bg-slate-800 border-slate-700 text-slate-300'
+            }`}
+            title="عرض مجسم الدارة والمتحكم 3D التفاعلي"
+          >
+            <Cpu className={`w-4 h-4 ${show3DPreview ? 'text-slate-950' : 'text-cyan-400'}`} />
+            <span>{show3DPreview ? (isArabic ? 'إخفاء الدارة 3D' : 'Hide 3D') : (isArabic ? 'مجسم الدارة 3D' : '3D Circuit')}</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setIsOpenForm(!isOpenForm);
+              setErrorMsg(null);
+            }}
+            className="px-4 py-2.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/50 text-cyan-300 text-xs font-bold flex items-center gap-2 transition-all shrink-0 active:scale-95 shadow-lg shadow-cyan-950/30"
+          >
+            <MessageSquarePlus className="w-4 h-4 text-cyan-400" />
+            <span>{isOpenForm ? t('tips.cancel_btn') : t('tips.add_btn')}</span>
+          </button>
+        </div>
       </div>
+
+      {/* Interactive 3D Microcontroller Workbench Card */}
+      {show3DPreview && (
+        <div className="p-4 sm:p-5 rounded-3xl bg-[#071324]/95 border-2 border-cyan-500/40 shadow-2xl relative overflow-hidden backdrop-blur-md animate-fadeIn space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-cyan-900/50">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
+                <Cpu className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+                  <span>مجسم الدارة والمتحكم الإلكتروني 3D التفاعلي</span>
+                  <span className="px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-600/70 text-[10px] font-mono">
+                    STM32 CORTEX-M4
+                  </span>
+                </h4>
+                <p className="text-[11px] text-slate-400">
+                  اسحب بالماوس أو اللمس للتدوير بحرية 360°، فحص المكونات السطحية SMD، والمسارات النحاسية.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShow3DPreview(false)}
+              className="text-xs text-slate-400 hover:text-white px-2 py-1 rounded-lg bg-slate-900 border border-slate-800"
+            >
+              إغلاق
+            </button>
+          </div>
+          <div className="h-[340px] sm:h-[400px] w-full rounded-2xl overflow-hidden border border-cyan-500/30 relative bg-[#050e1a]">
+            <Microcontroller3DScene
+              currentScene="hero"
+              isInteractive={true}
+              showControls={true}
+              compact={false}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Notifications */}
       {successMsg && (
