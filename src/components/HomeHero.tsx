@@ -6,7 +6,6 @@ interface HomeHeroProps {
   onNavigateTab: (tab: ActiveTab) => void;
   onScrollToJourney: () => void;
   onOpenExhibition?: () => void;
-  onOpenExhibition2?: () => void;
   onOpenQRModal?: () => void;
 }
 
@@ -14,7 +13,6 @@ export const HomeHero: React.FC<HomeHeroProps> = ({
   onNavigateTab,
   onScrollToJourney,
   onOpenExhibition,
-  onOpenExhibition2,
   onOpenQRModal
 }) => {
   return (
@@ -61,19 +59,6 @@ export const HomeHero: React.FC<HomeHeroProps> = ({
       </div>
 
       <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 text-center pt-2 sm:pt-4">
-        {/* Exhibition 2 Banner Badge */}
-        {onOpenExhibition2 && (
-          <div className="mb-4">
-            <button
-              onClick={onOpenExhibition2}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-400/50 text-cyan-300 text-xs font-bold transition-all shadow-lg shadow-cyan-950/50 hover:scale-105 active:scale-95 group"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-              <span>جديد المعرض: وضع الملتقى 2 (العرض السينمائي التفاعلي 3D)</span>
-              <ArrowLeft className="w-3.5 h-3.5 text-cyan-400 group-hover:-translate-x-1 transition-transform" />
-            </button>
-          </div>
-        )}
         {/* Main Heading with Fluid Clamp Typography */}
         <h1 className="text-fluid-hero font-black text-white tracking-tight leading-tight mb-4 sm:mb-6">
           <span className="block sm:inline">هندسة الإلكترونيات </span>
