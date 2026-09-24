@@ -38,14 +38,24 @@ enum OperationType {
 }
 
 function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errStr = error instanceof Error ? error.message : String(error);
+  const isPermission = errStr.includes('permission') || errStr.includes('PERMISSION_DENIED');
+  const user = auth.currentUser;
+
+  if (isPermission) {
+    const friendlyMsg = `تعذر إتمام عملية الحفظ (${path || 'قاعدة البيانات'}) بسبب قيود صلاحيات Firestore السحابية.\n\nيرجى من المالك إما:\n1. الضغط على زر "تفعيل المشرفين في Firestore" من قسم المشرفين.\n2. أو نسخ قواعد أمان Firebase Console المحدثة ولصقها في تبويب Rules.`;
+    console.error('Firestore Permission Error:', { path, email: user?.email, uid: user?.uid });
+    throw new Error(friendlyMsg);
+  }
+
   const errInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errStr,
     authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
+      userId: user?.uid,
+      email: user?.email,
+      emailVerified: user?.emailVerified,
+      isAnonymous: user?.isAnonymous,
+      tenantId: user?.tenantId,
     },
     operationType,
     path

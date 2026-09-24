@@ -162,9 +162,9 @@ export const CoursesManager: React.FC = () => {
       });
 
       setIsModalOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save course:', error);
-      alert('حدث خطأ أثناء حفظ المقرر. يرجى المحاولة مرة أخرى.');
+      alert(error?.message || 'حدث خطأ أثناء حفظ المقرر. يرجى المحاولة مرة أخرى.');
     } finally {
       setIsSaving(false);
     }

@@ -14,23 +14,176 @@ import {
   ToggleLeft,
   ToggleRight,
   EyeOff,
-  ShieldAlert
+  ShieldAlert,
+  Copy,
+  Check,
+  Code2,
+  KeyRound,
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
+  Zap
 } from 'lucide-react';
 import { ModeratorRecord } from '../../types/admin';
 import { moderatorsService } from '../../services/admin/moderatorsService';
 import { AdminDiagnosticTool } from './AdminDiagnosticTool';
 
+const FIRESTORE_RULES_SNIPPET = `rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner() {
+      return isAuthenticated() && (
+        (request.auth.token.email != null && request.auth.token.email.matches('(?i)marwa\\\\.mgd\\\\.shmdeen@gmail\\\\.com'))
+        || (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) 
+          && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.isOwner == true)
+        || (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) 
+          && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'super_admin')
+      );
+    }
+
+    function isAuthorizedModerator() {
+      return isAuthenticated() && (
+        (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) 
+          && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'moderator'
+          && (
+            !('status' in get(/databases/$(database)/documents/admins/$(request.auth.uid)).data)
+            || get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.status == 'active'
+          ))
+        || (
+          request.auth.token.email != null &&
+          exists(/databases/$(database)/documents/moderators/$(request.auth.token.email.lower()))
+        )
+        || exists(/databases/$(database)/documents/moderators/$(request.auth.uid))
+        || (
+          exists(/databases/$(database)/documents/system_config/moderators_list) &&
+          request.auth.token.email != null &&
+          request.auth.token.email.lower() in get(/databases/$(database)/documents/system_config/moderators_list).data.activeEmails
+        )
+      );
+    }
+
+    function isAdmin() {
+      return isOwner() || isAuthorizedModerator();
+    }
+
+    match /students/{userId} {
+      allow read: if true;
+      allow create: if request.auth.uid == userId || isAdmin();
+      allow update: if request.auth.uid == userId || isAdmin();
+      allow delete: if request.auth.uid == userId || isAdmin();
+    }
+
+    match /admins/{adminId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && (
+        isOwner()
+        || isAdmin()
+        || (
+          request.auth.uid == adminId &&
+          request.auth.token.email != null &&
+          (
+            request.auth.token.email.matches('(?i)marwa\\\\.mgd\\\\.shmdeen@gmail\\\\.com')
+            || (exists(/databases/$(database)/documents/system_config/moderators_list) &&
+                request.auth.token.email.lower() in get(/databases/$(database)/documents/system_config/moderators_list).data.activeEmails)
+            || exists(/databases/$(database)/documents/moderators/$(request.auth.token.email.lower()))
+          )
+        )
+      );
+    }
+
+    match /courses/{courseId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /software/{softwareId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /academicResources/{resourceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /faqs/{faqId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /graduation_projects/{projectId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /communityTips/{tipId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null;
+    }
+
+    match /adminLogs/{logId} {
+      allow read: if isOwner();
+      allow create: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /system_config/{configId} {
+      allow read: if true;
+      allow write: if isOwner() || isAdmin();
+    }
+
+    match /site_stats/{statId} {
+      allow read: if true;
+      allow create, update: if true;
+    }
+
+    match /guest_visitors/{guestId} {
+      allow read: if isAdmin();
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    match /course_skill_pipelines/{pipelineId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /moderators/{modId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner() || isAdmin() || (isAuthenticated() && request.auth.uid == modId);
+    }
+
+    match /student_auth_index/{username} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}`;
+
 export const ModeratorsManager: React.FC = () => {
   const [moderators, setModerators] = useState<ModeratorRecord[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isSyncingAll, setIsSyncingAll] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Form State
   const [newEmail, setNewEmail] = useState<string>('');
+  const [newUid, setNewUid] = useState<string>('');
   const [newDisplayName, setNewDisplayName] = useState<string>('');
   const [newNotes, setNewNotes] = useState<string>('');
+
+  // Rules collapse state
+  const [showRulesBox, setShowRulesBox] = useState<boolean>(false);
+  const [copiedRules, setCopiedRules] = useState<boolean>(false);
+
+  // Inline UID Edit State: email -> string
+  const [editingUidEmail, setEditingUidEmail] = useState<string | null>(null);
+  const [inlineUidValue, setInlineUidValue] = useState<string>('');
 
   // Delete modal state
   const [moderatorToDelete, setModeratorToDelete] = useState<ModeratorRecord | null>(null);
@@ -67,12 +220,14 @@ export const ModeratorsManager: React.FC = () => {
     try {
       await moderatorsService.addModerator({
         email: newEmail.trim(),
+        uid: newUid.trim() || undefined,
         displayName: newDisplayName.trim() || undefined,
         notes: newNotes.trim() || undefined
       });
 
-      setSuccessMsg(`تمت إضافة المشرف (${newEmail.trim().toLowerCase()}) بنجاح وتفعيل صلاحيات التحرير.`);
+      setSuccessMsg(`تمت إضافة المشرف (${newEmail.trim().toLowerCase()}) بنجاح وتفعيل صلاحياته.`);
       setNewEmail('');
+      setNewUid('');
       setNewDisplayName('');
       setNewNotes('');
       await loadModerators();
@@ -83,6 +238,41 @@ export const ModeratorsManager: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSyncAll = async () => {
+    setIsSyncingAll(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    try {
+      const synced = await moderatorsService.syncPendingModeratorsByOwner();
+      await loadModerators();
+      setSuccessMsg(`تمت مزامنة وتفعيل ${synced} مشرف(ين) بنجاح في قاعدة بيانات Firestore!`);
+    } catch (err: any) {
+      console.error('Sync all moderators error:', err);
+      setErrorMsg('تعذر إتمام مزامنة المشرفين. تأكد من اتصال الإنترنت.');
+    } finally {
+      setIsSyncingAll(false);
+    }
+  };
+
+  const handleAssignInlineUid = async (email: string) => {
+    if (!inlineUidValue.trim()) return;
+    try {
+      await moderatorsService.assignUidToModerator(email, inlineUidValue.trim());
+      setSuccessMsg(`تم ربط UID وتفعيل المشرف (${email}) في Firestore بنجاح.`);
+      setEditingUidEmail(null);
+      setInlineUidValue('');
+      await loadModerators();
+    } catch (err: any) {
+      setErrorMsg('تعذر تفعيل المشرف بالـ UID.');
+    }
+  };
+
+  const handleCopyRules = () => {
+    navigator.clipboard.writeText(FIRESTORE_RULES_SNIPPET);
+    setCopiedRules(true);
+    setTimeout(() => setCopiedRules(false), 3000);
   };
 
   const handleToggleStatus = async (mod: ModeratorRecord) => {
@@ -136,14 +326,26 @@ export const ModeratorsManager: React.FC = () => {
             </p>
           </div>
 
-          <button
-            onClick={loadModerators}
-            disabled={isLoading}
-            className="p-3 rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700 text-cyan-300 transition-colors shrink-0"
-            title="تحديث القائمة"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSyncAll}
+              disabled={isSyncingAll || isLoading}
+              className="px-4 py-2.5 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-cyan-950 transition-all cursor-pointer"
+              title="تفعيل ومزامنة المشرفين في Firestore"
+            >
+              <Zap className={`w-4 h-4 ${isSyncingAll ? 'animate-bounce text-amber-900' : ''}`} />
+              <span>{isSyncingAll ? 'جاري المزامنة...' : 'تفعيل المشرفين في Firestore'}</span>
+            </button>
+
+            <button
+              onClick={loadModerators}
+              disabled={isLoading}
+              className="p-2.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700 text-cyan-300 transition-colors shrink-0"
+              title="تحديث القائمة"
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
         </div>
 
         {/* Security Policy Highlights */}
@@ -152,51 +354,110 @@ export const ModeratorsManager: React.FC = () => {
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
             <div className="text-slate-300">
               <strong className="text-white block font-medium">صلاحيات تحرير كاملة:</strong>
-              إضافة وتعديل وحذف المقررات، البرمجيات، المشاريع، والمهارات.
+              إضافة وتعديل وحذف المقررات، البرمجيات، والمشاريع الأكاديمية.
             </div>
           </div>
 
           <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-900/50 border border-slate-800">
             <EyeOff className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
             <div className="text-slate-300">
-              <strong className="text-white block font-medium">حجب سجل العمليات الأمني:</strong>
-              لا يستطيع المشرف الاطلاع على سجل التدقيق الأمني للعمليات.
+              <strong className="text-white block font-medium">خصوصية المالك التامة:</strong>
+              لا يمكن لأي مشرف الاطلاع على بريدك، سجلات التدقيق أو إدارة المشرفين الآخرين.
             </div>
           </div>
 
           <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-900/50 border border-slate-800">
-            <Lock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <Sparkles className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
             <div className="text-slate-300">
-              <strong className="text-white block font-medium">خصوصية حساب المالك:</strong>
-              معلومات وبريد المالك الأساسي مخفية تماماً عن كافة حسابات المشرفين.
+              <strong className="text-white block font-medium">تفعيل تلقائي مزدوج:</strong>
+              مزامنة تلقائية عند تسجيل دخول المشرف أو بنقرة واحدة من المالك.
             </div>
           </div>
         </div>
       </div>
 
+      {/* Firebase Rules Helper Card */}
+      <div className="p-5 sm:p-6 rounded-3xl bg-slate-900/90 border border-cyan-500/30 shadow-xl space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
+              <Code2 className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white">قواعد أمان Firebase المحدثة لمشروعك الخاص</h3>
+                <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[10px] font-bold">
+                  حل فوري لمشكلة "تعذر"
+                </span>
+              </div>
+              <p className="text-xs text-slate-400">
+                إذا قمت بربط مشروع Firebase خاص بك (مثل eceroadmap2027)، انسخ هذه القواعد والصقها في تبويب Rules في Firebase Console لتمكين المشرفين من التعديل فوراً دون أي قيود.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCopyRules}
+              className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-md transition-all cursor-pointer"
+            >
+              {copiedRules ? <Check className="w-4 h-4 text-emerald-950" /> : <Copy className="w-4 h-4" />}
+              <span>{copiedRules ? 'تم نسخ القواعد!' : 'نسخ القواعد بالكامل'}</span>
+            </button>
+
+            <button
+              onClick={() => setShowRulesBox(!showRulesBox)}
+              className="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition-colors cursor-pointer"
+              title={showRulesBox ? 'إخفاء كود القواعد' : 'عرض كود القواعد'}
+            >
+              {showRulesBox ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        {showRulesBox && (
+          <div className="space-y-3 pt-2">
+            <div className="relative">
+              <pre className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-[11px] font-mono text-cyan-200/90 overflow-x-auto max-h-72 dir-ltr text-left">
+                {FIRESTORE_RULES_SNIPPET}
+              </pre>
+            </div>
+            <div className="p-3 rounded-xl bg-cyan-500/5 border border-cyan-500/20 text-xs text-slate-300 space-y-1">
+              <div className="font-bold text-cyan-300">خطوات التطبيق السريع في دقيقة واحدة:</div>
+              <ol className="list-decimal list-inside space-y-0.5 text-slate-400 text-[11px]">
+                <li>اضغط زر <strong className="text-white">"نسخ القواعد بالكامل"</strong> أعلاه.</li>
+                <li>افتح وحدة تحكم Firebase (Firebase Console) لمشروعك.</li>
+                <li>انتقل إلى <strong>Firestore Database</strong> ثم اضغط على علامة التبويب <strong>Rules (القواعد)</strong>.</li>
+                <li>استبدل محتوى القواعد بالقواعد المنسوخة، ثم اضغط <strong>Publish (نشر)</strong>.</li>
+              </ol>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Diagnostic Tool */}
       <AdminDiagnosticTool />
 
-      {/* Notifications */}
+      {/* Messages */}
       {errorMsg && (
-        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm flex items-center justify-between gap-3 animate-fade-in">
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
             <span>{errorMsg}</span>
           </div>
-          <button onClick={() => setErrorMsg(null)} className="text-rose-400 hover:text-rose-200 text-xs font-bold">
+          <button onClick={() => setErrorMsg(null)} className="text-slate-400 hover:text-white text-xs underline cursor-pointer">
             إغلاق
           </button>
         </div>
       )}
 
       {successMsg && (
-        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm flex items-center justify-between gap-3 animate-fade-in">
+        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
             <span>{successMsg}</span>
           </div>
-          <button onClick={() => setSuccessMsg(null)} className="text-emerald-400 hover:text-emerald-200 text-xs font-bold">
+          <button onClick={() => setSuccessMsg(null)} className="text-slate-400 hover:text-white text-xs underline cursor-pointer">
             إغلاق
           </button>
         </div>
@@ -210,7 +471,7 @@ export const ModeratorsManager: React.FC = () => {
         </div>
 
         <form onSubmit={handleAddModerator} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Email Field */}
             <div className="space-y-1.5 md:col-span-1">
               <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
@@ -232,7 +493,7 @@ export const ModeratorsManager: React.FC = () => {
             <div className="space-y-1.5 md:col-span-1">
               <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5 text-cyan-400" />
-                <span>اسم المشرف أو اللقب (اختياري)</span>
+                <span>اسم المشرف (اختياري)</span>
               </label>
               <input
                 type="text"
@@ -243,25 +504,41 @@ export const ModeratorsManager: React.FC = () => {
               />
             </div>
 
+            {/* UID Field */}
+            <div className="space-y-1.5 md:col-span-1">
+              <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+                <span>UID المشرف (اختياري)</span>
+              </label>
+              <input
+                type="text"
+                dir="ltr"
+                value={newUid}
+                onChange={(e) => setNewUid(e.target.value)}
+                placeholder="معرف Firebase UID"
+                className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none font-mono text-xs"
+              />
+            </div>
+
             {/* Notes / Assignment Field */}
             <div className="space-y-1.5 md:col-span-1">
               <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
                 <FileText className="w-3.5 h-3.5 text-cyan-400" />
-                <span>المهام أو التخصص (اختياري)</span>
+                <span>المهام والتخصص (اختياري)</span>
               </label>
               <input
                 type="text"
                 value={newNotes}
                 onChange={(e) => setNewNotes(e.target.value)}
-                placeholder="مثال: مشرف مقررات السنة الثالثة ومشاريع التخرج"
+                placeholder="مثال: مشرف مقررات السنة الثالثة"
                 className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none"
               />
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
             <span className="text-[11px] text-slate-400">
-              * بمجرد تسجيل المشرف الدخول بحساب Google هذا، سيتمكن فوراً من الدخول للوحة التحكم بصلاحيات التحرير.
+              * بمجرد تسجيل المشرف الدخول، ستتم مزامنة صلاحياته تلقائياً للتحرير الكامل.
             </span>
 
             <button
@@ -316,6 +593,9 @@ export const ModeratorsManager: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {moderators.map((mod) => {
               const isActive = mod.status === 'active';
+              const hasUid = !!mod.uid;
+              const isEditingUid = editingUidEmail === mod.email;
+
               return (
                 <div
                   key={mod.id}
@@ -326,7 +606,7 @@ export const ModeratorsManager: React.FC = () => {
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
                         isActive 
                           ? 'bg-cyan-950 text-cyan-300 border border-cyan-800/60' 
@@ -334,9 +614,9 @@ export const ModeratorsManager: React.FC = () => {
                       }`}>
                         {mod.displayName?.charAt(0) || mod.email.charAt(0).toUpperCase()}
                       </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-bold text-white">{mod.displayName || 'مشرف معتمد'}</h4>
+                      <div className="space-y-1.5 flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="text-sm font-bold text-white truncate">{mod.displayName || 'مشرف معتمد'}</h4>
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                             isActive 
                               ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' 
@@ -344,13 +624,68 @@ export const ModeratorsManager: React.FC = () => {
                           }`}>
                             {isActive ? 'نشط' : 'متوقف مؤقتاً'}
                           </span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                            hasUid 
+                              ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30' 
+                              : 'bg-slate-800 text-slate-400 border border-slate-700'
+                          }`}>
+                            {hasUid ? 'مُفعّل بالـ UID' : 'تفعيل بالبريد'}
+                          </span>
                         </div>
-                        <div className="text-xs font-mono text-cyan-300/90 dir-ltr text-right">
+
+                        <div className="text-xs font-mono text-cyan-300/90 dir-ltr text-right truncate">
                           {mod.email}
                         </div>
+
+                        {mod.uid && (
+                          <div className="text-[11px] font-mono text-slate-400 dir-ltr text-right flex items-center justify-end gap-1.5">
+                            <span className="text-[10px] text-slate-500">UID:</span>
+                            <span className="truncate">{mod.uid}</span>
+                          </div>
+                        )}
+
                         {mod.notes && (
-                          <div className="text-xs text-slate-400 pt-1">
+                          <div className="text-xs text-slate-400 pt-0.5">
                             {mod.notes}
+                          </div>
+                        )}
+
+                        {/* Inline UID linking option */}
+                        {!hasUid && !isEditingUid && (
+                          <button
+                            onClick={() => {
+                              setEditingUidEmail(mod.email);
+                              setInlineUidValue('');
+                            }}
+                            className="text-[11px] text-cyan-400 hover:text-cyan-300 underline flex items-center gap-1 cursor-pointer pt-1"
+                          >
+                            <KeyRound className="w-3 h-3" />
+                            <span>ربط UID المشرف للتفعيل المباشر</span>
+                          </button>
+                        )}
+
+                        {isEditingUid && (
+                          <div className="pt-2 flex items-center gap-2">
+                            <input
+                              type="text"
+                              dir="ltr"
+                              value={inlineUidValue}
+                              onChange={(e) => setInlineUidValue(e.target.value)}
+                              placeholder="ألصق UID المشرف هنا"
+                              className="px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono text-xs w-full outline-none focus:border-cyan-500"
+                            />
+                            <button
+                              onClick={() => handleAssignInlineUid(mod.email)}
+                              className="px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shrink-0 cursor-pointer"
+                            >
+                              حفظ
+                            </button>
+                            <button
+                              onClick={() => setEditingUidEmail(null)}
+                              className="px-2 py-1.5 rounded-lg bg-slate-800 text-slate-400 text-xs shrink-0 cursor-pointer"
+                            >
+                              إلغاء
+                            </button>
                           </div>
                         )}
                       </div>
@@ -360,7 +695,7 @@ export const ModeratorsManager: React.FC = () => {
                       <button
                         onClick={() => handleToggleStatus(mod)}
                         title={isActive ? 'إيقاف الصلاحية مؤقتاً' : 'إعادة تفعيل الصلاحية'}
-                        className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                        className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
                       >
                         {isActive ? (
                           <ToggleRight className="w-5 h-5 text-emerald-400" />
@@ -372,7 +707,7 @@ export const ModeratorsManager: React.FC = () => {
                       <button
                         onClick={() => setModeratorToDelete(mod)}
                         title="إلغاء وحذف الصلاحية نهائياً"
-                        className="p-2 rounded-xl text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors"
+                        className="p-2 rounded-xl text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors cursor-pointer"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -381,7 +716,7 @@ export const ModeratorsManager: React.FC = () => {
 
                   <div className="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500">
                     <span>تاريخ الإضافة: {new Date(mod.addedAt).toLocaleDateString('ar-SY')}</span>
-                    <span className="text-slate-400">صلاحيات: تحرير كامل للمحتوى الأكاديمي</span>
+                    <span className="text-slate-400">صلاحيات: تحرير كامل للمحتوى</span>
                   </div>
                 </div>
               );
@@ -415,13 +750,13 @@ export const ModeratorsManager: React.FC = () => {
             <div className="flex items-center gap-3 pt-2">
               <button
                 onClick={handleConfirmDelete}
-                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg shadow-rose-950 transition-colors"
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg shadow-rose-950 transition-colors cursor-pointer"
               >
                 تأكيد الإلغاء والحذف
               </button>
               <button
                 onClick={() => setModeratorToDelete(null)}
-                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors"
+                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors cursor-pointer"
               >
                 تراجع
               </button>
