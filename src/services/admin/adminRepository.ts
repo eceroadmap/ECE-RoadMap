@@ -396,56 +396,69 @@ export const adminRepository = {
     try {
       const snap = await getDocs(collection(db, p));
       if (!snap.empty) {
-        return snap.docs.map(d => ({
-          ...d.data(),
-          id: d.id // Ensure 'id' is ALWAYS the true Firestore Document Key
-        }));
+        return snap.docs.map(d => {
+          const data = d.data() || {};
+          return {
+            id: d.id, // Ensure 'id' is ALWAYS the true Firestore Document Key
+            authorId: data.authorId || '',
+            authorName: data.authorName || 'طالب',
+            authorYear: data.authorYear || '',
+            courseId: data.courseId || '',
+            courseNameAr: data.courseNameAr || '',
+            content: data.content || '',
+            category: data.category || 'study_tip',
+            likesCount: typeof data.likesCount === 'number' ? data.likesCount : 0,
+            likedBy: Array.isArray(data.likedBy) ? data.likedBy : [],
+            dislikesCount: typeof data.dislikesCount === 'number' ? data.dislikesCount : 0,
+            dislikedBy: Array.isArray(data.dislikedBy) ? data.dislikedBy : [],
+            status: data.status || 'active',
+            createdAt: data.createdAt || ''
+          };
+        });
       }
-      return [
-        {
-          id: 'tip-official-welcome-2026',
-          authorId: 'ece-department-admin',
-          authorName: 'إدارة منصة ECE RoadMap',
-          authorYear: 'خريج / قسم الاتصالات',
-          courseId: 'general',
-          courseNameAr: 'توجيه عام لجميع الطلاب',
-          content: 'مرحباً بكم في منصة ECE RoadMap! شاركوا خبراتكم الدراسية، نصائح الامتحانات، والتطبيقات العملية لمساعدة زملائكم في استيعاب المقررات وتطوير المهارات الهندسية. 🚀',
-          category: 'study_tip',
-          status: 'active',
-          likesCount: 15,
-          createdAt: new Date(Date.now() - 86400000 * 3).toISOString()
-        },
-        {
-          id: 'tip-official-graduation-proj',
-          authorId: 'ece-grad-2025',
-          authorName: 'م. أحمد مصطفى',
-          authorYear: 'الفرقة الرابعة / مشروع التخرج',
-          courseId: 'general',
-          courseNameAr: 'نصيحة لمشاريع التخرج',
-          content: 'عند اختيار مشروع التخرج، ابدأ مبكراً في اختيار الفكرة وحساب تكلفة الأجهزة والقطع الإلكترونية (Microcontrollers, RF modules, FPGA). القراءة المبكرة للأوراق البحثية تمنحك تفوقاً كبيراً أمام لجنة التحكيم.',
-          category: 'exam_advice',
-          status: 'active',
-          likesCount: 9,
-          createdAt: new Date(Date.now() - 86400000 * 2).toISOString()
-        },
-        {
-          id: 'tip-official-dsp-matlab',
-          authorId: 'ece-student-y3',
-          authorName: 'سارة خالد',
-          authorYear: 'الفرقة الثالثة',
-          courseId: 'general',
-          courseNameAr: 'معالجة الإشارات الرقمية (DSP)',
-          content: 'في مادة معالجة الإشارة ومادة الاتصالات الرقمية، ربط المفاهيم الرياضية ببرمجة MATLAB وPython يسهل الفهم جداً. تجربة رسم الأطياف الترددية (FFT) بنفسك تجعلك تستوعب النظرية بسرعة.',
-          category: 'lab_work',
-          status: 'active',
-          likesCount: 7,
-          createdAt: new Date(Date.now() - 86400000 * 1).toISOString()
-        }
-      ];
+      return [];
     } catch (error) {
       console.warn('Failed to list community tips from Firestore:', error);
       return [];
     }
+  },
+
+  async deleteCommunityTip(tipId: string, tipContentPreview: string = ''): Promise<void> {
+    const p = `communityTips/${tipId}`;
+    try {
+      await deleteDoc(doc(db, 'communityTips', tipId));
+      this.logAction(
+        'TIP_DELETED',
+        'community_tip',
+        tipId,
+        `حذف نصيحة طلابية نهائياً من قاعدة البيانات: ${(tipContentPreview || '').substring(0, 30)}`
+      ).catch(() => null);
+    } catch (error) {
+      console.error("DELETE TIP ERROR", error);
+      handleFirestoreError(error, OperationType.DELETE, p);
+    }
+  },
+
+  async purgeSyntheticMockTips(): Promise<number> {
+    const mockIds = [
+      'tip-official-welcome-2026',
+      'tip-official-graduation-proj',
+      'tip-official-dsp-matlab'
+    ];
+    let removedCount = 0;
+    for (const id of mockIds) {
+      try {
+        const ref = doc(db, 'communityTips', id);
+        const s = await getDoc(ref);
+        if (s.exists()) {
+          await deleteDoc(ref);
+          removedCount++;
+        }
+      } catch (err) {
+        console.warn(`Could not purge mock tip ${id}:`, err);
+      }
+    }
+    return removedCount;
   },
 
   async archiveCommunityTip(tipId: string, tipContentPreview: string): Promise<void> {
@@ -460,7 +473,7 @@ export const adminRepository = {
         'TIP_ARCHIVED',
         'community_tip',
         tipId,
-        `حجب نصيحة طلابية: ${tipContentPreview.substring(0, 30)}`
+        `حجب نصيحة طلابية: ${(tipContentPreview || '').substring(0, 30)}`
       ).catch(() => null);
     } catch (error) {
       console.error("ARCHIVE UPDATE FAILED", error);
@@ -480,7 +493,7 @@ export const adminRepository = {
         'TIP_RESTORED',
         'community_tip',
         tipId,
-        `استعادة نصيحة طلابية: ${tipContentPreview.substring(0, 30)}`
+        `استعادة نصيحة طلابية: ${(tipContentPreview || '').substring(0, 30)}`
       ).catch(() => null);
     } catch (error) {
       console.error("RESTORE TIP ERROR", error);

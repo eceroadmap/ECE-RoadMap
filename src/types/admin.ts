@@ -76,6 +76,7 @@ export type AdminActionType =
   | 'FAQ_RESTORED'
   | 'TIP_ARCHIVED'
   | 'TIP_RESTORED'
+  | 'TIP_DELETED'
   | 'CURRICULUM_SEEDED';
 
 export interface AdminActivityLog {

@@ -10,10 +10,9 @@ import {
   CheckCircle2,
   Calendar,
   RefreshCw,
-  Sparkles
+  Trash2
 } from 'lucide-react';
 import { adminRepository } from '../../services/admin/adminRepository';
-import { firebaseSyncService } from '../../services/firebaseSync';
 
 interface TipItem {
   id: string;
@@ -37,14 +36,18 @@ export const CommunityModeration: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'archived'>('all');
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [tipToConfirm, setTipToConfirm] = useState<TipItem | null>(null);
+  const [tipToDelete, setTipToDelete] = useState<TipItem | null>(null);
 
   const loadTips = async () => {
     setIsLoading(true);
     try {
+      // Clean up any stale synthetic mock tips from Firestore
+      await adminRepository.purgeSyntheticMockTips().catch(() => null);
       const data = await adminRepository.getAllCommunityTips();
-      setTips(data as TipItem[]);
+      setTips((data || []) as TipItem[]);
     } catch (e) {
       console.warn('Failed to load community tips for moderation:', e);
+      setTips([]);
     } finally {
       setIsLoading(false);
     }
@@ -55,18 +58,14 @@ export const CommunityModeration: React.FC = () => {
   }, []);
 
   const handleToggleArchive = async (tip: TipItem) => {
-    console.log("ARCHIVE BUTTON CLICKED", tip);
-    console.log("TIP OBJECT FROM ADMIN", tip);
-    console.log("ARCHIVE TARGET ID", tip.id);
-
     const isArchiving = (tip.status || 'active') === 'active';
 
     setActionLoadingId(tip.id);
     try {
       if (isArchiving) {
-        await adminRepository.archiveCommunityTip(tip.id, tip.content);
+        await adminRepository.archiveCommunityTip(tip.id, tip.content || '');
       } else {
-        await adminRepository.restoreCommunityTip(tip.id, tip.content);
+        await adminRepository.restoreCommunityTip(tip.id, tip.content || '');
       }
 
       setTips(prev => prev.map(t => {
@@ -83,13 +82,37 @@ export const CommunityModeration: React.FC = () => {
     }
   };
 
-  const filteredTips = tips.filter(t => {
+  const handleDeleteTip = async (tip: TipItem) => {
+    setActionLoadingId(tip.id);
+    try {
+      await adminRepository.deleteCommunityTip(tip.id, tip.content || '');
+      setTips(prev => prev.filter(t => t.id !== tip.id));
+    } catch (e: any) {
+      console.error('Error deleting community tip:', e);
+      alert(e?.message || 'حدث خطأ أثناء حذف النصيحة من قاعدة البيانات.');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const filteredTips = (tips || []).filter(t => {
+    if (!t) return false;
     const status = t.status || 'active';
     const matchesStatus = statusFilter === 'all' || status === statusFilter;
+    
+    const query = (searchQuery || '').trim().toLowerCase();
+    const content = (t.content || '').toLowerCase();
+    const authorName = (t.authorName || '').toLowerCase();
+    const courseNameAr = (t.courseNameAr || '').toLowerCase();
+    const category = (t.category || '').toLowerCase();
+
     const matchesSearch = 
-      t.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.authorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (t.courseNameAr && t.courseNameAr.toLowerCase().includes(searchQuery.toLowerCase()));
+      !query ||
+      content.includes(query) ||
+      authorName.includes(query) ||
+      courseNameAr.includes(query) ||
+      category.includes(query);
+
     return matchesStatus && matchesSearch;
   });
 
@@ -103,34 +126,47 @@ export const CommunityModeration: React.FC = () => {
             <span>الإشراف الأكاديمي على نصائح ومشاركات الطلاب</span>
           </div>
           <h2 className="text-lg font-black text-white">
-            مراجعة مساهمات المجتمع الطلابي ({tips.length} نصيحة ومشاركة)
+            مراجعة مساهمات المجتمع الطلابي ({tips.length} نصيحة بقاعدة البيانات)
           </h2>
           <p className="text-xs text-slate-400">
-            تتيح هذه اللوحة للإدارة الأكاديمية مراجعة النصائح المشتركة وحجب المحتوى غير اللائق أو المضلل.
+            تعرض هذه اللوحة فقط النصائح الحقيقية المخزنة بقاعدة البيانات السحابية، مع إمكانية الحجب أو الحذف النهائي.
           </p>
         </div>
 
-        <button
-          onClick={async () => {
-            if (window.confirm('هل ترغب في إعادة بناء وتطهير مجموعة النصائح الطلابية (communityTips) في قاعدة البيانات السحابية وضخ النصائح الرسمية الموثوقة؟')) {
-              setIsLoading(true);
-              try {
-                await firebaseSyncService.rebuildCommunityTipsCollection();
-                await loadTips();
-                alert('تمت إعادة بناء وتنشيط مجموعة النصائح في قاعدة البيانات السحابية بنجاح! 🚀');
-              } catch (e) {
-                console.error('Rebuild failed:', e);
-                alert('حدث خطأ أثناء إعادة بناء المجموعة.');
-              } finally {
-                setIsLoading(false);
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
+          <button
+            onClick={() => loadTips()}
+            disabled={isLoading}
+            className="px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs inline-flex items-center gap-2 border border-slate-700 shadow-lg transition-all"
+            title="تحديث واسترجاع النصائح الحقيقية من قاعدة البيانات"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <span>تحديث من السحابة</span>
+          </button>
+
+          <button
+            onClick={async () => {
+              if (window.confirm('هل ترغب في تطهير وحذف أي نصائح تجريبية سابقة والتأكد من بقاء النصائح الحقيقية فقط؟')) {
+                setIsLoading(true);
+                try {
+                  const purged = await adminRepository.purgeSyntheticMockTips();
+                  await loadTips();
+                  alert(`تم فحص وتطهير النصائح التجريبية (${purged} نصيحة تمت معالجتها).`);
+                } catch (e) {
+                  console.error('Purge failed:', e);
+                  alert('حدث خطأ أثناء تنظيف النصائح التوضيحية.');
+                } finally {
+                  setIsLoading(false);
+                }
               }
-            }
-          }}
-          className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs inline-flex items-center gap-2 shadow-lg transition-all shrink-0"
-        >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          <span>إعادة بناء وتطهير مجموعة النصائح السحابية</span>
-        </button>
+            }}
+            className="px-3.5 py-2.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 border border-rose-800/60 font-bold text-xs inline-flex items-center gap-2 shadow-lg transition-all"
+            title="حذف النصائح التوضيحية الافتراضية والإبقاء فقط على نصائح قاعدة البيانات"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>تطهير النصائح التوضيحية</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter Ribbon */}
@@ -170,7 +206,12 @@ export const CommunityModeration: React.FC = () => {
 
       {/* Tips Stream */}
       <div className="space-y-3">
-        {filteredTips.length > 0 ? (
+        {isLoading ? (
+          <div className="p-12 text-center rounded-3xl bg-[#091527] border border-slate-800 space-y-3">
+            <RefreshCw className="w-8 h-8 text-cyan-400 mx-auto animate-spin" />
+            <div className="text-sm font-bold text-slate-300">جاري تحميل النصائح من قاعدة البيانات...</div>
+          </div>
+        ) : filteredTips.length > 0 ? (
           filteredTips.map(tip => {
             const isArchived = (tip.status || 'active') === 'archived';
 
@@ -187,7 +228,7 @@ export const CommunityModeration: React.FC = () => {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-white text-xs">
-                        {tip.authorName || 'طالب مجهول'}
+                        {tip.authorName || 'طالب'}
                       </span>
                       {tip.authorYear && (
                         <span className="text-[10px] px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400">
@@ -222,27 +263,39 @@ export const CommunityModeration: React.FC = () => {
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => setTipToConfirm(tip)}
-                    disabled={actionLoadingId === tip.id}
-                    className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                      isArchived
-                        ? 'bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-400 border-emerald-800/50'
-                        : 'bg-slate-900 hover:bg-rose-950/50 text-slate-400 hover:text-rose-400 border-slate-800'
-                    }`}
-                  >
-                    {isArchived ? (
-                      <>
-                        <RotateCcw className="w-3.5 h-3.5" />
-                        <span>استعادة الظهور</span>
-                      </>
-                    ) : (
-                      <>
-                        <Archive className="w-3.5 h-3.5" />
-                        <span>حجب النصيحة</span>
-                      </>
-                    )}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setTipToConfirm(tip)}
+                      disabled={actionLoadingId === tip.id}
+                      className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors ${
+                        isArchived
+                          ? 'bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-400 border-emerald-800/50'
+                          : 'bg-slate-900 hover:bg-amber-950/50 text-slate-400 hover:text-amber-300 border-slate-800 hover:border-amber-800/50'
+                      }`}
+                    >
+                      {isArchived ? (
+                        <>
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>استعادة الظهور</span>
+                        </>
+                      ) : (
+                        <>
+                          <Archive className="w-3.5 h-3.5" />
+                          <span>حجب النصيحة</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => setTipToDelete(tip)}
+                      disabled={actionLoadingId === tip.id}
+                      className="px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors bg-slate-900 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 border-slate-800 hover:border-rose-800/60"
+                      title="حذف نهائي من قاعدة البيانات"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>حذف نهائي</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mt-3 pt-3 border-t border-slate-800/60 text-xs text-slate-200 leading-relaxed">
@@ -254,12 +307,15 @@ export const CommunityModeration: React.FC = () => {
         ) : (
           <div className="p-12 text-center rounded-3xl bg-[#091527] border border-slate-800 space-y-3">
             <MessageSquare className="w-8 h-8 text-slate-600 mx-auto" />
-            <div className="text-sm font-bold text-slate-300">لم يتم العثور على نصائح طلابية مطابقة للفلتر</div>
+            <div className="text-sm font-bold text-slate-300">لم يتم العثور على أي نصائح مطابقة في قاعدة البيانات</div>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              تظهر هنا فقط النصائح المحفوظة فعلياً في قاعدة البيانات السحابية بعد نشرها من قبل الطلاب.
+            </p>
           </div>
         )}
       </div>
 
-      {/* Custom Confirmation Modal */}
+      {/* Confirmation Modal for Archiving / Restoring */}
       {tipToConfirm && (() => {
         const isArchiving = (tipToConfirm.status || 'active') === 'active';
         return (
@@ -272,7 +328,7 @@ export const CommunityModeration: React.FC = () => {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-start gap-4">
-                <div className={`p-3 rounded-2xl ${isArchiving ? 'bg-rose-950/40 text-rose-400 border border-rose-800/50' : 'bg-emerald-950/40 text-emerald-400 border border-emerald-800/50'}`}>
+                <div className={`p-3 rounded-2xl ${isArchiving ? 'bg-amber-950/40 text-amber-400 border border-amber-800/50' : 'bg-emerald-950/40 text-emerald-400 border border-emerald-800/50'}`}>
                   {isArchiving ? <AlertTriangle className="w-6 h-6" /> : <CheckCircle2 className="w-6 h-6" />}
                 </div>
                 <div className="space-y-1 flex-1" dir="rtl">
@@ -281,7 +337,7 @@ export const CommunityModeration: React.FC = () => {
                   </h3>
                   <p className="text-xs text-slate-300 leading-relaxed">
                     {isArchiving 
-                      ? 'هل أنت متأكد من حجب هذه النصيحة؟ لن تظهر للطلاب بعد الحجب.' 
+                      ? 'هل أنت متأكد من حجب هذه النصيحة؟ لن تظهر للطلاب في الصفحة العامة بعد الحجب.' 
                       : 'هل ترغب في استعادة ظهور هذه النصيحة مجدداً للطلاب؟'}
                   </p>
                 </div>
@@ -310,7 +366,7 @@ export const CommunityModeration: React.FC = () => {
                   }}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors text-white ${
                     isArchiving 
-                      ? 'bg-rose-600 hover:bg-rose-500' 
+                      ? 'bg-amber-600 hover:bg-amber-500' 
                       : 'bg-emerald-600 hover:bg-emerald-500'
                   }`}
                 >
@@ -321,6 +377,60 @@ export const CommunityModeration: React.FC = () => {
           </div>
         );
       })()}
+
+      {/* Confirmation Modal for Permanent Deletion */}
+      {tipToDelete && (
+        <div 
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-150"
+          onClick={() => setTipToDelete(null)}
+        >
+          <div 
+            className="bg-[#091527] border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative space-y-4 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-2xl bg-rose-950/40 text-rose-400 border border-rose-800/50">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div className="space-y-1 flex-1" dir="rtl">
+                <h3 className="text-base font-bold text-white">
+                  تأكيد الحذف النهائي من قاعدة البيانات
+                </h3>
+                <p className="text-xs text-rose-300 leading-relaxed">
+                  تحذير: سيتم مسح هذه النصيحة نهائياً من قاعدة البيانات السحابية (Firestore). لا يمكن التراجع عن هذا الإجراء.
+                </p>
+              </div>
+            </div>
+
+            {/* Preview of content */}
+            <div className="p-3 bg-slate-900/40 border border-slate-800/50 rounded-xl text-[11px] text-slate-400 max-h-24 overflow-y-auto" dir="rtl">
+              <span className="font-bold text-slate-300 block mb-1">محتوى النصيحة:</span>
+              "{tipToDelete.content}"
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setTipToDelete(null)}
+                className="px-4 py-2 rounded-xl border border-slate-800 text-xs font-bold text-slate-400 bg-slate-900 hover:bg-slate-800/60 transition-colors"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const tip = tipToDelete;
+                  setTipToDelete(null);
+                  await handleDeleteTip(tip);
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-bold transition-colors text-white bg-rose-600 hover:bg-rose-500 shadow-lg shadow-rose-900/40"
+              >
+                نعم، احذف نهائياً
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
