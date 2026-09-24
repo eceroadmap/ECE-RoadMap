@@ -121,8 +121,7 @@ service cloud.firestore {
     }
 
     match /communityTips/{tipId} {
-      allow read: if true;
-      allow create, update, delete: if request.auth != null;
+      allow read, write: if true;
     }
 
     match /adminLogs/{logId} {

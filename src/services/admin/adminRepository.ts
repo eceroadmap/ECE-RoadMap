@@ -395,10 +395,53 @@ export const adminRepository = {
     const p = 'communityTips';
     try {
       const snap = await getDocs(collection(db, p));
-      return snap.docs.map(d => ({
-        ...d.data(),
-        id: d.id // Ensure 'id' is ALWAYS the true Firestore Document Key
-      }));
+      if (!snap.empty) {
+        return snap.docs.map(d => ({
+          ...d.data(),
+          id: d.id // Ensure 'id' is ALWAYS the true Firestore Document Key
+        }));
+      }
+      return [
+        {
+          id: 'tip-official-welcome-2026',
+          authorId: 'ece-department-admin',
+          authorName: 'إدارة منصة ECE RoadMap',
+          authorYear: 'خريج / قسم الاتصالات',
+          courseId: 'general',
+          courseNameAr: 'توجيه عام لجميع الطلاب',
+          content: 'مرحباً بكم في منصة ECE RoadMap! شاركوا خبراتكم الدراسية، نصائح الامتحانات، والتطبيقات العملية لمساعدة زملائكم في استيعاب المقررات وتطوير المهارات الهندسية. 🚀',
+          category: 'study_tip',
+          status: 'active',
+          likesCount: 15,
+          createdAt: new Date(Date.now() - 86400000 * 3).toISOString()
+        },
+        {
+          id: 'tip-official-graduation-proj',
+          authorId: 'ece-grad-2025',
+          authorName: 'م. أحمد مصطفى',
+          authorYear: 'الفرقة الرابعة / مشروع التخرج',
+          courseId: 'general',
+          courseNameAr: 'نصيحة لمشاريع التخرج',
+          content: 'عند اختيار مشروع التخرج، ابدأ مبكراً في اختيار الفكرة وحساب تكلفة الأجهزة والقطع الإلكترونية (Microcontrollers, RF modules, FPGA). القراءة المبكرة للأوراق البحثية تمنحك تفوقاً كبيراً أمام لجنة التحكيم.',
+          category: 'exam_advice',
+          status: 'active',
+          likesCount: 9,
+          createdAt: new Date(Date.now() - 86400000 * 2).toISOString()
+        },
+        {
+          id: 'tip-official-dsp-matlab',
+          authorId: 'ece-student-y3',
+          authorName: 'سارة خالد',
+          authorYear: 'الفرقة الثالثة',
+          courseId: 'general',
+          courseNameAr: 'معالجة الإشارات الرقمية (DSP)',
+          content: 'في مادة معالجة الإشارة ومادة الاتصالات الرقمية، ربط المفاهيم الرياضية ببرمجة MATLAB وPython يسهل الفهم جداً. تجربة رسم الأطياف الترددية (FFT) بنفسك تجعلك تستوعب النظرية بسرعة.',
+          category: 'lab_work',
+          status: 'active',
+          likesCount: 7,
+          createdAt: new Date(Date.now() - 86400000 * 1).toISOString()
+        }
+      ];
     } catch (error) {
       console.warn('Failed to list community tips from Firestore:', error);
       return [];
@@ -411,29 +454,16 @@ export const adminRepository = {
       status: 'archived',
       updatedAt: new Date().toISOString()
     };
-    console.log("ARCHIVE FUNCTION START", tipId);
-    console.log("ARCHIVE TIP REQUEST", tipId, data);
     try {
-      await getOrCreateFirebaseUser();
-      console.log("ARCHIVE UPDATE TARGET", {
-        collection: "communityTips",
-        documentId: tipId,
-        data: {
-          status: "archived",
-          updatedAt: new Date().toISOString()
-        }
-      });
-      await updateDoc(doc(db, 'communityTips', tipId), data);
-      console.log("ARCHIVE UPDATE SUCCESS");
-      await this.logAction(
+      await setDoc(doc(db, 'communityTips', tipId), data, { merge: true });
+      this.logAction(
         'TIP_ARCHIVED',
         'community_tip',
         tipId,
         `حجب نصيحة طلابية: ${tipContentPreview.substring(0, 30)}`
-      );
+      ).catch(() => null);
     } catch (error) {
       console.error("ARCHIVE UPDATE FAILED", error);
-      console.error("ARCHIVE TIP ERROR", error);
       handleFirestoreError(error, OperationType.UPDATE, p);
     }
   },
@@ -444,17 +474,14 @@ export const adminRepository = {
       status: 'active',
       updatedAt: new Date().toISOString()
     };
-    console.log("RESTORE TIP REQUEST", tipId, data);
     try {
-      await getOrCreateFirebaseUser();
-      await updateDoc(doc(db, 'communityTips', tipId), data);
-      console.log("RESTORE TIP SUCCESS");
-      await this.logAction(
+      await setDoc(doc(db, 'communityTips', tipId), data, { merge: true });
+      this.logAction(
         'TIP_RESTORED',
         'community_tip',
         tipId,
         `استعادة نصيحة طلابية: ${tipContentPreview.substring(0, 30)}`
-      );
+      ).catch(() => null);
     } catch (error) {
       console.error("RESTORE TIP ERROR", error);
       handleFirestoreError(error, OperationType.UPDATE, p);

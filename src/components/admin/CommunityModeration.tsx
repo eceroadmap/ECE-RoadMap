@@ -75,9 +75,9 @@ export const CommunityModeration: React.FC = () => {
         }
         return t;
       }));
-    } catch (e) {
+    } catch (e: any) {
       console.error('Error moderating community tip:', e);
-      alert('حدث خطأ أثناء تعديل حالة النصيحة.');
+      alert(e?.message || 'حدث خطأ أثناء تعديل حالة النصيحة.');
     } finally {
       setActionLoadingId(null);
     }

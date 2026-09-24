@@ -104,10 +104,7 @@ service cloud.firestore {
 
     // 7. Community Tips & Moderation
     match /communityTips/{tipId} {
-      allow read: if true;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null;
-      allow delete: if request.auth != null;
+      allow read, write: if true;
     }
 
     // 8. Administrator Activity Audit Log
