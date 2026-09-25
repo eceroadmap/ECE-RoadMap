@@ -357,19 +357,6 @@ export const Header: React.FC<HeaderProps> = ({
                       </button>
                     );
                   })}
-
-                  <div className="pt-1 mt-1 border-t border-slate-800">
-                    <button
-                      onClick={() => {
-                        setMoreDropdownOpen(false);
-                        window.dispatchEvent(new CustomEvent('open-devs-modal'));
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-right transition-colors text-cyan-300 hover:bg-cyan-500/10 hover:text-cyan-200"
-                    >
-                      <Users className="w-4 h-4 text-cyan-400" />
-                      <span>{isArabic ? 'مطورو الموقع' : 'Developers'}</span>
-                    </button>
-                  </div>
                 </div>
               )}
             </div>
@@ -565,21 +552,6 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
               );
             })}
-
-            {/* مطورو الموقع */}
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                window.dispatchEvent(new CustomEvent('open-devs-modal'));
-              }}
-              className="w-full flex items-center justify-between p-3 rounded-xl text-xs sm:text-sm font-bold bg-slate-900/90 border border-slate-700/80 text-cyan-300 hover:text-white hover:border-cyan-500/60 min-h-[44px] transition-colors col-span-1 sm:col-span-2 cursor-pointer shadow-sm"
-            >
-              <div className="flex items-center gap-2.5">
-                <Users className="w-4 h-4 text-cyan-400" />
-                <span>{isArabic ? 'مطورو الموقع' : 'Developers'}</span>
-              </div>
-              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-            </button>
           </div>
         </div>
       )}

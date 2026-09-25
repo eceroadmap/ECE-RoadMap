@@ -138,14 +138,9 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
                 </button>
               </li>
               <li className="pt-2">
-                <button
-                  onClick={() => setShowDevModal(true)}
-                  className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-850 border border-slate-700/80 hover:border-cyan-500/60 text-slate-300 hover:text-white transition-all shadow-sm group cursor-pointer"
-                  title="مطورو الموقع"
-                >
-                  <Users className="w-3 h-3 text-cyan-400 group-hover:scale-110 transition-transform" />
-                  <span>مطورو الموقع</span>
-                </button>
+                <span className="inline-block text-[11px] px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400">
+                  وجهتك الأكاديمية &bull; المعرض السنوي
+                </span>
               </li>
             </ul>
           </div>
@@ -167,7 +162,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
             <button
               id="open-devs-modal-btn"
               onClick={() => setShowDevModal(true)}
-              className="hover:text-cyan-400 transition-colors flex items-center gap-1.5 text-xs text-slate-300 hover:text-white cursor-pointer group px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700/80 hover:border-cyan-500/60 shadow-sm"
+              className="hover:text-cyan-400 transition-colors flex items-center gap-1.5 text-xs text-slate-400 hover:text-cyan-300 cursor-pointer group"
               title="مطورو الموقع"
             >
               <Users className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
