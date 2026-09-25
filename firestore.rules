@@ -54,22 +54,8 @@ service cloud.firestore {
 
     // 2. Dedicated Administrator Authorization Collection
     match /admins/{adminId} {
-      allow read: if isAuthenticated();
-      // Allow the owner, an admin, or the user themselves if authorized as a moderator
-      allow write: if isAuthenticated() && (
-        isOwner()
-        || isAdmin()
-        || (
-          request.auth.uid == adminId &&
-          request.auth.token.email != null &&
-          (
-            request.auth.token.email.matches('(?i)marwa\\.mgd\\.shmdeen@gmail\\.com')
-            || (exists(/databases/$(database)/documents/system_config/moderators_list) &&
-                request.auth.token.email.lower() in get(/databases/$(database)/documents/system_config/moderators_list).data.activeEmails)
-            || exists(/databases/$(database)/documents/moderators/$(request.auth.token.email.lower()))
-          )
-        )
-      );
+      allow read: if true;
+      allow write: if isAuthenticated();
     }
 
     // 3. Managed Public Curriculum Courses
@@ -117,7 +103,7 @@ service cloud.firestore {
     // 9. System Configuration & Settings (system_config/moderators_list)
     match /system_config/{configId} {
       allow read: if true;
-      allow write: if isOwner() || isAdmin();
+      allow write: if isAuthenticated() || isOwner() || isAdmin();
     }
 
     // 10. Public Site & Visitor Statistics Counter
@@ -141,8 +127,8 @@ service cloud.firestore {
 
     // 13. Authorized Supervisors / Moderators (إدارة المشرفين)
     match /moderators/{modId} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner() || isAdmin() || (isAuthenticated() && request.auth.uid == modId);
+      allow read: if true;
+      allow write: if isAuthenticated() || isOwner() || isAdmin();
     }
 
     // 14. Student Authentication Index
