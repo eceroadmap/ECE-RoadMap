@@ -70,10 +70,6 @@ export async function checkIsAdmin(user: User | null): Promise<boolean> {
 
       try {
         await setDoc(adminDocRef, ownerData, { merge: true });
-        // Automatically sync pending moderators from owner's privileged session
-        moderatorsService.syncPendingModeratorsByOwner().catch(err => {
-          console.warn('Auto-sync moderators caught:', err);
-        });
       } catch (e) {
         console.warn('Saving owner admin doc caught:', e);
       }
@@ -87,27 +83,20 @@ export async function checkIsAdmin(user: User | null): Promise<boolean> {
     // Priority 2: Check if email is in the authorized moderators collection
     const isAuthorizedMod = await moderatorsService.checkIsEmailAuthorized(userEmail);
     if (isAuthorizedMod) {
+      const modList = await moderatorsService.fetchModerators();
+      const modRecord = modList.find(m => m.email.toLowerCase() === userEmail);
+      const assignedRole = (modRecord?.role as any) === 'super_admin' ? 'super_admin' : 'moderator';
+
       const modData: AdminRecord = {
         uid: effectiveUser.uid,
-        displayName: effectiveUser.displayName || 'مشرف أكاديمي معتمد',
+        displayName: effectiveUser.displayName || modRecord?.displayName || 'مشرف أكاديمي معتمد',
         email: effectiveUser.email || userEmail,
-        role: 'moderator',
-        status: 'active',
-        isOwner: false,
-        createdAt: new Date().toISOString(),
+        role: assignedRole,
+        status: modRecord?.status || 'active',
+        isOwner: assignedRole === 'super_admin',
+        createdAt: modRecord?.addedAt || new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
-
-      // Register check-in signal and attempt direct self-provisioning
-      try {
-        await moderatorsService.registerModeratorCheckIn(
-          effectiveUser.uid, 
-          userEmail, 
-          effectiveUser.displayName || undefined
-        );
-      } catch (e) {
-        console.warn('Moderator check-in caught:', e);
-      }
 
       try {
         await setDoc(adminDocRef, modData, { merge: true });

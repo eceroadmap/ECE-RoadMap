@@ -13,7 +13,11 @@ import {
   ToggleLeft,
   ToggleRight,
   EyeOff,
-  ShieldAlert
+  ShieldAlert,
+  Edit3,
+  X,
+  Check,
+  Shield
 } from 'lucide-react';
 import { ModeratorRecord } from '../../types/admin';
 import { moderatorsService } from '../../services/admin/moderatorsService';
@@ -29,7 +33,16 @@ export const ModeratorsManager: React.FC = () => {
   // Form State
   const [newEmail, setNewEmail] = useState<string>('');
   const [newDisplayName, setNewDisplayName] = useState<string>('');
+  const [newRole, setNewRole] = useState<'moderator' | 'super_admin'>('moderator');
   const [newNotes, setNewNotes] = useState<string>('');
+
+  // Edit Modal State
+  const [editingModerator, setEditingModerator] = useState<ModeratorRecord | null>(null);
+  const [editDisplayName, setEditDisplayName] = useState<string>('');
+  const [editRole, setEditRole] = useState<'moderator' | 'super_admin'>('moderator');
+  const [editStatus, setEditStatus] = useState<'active' | 'inactive'>('active');
+  const [editNotes, setEditNotes] = useState<string>('');
+  const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
 
   // Delete modal state
   const [moderatorToDelete, setModeratorToDelete] = useState<ModeratorRecord | null>(null);
@@ -54,8 +67,15 @@ export const ModeratorsManager: React.FC = () => {
 
   const handleAddModerator = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newEmail.trim() || !newEmail.includes('@')) {
+    const cleanEmail = newEmail.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
       setErrorMsg('يرجى إدخال عنوان بريد Google إلكتروني صحيح.');
+      return;
+    }
+
+    // Check duplicate
+    if (moderators.some(m => m.email.toLowerCase() === cleanEmail)) {
+      setErrorMsg(`المشرف بالبريد (${cleanEmail}) موجود بالفعل في القائمة.`);
       return;
     }
 
@@ -65,14 +85,16 @@ export const ModeratorsManager: React.FC = () => {
 
     try {
       await moderatorsService.addModerator({
-        email: newEmail.trim(),
+        email: cleanEmail,
         displayName: newDisplayName.trim() || undefined,
+        role: newRole,
         notes: newNotes.trim() || undefined
       });
 
-      setSuccessMsg(`تمت إضافة المشرف (${newEmail.trim().toLowerCase()}) بنجاح وتفعيل صلاحيات التحرير.`);
+      setSuccessMsg(`تمت إضافة المشرف (${cleanEmail}) بنجاح وتفعيل صلاحيات التحرير.`);
       setNewEmail('');
       setNewDisplayName('');
+      setNewRole('moderator');
       setNewNotes('');
       await loadModerators();
     } catch (err: any) {
@@ -84,14 +106,47 @@ export const ModeratorsManager: React.FC = () => {
     }
   };
 
+  const handleStartEdit = (mod: ModeratorRecord) => {
+    setEditingModerator(mod);
+    setEditDisplayName(mod.displayName || '');
+    setEditRole((mod.role as any) === 'super_admin' ? 'super_admin' : 'moderator');
+    setEditStatus(mod.status);
+    setEditNotes(mod.notes || '');
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingModerator) return;
+
+    setIsSavingEdit(true);
+    setErrorMsg(null);
+    try {
+      await moderatorsService.updateModerator(editingModerator.email, {
+        displayName: editDisplayName.trim() || 'مشرف معتمد',
+        role: editRole,
+        status: editStatus,
+        notes: editNotes.trim()
+      });
+
+      setSuccessMsg(`تم تحديث بيانات المشرف (${editingModerator.email}) بنجاح.`);
+      setEditingModerator(null);
+      await loadModerators();
+    } catch (err: any) {
+      console.error('Error saving moderator edit:', err);
+      setErrorMsg(err?.message || 'تعذر حفظ تعديلات المشرف.');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
   const handleToggleStatus = async (mod: ModeratorRecord) => {
     try {
       const newStatus = await moderatorsService.toggleModeratorStatus(mod.email, mod.status);
-      setModerators(prev => prev.map(m => m.email === mod.email ? { ...m, status: newStatus } : m));
       setSuccessMsg(`تم تحديث حالة المشرف (${mod.email}) إلى: ${newStatus === 'active' ? 'نشط' : 'متوقف مؤقتاً'}`);
-    } catch (err) {
+      await loadModerators();
+    } catch (err: any) {
       console.error('Error toggling moderator status:', err);
-      setErrorMsg('تعذر تغيير حالة المشرف.');
+      setErrorMsg(err?.message || 'تعذر تغيير حالة المشرف.');
     }
   };
 
@@ -99,13 +154,13 @@ export const ModeratorsManager: React.FC = () => {
     if (!moderatorToDelete) return;
     try {
       await moderatorsService.removeModerator(moderatorToDelete.email);
-      setModerators(prev => prev.filter(m => m.email !== moderatorToDelete.email));
       setSuccessMsg(`تم إلغاء صلاحيات المشرف (${moderatorToDelete.email}) بنجاح.`);
       setModeratorToDelete(null);
-    } catch (err) {
+      await loadModerators();
+    } catch (err: any) {
       console.error("DELETE ADMIN ERROR", err);
       console.error('Error deleting moderator:', err);
-      setErrorMsg('تعذر حذف المشرف.');
+      setErrorMsg(err?.message || 'تعذر حذف المشرف.');
     }
   };
 
@@ -138,7 +193,7 @@ export const ModeratorsManager: React.FC = () => {
           <button
             onClick={loadModerators}
             disabled={isLoading}
-            className="p-3 rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700 text-cyan-300 transition-colors shrink-0"
+            className="p-3 rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700 text-cyan-300 transition-colors shrink-0 cursor-pointer"
             title="تحديث القائمة"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -209,9 +264,9 @@ export const ModeratorsManager: React.FC = () => {
         </div>
 
         <form onSubmit={handleAddModerator} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Email Field */}
-            <div className="space-y-1.5 md:col-span-1">
+            <div className="space-y-1.5">
               <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
                 <Mail className="w-3.5 h-3.5 text-cyan-400" />
                 <span>بريد Google للمشرف *</span>
@@ -228,10 +283,10 @@ export const ModeratorsManager: React.FC = () => {
             </div>
 
             {/* Display Name Field */}
-            <div className="space-y-1.5 md:col-span-1">
+            <div className="space-y-1.5">
               <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5 text-cyan-400" />
-                <span>اسم المشرف أو اللقب (اختياري)</span>
+                <span>اسم المشرف (اختياري)</span>
               </label>
               <input
                 type="text"
@@ -242,17 +297,33 @@ export const ModeratorsManager: React.FC = () => {
               />
             </div>
 
+            {/* Role Field */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                <Shield className="w-3.5 h-3.5 text-amber-400" />
+                <span>الدور والصلاحية</span>
+              </label>
+              <select
+                value={newRole}
+                onChange={(e) => setNewRole(e.target.value as any)}
+                className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none"
+              >
+                <option value="moderator">مشرف تحرير أكاديمي (Moderator)</option>
+                <option value="super_admin">مدير نظام كامل (Super Admin)</option>
+              </select>
+            </div>
+
             {/* Notes / Assignment Field */}
-            <div className="space-y-1.5 md:col-span-1">
+            <div className="space-y-1.5">
               <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
                 <FileText className="w-3.5 h-3.5 text-cyan-400" />
-                <span>المهام أو التخصص (اختياري)</span>
+                <span>المهام (اختياري)</span>
               </label>
               <input
                 type="text"
                 value={newNotes}
                 onChange={(e) => setNewNotes(e.target.value)}
-                placeholder="مثال: مشرف مقررات السنة الثالثة ومشاريع التخرج"
+                placeholder="مثال: مشرف مقررات السنة الثالثة"
                 className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none"
               />
             </div>
@@ -260,7 +331,7 @@ export const ModeratorsManager: React.FC = () => {
 
           <div className="flex items-center justify-between pt-2">
             <span className="text-[11px] text-slate-400">
-              * بمجرد تسجيل المشرف الدخول بحساب Google هذا، سيتمكن فوراً من الدخول للوحة التحكم بصلاحيات التحرير.
+              * بمجرد تسجيل المشرف الدخول بحساب Google هذا، سيتمكن فوراً من الدخول للوحة التحكم بصلاحياته.
             </span>
 
             <button
@@ -299,7 +370,7 @@ export const ModeratorsManager: React.FC = () => {
         {isLoading ? (
           <div className="py-12 flex flex-col items-center justify-center gap-3 text-slate-400">
             <RefreshCw className="w-6 h-6 animate-spin text-cyan-400" />
-            <span className="text-sm">جاري تحميل بيانات المشرفين...</span>
+            <span className="text-sm">جاري تحميل بيانات المشرفين من Firestore...</span>
           </div>
         ) : moderators.length === 0 ? (
           <div className="py-12 px-4 text-center rounded-2xl bg-slate-900/40 border border-slate-800 space-y-3">
@@ -315,9 +386,10 @@ export const ModeratorsManager: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {moderators.map((mod) => {
               const isActive = mod.status === 'active';
+              const isSuperAdmin = (mod.role as any) === 'super_admin';
               return (
                 <div
-                  key={mod.id}
+                  key={mod.id || mod.email}
                   className={`p-5 rounded-2xl border transition-all ${
                     isActive 
                       ? 'bg-slate-900/80 border-slate-800 hover:border-slate-700' 
@@ -328,18 +400,25 @@ export const ModeratorsManager: React.FC = () => {
                     <div className="flex items-start gap-3">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
                         isActive 
-                          ? 'bg-cyan-950 text-cyan-300 border border-cyan-800/60' 
+                          ? isSuperAdmin ? 'bg-amber-950 text-amber-300 border border-amber-800/60' : 'bg-cyan-950 text-cyan-300 border border-cyan-800/60' 
                           : 'bg-slate-800 text-slate-400 border border-slate-700'
                       }`}>
                         {mod.displayName?.charAt(0) || mod.email.charAt(0).toUpperCase()}
                       </div>
                       <div className="space-y-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h4 className="text-sm font-bold text-white">{mod.displayName || 'مشرف معتمد'}</h4>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            isSuperAdmin
+                              ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                              : 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30'
+                          }`}>
+                            {isSuperAdmin ? 'مدير نظام (Super Admin)' : 'مشرف (Moderator)'}
+                          </span>
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                             isActive 
                               ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' 
-                              : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                              : 'bg-rose-500/15 text-rose-300 border border-rose-500/30'
                           }`}>
                             {isActive ? 'نشط' : 'متوقف مؤقتاً'}
                           </span>
@@ -357,9 +436,17 @@ export const ModeratorsManager: React.FC = () => {
 
                     <div className="flex items-center gap-1 shrink-0">
                       <button
+                        onClick={() => handleStartEdit(mod)}
+                        title="تعديل بيانات المشرف والدور"
+                        className="p-2 rounded-xl text-slate-400 hover:text-cyan-300 hover:bg-slate-800 transition-colors cursor-pointer"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+
+                      <button
                         onClick={() => handleToggleStatus(mod)}
                         title={isActive ? 'إيقاف الصلاحية مؤقتاً' : 'إعادة تفعيل الصلاحية'}
-                        className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                        className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
                       >
                         {isActive ? (
                           <ToggleRight className="w-5 h-5 text-emerald-400" />
@@ -371,7 +458,7 @@ export const ModeratorsManager: React.FC = () => {
                       <button
                         onClick={() => setModeratorToDelete(mod)}
                         title="إلغاء وحذف الصلاحية نهائياً"
-                        className="p-2 rounded-xl text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors"
+                        className="p-2 rounded-xl text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors cursor-pointer"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -380,7 +467,9 @@ export const ModeratorsManager: React.FC = () => {
 
                   <div className="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500">
                     <span>تاريخ الإضافة: {new Date(mod.addedAt).toLocaleDateString('ar-SY')}</span>
-                    <span className="text-slate-400">صلاحيات: تحرير كامل للمحتوى الأكاديمي</span>
+                    <span className="text-slate-400">
+                      {isSuperAdmin ? 'صلاحيات: إدارة كاملة للنظام والمشرفين' : 'صلاحيات: تحرير كامل للمحتوى الأكاديمي'}
+                    </span>
                   </div>
                 </div>
               );
@@ -389,9 +478,111 @@ export const ModeratorsManager: React.FC = () => {
         )}
       </div>
 
+      {/* Edit Moderator Modal */}
+      {editingModerator && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" dir="rtl">
+          <div className="w-full max-w-lg p-6 sm:p-7 rounded-3xl bg-[#091527] border border-cyan-500/30 shadow-2xl space-y-5 text-right">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-cyan-950 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
+                  <Edit3 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">تعديل بيانات المشرف</h3>
+                  <div className="text-xs font-mono text-cyan-300 dir-ltr text-right">{editingModerator.email}</div>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingModerator(null)}
+                className="p-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-white border border-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-slate-300">اسم المشرف أو اللقب:</label>
+                <input
+                  type="text"
+                  value={editDisplayName}
+                  onChange={(e) => setEditDisplayName(e.target.value)}
+                  placeholder="مثال: م. أحمد يوسف"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-300">الدور والصلاحية:</label>
+                  <select
+                    value={editRole}
+                    onChange={(e) => setEditRole(e.target.value as any)}
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs focus:border-cyan-500 outline-none"
+                  >
+                    <option value="moderator">مشرف (Moderator)</option>
+                    <option value="super_admin">مدير نظام (Super Admin)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-300">حالة الحساب:</label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as any)}
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs focus:border-cyan-500 outline-none"
+                  >
+                    <option value="active">نشط (Active)</option>
+                    <option value="inactive">متوقف مؤقتاً (Inactive)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-slate-300">ملاحظات المهام والتكليف:</label>
+                <textarea
+                  rows={3}
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  placeholder="مثال: مسؤول مراجعة المقررات ومشاريع التخرج"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none resize-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 pt-3 border-t border-slate-800">
+                <button
+                  type="submit"
+                  disabled={isSavingEdit}
+                  className="flex-1 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-950 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  {isSavingEdit ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>جاري الحفظ في Firestore...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>حفظ التعديلات في السحابة</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingModerator(null)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors cursor-pointer"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       {moderatorToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" dir="rtl">
           <div className="w-full max-w-md p-6 rounded-3xl bg-[#091527] border border-rose-500/30 shadow-2xl space-y-4 text-right">
             <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 mx-auto">
               <ShieldAlert className="w-6 h-6" />
@@ -414,13 +605,13 @@ export const ModeratorsManager: React.FC = () => {
             <div className="flex items-center gap-3 pt-2">
               <button
                 onClick={handleConfirmDelete}
-                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg shadow-rose-950 transition-colors"
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg shadow-rose-950 transition-colors cursor-pointer"
               >
                 تأكيد الإلغاء والحذف
               </button>
               <button
                 onClick={() => setModeratorToDelete(null)}
-                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors"
+                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors cursor-pointer"
               >
                 تراجع
               </button>
@@ -431,3 +622,4 @@ export const ModeratorsManager: React.FC = () => {
     </div>
   );
 };
+
