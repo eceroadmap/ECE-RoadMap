@@ -40,6 +40,7 @@ interface HeaderProps {
   onOpenSearch: () => void;
   onOpenSyncModal?: () => void;
   onOpenExhibition?: () => void;
+  onOpenExhibition2?: () => void;
   onOpenQRModal?: () => void;
 }
 
@@ -49,6 +50,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSearch,
   onOpenSyncModal,
   onOpenExhibition,
+  onOpenExhibition2,
   onOpenQRModal
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -200,6 +202,21 @@ export const Header: React.FC<HeaderProps> = ({
                 <Sparkles className="w-3 h-3 text-cyan-400 shrink-0" />
                 <span className="hidden sm:inline">{t('nav.exhibition')}</span>
                 <span className="sm:hidden">{isArabic ? 'الملتقى' : 'Exhibit'}</span>
+              </button>
+            )}
+
+            {onOpenExhibition2 && (
+              <button
+                onClick={() => {
+                  soundEffects.playModalOpen();
+                  onOpenExhibition2();
+                }}
+                title={isArabic ? 'وضع الملتقى 2: المعرض الأكاديمي السينمائي التفاعلي 3D' : 'Exhibition Mode 2: Cinematic 3D Journey'}
+                className="px-2.5 py-0.5 rounded-full bg-gradient-to-r from-cyan-500/25 via-blue-600/25 to-cyan-500/25 hover:from-cyan-500/35 hover:to-blue-500/35 border border-cyan-400/60 text-cyan-200 hover:text-white transition-all font-bold flex items-center gap-1 shadow-sm ring-1 ring-cyan-400/30"
+              >
+                <Zap className="w-3 h-3 text-cyan-300 shrink-0" />
+                <span className="hidden sm:inline">{isArabic ? 'الملتقى 2 ⚡' : 'Exhibit 2 ⚡'}</span>
+                <span className="sm:hidden">{isArabic ? 'الملتقى 2' : 'Ex 2'}</span>
               </button>
             )}
 
@@ -505,8 +522,8 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Quick Exhibition Trigger inside drawer */}
-          {onOpenExhibition && (
-            <div className="mb-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+            {onOpenExhibition && (
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
@@ -519,11 +536,29 @@ export const Header: React.FC<HeaderProps> = ({
                   <span>{t('nav.exhibition')}</span>
                 </div>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-200 border border-cyan-800">
-                  {isArabic ? 'الملتقى' : 'Exhibit'}
+                  {isArabic ? 'الملتقى 1' : 'Mode 1'}
                 </span>
               </button>
-            </div>
-          )}
+            )}
+
+            {onOpenExhibition2 && (
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onOpenExhibition2();
+                }}
+                className="w-full flex items-center justify-between p-3 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-cyan-950 to-blue-950 border border-cyan-400 text-white min-h-[44px] shadow-lg shadow-cyan-950/60"
+              >
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-cyan-300 shrink-0 animate-pulse" />
+                  <span>{isArabic ? 'الملتقى 2 السينمائي ⚡' : 'Exhibition 2 (3D) ⚡'}</span>
+                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500 text-slate-950 font-black">
+                  3D
+                </span>
+              </button>
+            )}
+          </div>
 
           {/* Navigation Links Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
