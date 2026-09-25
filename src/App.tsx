@@ -28,7 +28,6 @@ import { AcademicRecordSection } from './components/AcademicRecordSection';
 import { GraduationProjectNavigatorSection } from './components/GraduationProjectNavigatorSection';
 import { FromCourseToSkillSection } from './components/FromCourseToSkillSection';
 import { ExhibitionModeModal } from './components/ExhibitionModeModal';
-import { Exhibition2ModeModal } from './components/Exhibition2ModeModal';
 import { QRCodeDisplay } from './components/QRCodeDisplay';
 import { VisitorWelcomeWidget } from './components/VisitorWelcomeWidget';
 import { UsernamePasswordPromptModal } from './components/UsernamePasswordPromptModal';
@@ -47,7 +46,6 @@ export default function App() {
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isExhibitionOpen, setIsExhibitionOpen] = useState(false);
-  const [isExhibition2Open, setIsExhibition2Open] = useState(false);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [courseYearFilter, setCourseYearFilter] = useState<AcademicYearNumber | 'all'>('all');
   const [roadmapInitialYear, setRoadmapInitialYear] = useState<AcademicYearNumber>(1);
@@ -142,7 +140,6 @@ export default function App() {
         onOpenSearch={() => setIsSearchOpen(true)}
         onOpenSyncModal={() => setIsLoginModalOpen(true)}
         onOpenExhibition={() => setIsExhibitionOpen(true)}
-        onOpenExhibition2={() => setIsExhibition2Open(true)}
         onOpenQRModal={() => setIsQRModalOpen(true)}
       />
 
@@ -158,7 +155,6 @@ export default function App() {
               onNavigateTab={(tab) => handleNavigateTab(tab)}
               onScrollToJourney={handleScrollToJourney}
               onOpenExhibition={() => setIsExhibitionOpen(true)}
-              onOpenExhibition2={() => setIsExhibition2Open(true)}
               onOpenQRModal={() => setIsQRModalOpen(true)}
             />
 
@@ -431,28 +427,10 @@ export default function App() {
         onClose={() => setIsUsernamePromptOpen(false)}
       />
 
-      {/* Exhibition Mode Modal (Mode 1 Classic) */}
+      {/* Exhibition Mode Modal */}
       <ExhibitionModeModal
         isOpen={isExhibitionOpen}
         onClose={() => setIsExhibitionOpen(false)}
-        onSwitchToExhibition2={() => {
-          setIsExhibitionOpen(false);
-          setIsExhibition2Open(true);
-        }}
-      />
-
-      {/* Exhibition Mode 2 Modal (Cinematic 3D Experience) */}
-      <Exhibition2ModeModal
-        isOpen={isExhibition2Open}
-        onClose={() => setIsExhibition2Open(false)}
-        onSwitchToExhibition1={() => {
-          setIsExhibition2Open(false);
-          setIsExhibitionOpen(true);
-        }}
-        onOpenAptitudeQuiz={() => {
-          setIsExhibition2Open(false);
-          handleNavigateTab('roadmap');
-        }}
       />
 
       {/* Quick QR Code Display Modal */}

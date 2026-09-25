@@ -33,10 +33,8 @@ import { ExhibitionFullConfig, ExhibitionSlideId, HeroMetric, SkillPipelineItem,
 import { exhibitionRepository } from '../../services/admin/exhibitionRepository';
 import { DEFAULT_EXHIBITION_CONFIG } from '../../data/defaultExhibition';
 import { ExhibitionModeModal } from '../ExhibitionModeModal';
-import { Exhibition2Manager } from './Exhibition2Manager';
 
 export const ExhibitionManager: React.FC = () => {
-  const [activeModeTab, setActiveModeTab] = useState<'exhibition1' | 'exhibition2'>('exhibition1');
   const [config, setConfig] = useState<ExhibitionFullConfig>(exhibitionRepository.getCachedConfig());
   const [selectedSlideId, setSelectedSlideId] = useState<ExhibitionSlideId>('hero');
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -109,40 +107,9 @@ export const ExhibitionManager: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fadeIn pb-12" dir="rtl">
-      {/* Exhibition Mode Selector Switcher */}
-      <div className="flex items-center gap-2.5 p-1.5 bg-slate-900/90 border border-slate-800 rounded-2xl w-fit shadow-lg">
-        <button
-          onClick={() => setActiveModeTab('exhibition1')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-            activeModeTab === 'exhibition1'
-              ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <MonitorPlay className="w-4 h-4" />
-          <span>وضع الملتقى 1 (الكلاسيكي)</span>
-        </button>
-
-        <button
-          onClick={() => setActiveModeTab('exhibition2')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-            activeModeTab === 'exhibition2'
-              ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-950'
-              : 'text-slate-400 hover:text-cyan-300'
-          }`}
-        >
-          <Sparkles className="w-4 h-4 text-cyan-400" />
-          <span>وضع الملتقى 2 (المعرض السينمائي 3D ⚡)</span>
-        </button>
-      </div>
-
-      {activeModeTab === 'exhibition2' ? (
-        <Exhibition2Manager />
-      ) : (
-        <>
-          {/* ========================================================================= */}
-          {/* 1. Header Banner & Quick Action Controls                                   */}
-          {/* ========================================================================= */}
+      {/* ========================================================================= */}
+      {/* 1. Header Banner & Quick Action Controls                                   */}
+      {/* ========================================================================= */}
       <div className="p-6 rounded-3xl bg-gradient-to-l from-[#0c223f] via-[#09182d] to-[#060e1c] border-2 border-cyan-500/30 shadow-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-5">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950 border border-cyan-500/50 text-cyan-300 text-xs font-mono">
@@ -1102,8 +1069,6 @@ export const ExhibitionManager: React.FC = () => {
           isOpen={isPreviewOpen}
           onClose={() => setIsPreviewOpen(false)}
         />
-      )}
-        </>
       )}
     </div>
   );

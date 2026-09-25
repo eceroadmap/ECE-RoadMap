@@ -38,12 +38,14 @@ export interface AdminRecord {
 export interface ModeratorRecord {
   id: string; // Document ID (usually sanitized email)
   email: string;
+  uid?: string; // Firebase Auth UID if known or registered
   displayName?: string;
   status: 'active' | 'inactive';
   notes?: string;
   addedBy: string;
   addedAt: string;
   lastActiveAt?: string;
+  firestoreSynced?: boolean; // Whether the moderator is synced in Firestore /admins
 }
 
 export type AdminContentType = 
@@ -74,6 +76,7 @@ export type AdminActionType =
   | 'FAQ_RESTORED'
   | 'TIP_ARCHIVED'
   | 'TIP_RESTORED'
+  | 'TIP_DELETED'
   | 'CURRICULUM_SEEDED';
 
 export interface AdminActivityLog {
