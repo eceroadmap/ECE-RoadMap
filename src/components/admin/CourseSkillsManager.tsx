@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Sparkles, 
+  TrendingUp, 
   Plus, 
   Search, 
   Edit3, 
@@ -15,7 +15,8 @@ import {
   ExternalLink,
   Layers,
   Award,
-  X
+  X,
+  GitMerge
 } from 'lucide-react';
 import { courseSkillsService, SkillPipeline, DEFAULT_SKILL_PIPELINES } from '../../services/courseSkillsService';
 import { COURSES_DATA } from '../../data/courses';
@@ -177,7 +178,7 @@ export const CourseSkillsManager: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#091527] border border-cyan-500/20 p-6 rounded-3xl shadow-xl">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-cyan-400 font-mono text-xs">
-            <Sparkles className="w-4 h-4" />
+            <TrendingUp className="w-4 h-4" />
             <span>إدارة وتعديل قسم &quot;من المادة إلى المهارة&quot;</span>
           </div>
           <h2 className="text-2xl font-black text-white">
@@ -265,7 +266,7 @@ export const CourseSkillsManager: React.FC = () => {
         </div>
       ) : filteredPipelines.length === 0 ? (
         <div className="p-12 rounded-3xl bg-[#071120] border border-dashed border-slate-800 text-center space-y-3">
-          <Sparkles className="w-8 h-8 text-slate-600 mx-auto" />
+          <GitMerge className="w-8 h-8 text-slate-600 mx-auto" />
           <p className="text-sm font-bold text-slate-300">لم يتم العثور على أي مسارات مهارات مطابقة للبحث</p>
           <p className="text-xs text-slate-500">يمكنك إضافة مسار جديد أو استيراد المسارات القياسية بضغطة زر</p>
         </div>
@@ -359,7 +360,7 @@ export const CourseSkillsManager: React.FC = () => {
             <div className="flex items-center justify-between border-b border-slate-800 pb-4">
               <div className="flex items-center gap-2">
                 <div className="w-9 h-9 rounded-2xl bg-cyan-950 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
-                  <Sparkles className="w-5 h-5" />
+                  <GitMerge className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="text-base font-black text-white">

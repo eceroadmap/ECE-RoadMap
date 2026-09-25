@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  Sparkles, 
+  Database, 
   X, 
   CheckCircle2, 
   Layers, 
@@ -56,7 +56,7 @@ export const CurriculumSeederModal: React.FC<CurriculumSeederModalProps> = ({
       <div className="w-full max-w-lg rounded-3xl bg-[#091527] border border-cyan-500/30 shadow-2xl p-6 space-y-6">
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
           <div className="flex items-center gap-2 text-cyan-400">
-            <Sparkles className="w-5 h-5" />
+            <Database className="w-5 h-5" />
             <h3 className="text-base font-black text-white">مزامنة واستيراد الخطة الدراسية</h3>
           </div>
           <button
@@ -127,7 +127,7 @@ export const CurriculumSeederModal: React.FC<CurriculumSeederModalProps> = ({
               disabled={isSeeding}
               className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-950 flex items-center gap-2"
             >
-              <Sparkles className="w-4 h-4" />
+              <Database className="w-4 h-4" />
               <span>{isSeeding ? 'جاري المزامنة...' : 'بدء استيراد الخطة إلى Firestore'}</span>
             </button>
           )}

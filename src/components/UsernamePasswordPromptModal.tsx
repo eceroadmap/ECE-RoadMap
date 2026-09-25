@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Key, ShieldCheck, Sparkles, Send, RefreshCw, X, LogOut } from 'lucide-react';
+import { User, Key, ShieldCheck, Send, RefreshCw, X, LogOut } from 'lucide-react';
 import { useStudentState } from '../services/useStudentState';
 import { studentAuthService } from '../services/studentAuthService';
 import { useLanguage } from '../context/LanguageContext';

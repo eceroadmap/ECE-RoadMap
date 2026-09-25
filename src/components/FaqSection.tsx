@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HelpCircle, ChevronDown, ChevronUp, Sparkles, MessageSquare } from 'lucide-react';
+import { HelpCircle, ChevronDown, ChevronUp, Info, MessageSquare } from 'lucide-react';
 import { FAQ_DATA } from '../data/faq';
 
 export const FaqSection: React.FC = () => {
@@ -78,7 +78,7 @@ export const FaqSection: React.FC = () => {
                     <p>{item.answerAr}</p>
                     {item.isPlaceholder && (
                       <p className="text-[11px] text-slate-400 mt-2 italic flex items-center gap-1.5">
-                        <Sparkles className="w-3 h-3 text-cyan-400" />
+                        <Info className="w-3 h-3 text-cyan-400" />
                         يجري تدقيق وتنسيق الصياغات الرسمية مع إدارة القسم واللجان الأكاديمية.
                       </p>
                     )}

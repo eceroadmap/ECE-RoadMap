@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
   MonitorPlay, 
-  Sparkles, 
   RotateCcw, 
   Save, 
   Plus, 
@@ -339,7 +338,7 @@ export const ExhibitionManager: React.FC = () => {
       {selectedSlideId === 'hero' && (
         <div className="p-5 rounded-3xl bg-[#081528] border border-slate-800 space-y-6">
           <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-            <Sparkles className="w-5 h-5 text-cyan-400" />
+            <Layers className="w-5 h-5 text-cyan-400" />
             <h3 className="text-base font-bold text-white">تعديل نصوص وبطاقات الشريحة الافتتاحية (Hero)</h3>
           </div>
 

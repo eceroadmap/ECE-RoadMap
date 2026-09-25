@@ -13,7 +13,7 @@ import {
   AlertCircle,
   HelpCircle,
   Lock,
-  Sparkles,
+  Info,
 } from 'lucide-react';
 import {
   catalogMigrationService,
@@ -484,7 +484,7 @@ export const CatalogMigrationModal: React.FC<CatalogMigrationModalProps> = ({
                   {/* Root Cause Conclusion */}
                   <div className="p-3 rounded-lg bg-blue-950/30 border border-blue-500/30 text-[11px] space-y-1">
                     <div className="font-bold text-blue-300 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                      <Info className="w-3.5 h-3.5 text-blue-400" />
                       <span>النتيجة التحليلية لسبب رؤية Migration للعدد 0 بينما التطبيق يعرض البيانات:</span>
                     </div>
                     <p className="text-slate-300 whitespace-pre-line leading-relaxed text-[11px]">

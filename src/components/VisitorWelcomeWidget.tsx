@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Radio, Users, X } from 'lucide-react';
+import { Compass, Radio, Users, X } from 'lucide-react';
 import { visitorCounterService, VisitorInfo } from '../services/visitorCounterService';
 
 interface VisitorWelcomeWidgetProps {
@@ -46,7 +46,7 @@ export const VisitorWelcomeWidget: React.FC<VisitorWelcomeWidgetProps> = ({ onDi
           {/* Right Side: Welcome greeting & Department identity */}
           <div className="flex items-center gap-3 w-full md:w-auto justify-start">
             <div className="w-9 h-9 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0 shadow-inner">
-              <Sparkles className="w-4 h-4" />
+              <Compass className="w-4 h-4" />
             </div>
 
             <div className="space-y-0.5 text-right">

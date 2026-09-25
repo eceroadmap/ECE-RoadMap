@@ -4,7 +4,7 @@ import {
   ArrowLeft, 
   Cpu, 
   BookOpen, 
-  Sparkles, 
+  Award, 
   GraduationCap, 
   Layers, 
   Zap
@@ -178,7 +178,7 @@ export const AcademicRoadmap: React.FC<AcademicRoadmapProps> = ({
             {/* Skills Acquired */}
             <div className="p-4 sm:p-5 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-3">
               <h4 className="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2">
-                <Sparkles className="w-4 h-4" />
+                <Award className="w-4 h-4" />
                 المهارات والخبرات المكتسبة في هذه السنة
               </h4>
               <ul className="space-y-2">

@@ -10,7 +10,6 @@ import {
   Check, 
   Layers, 
   Tag, 
-  Sparkles,
   AlertCircle,
   ExternalLink
 } from 'lucide-react';
@@ -162,9 +161,9 @@ export const CoursesManager: React.FC = () => {
       });
 
       setIsModalOpen(false);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to save course:', error);
-      alert(error?.message || 'حدث خطأ أثناء حفظ المقرر. يرجى المحاولة مرة أخرى.');
+      alert('حدث خطأ أثناء حفظ المقرر. يرجى المحاولة مرة أخرى.');
     } finally {
       setIsSaving(false);
     }

@@ -10,7 +10,7 @@ import {
   Compass, 
   Users, 
   HelpCircle, 
-  Sparkles, 
+  TrendingUp, 
   Layers,
   GraduationCap,
   Cloud,
@@ -113,7 +113,7 @@ export const Header: React.FC<HeaderProps> = ({
   // Secondary items kept neatly inside the "المزيد" dropdown
   const secondaryNavItems: NavItem[] = [
     { id: 'graduation_projects', label: t('nav.graduation_projects'), icon: FolderGit2 },
-    { id: 'develop', label: t('nav.develop'), icon: Sparkles },
+    { id: 'develop', label: t('nav.develop'), icon: TrendingUp },
     { id: 'faq', label: t('nav.faq'), icon: HelpCircle },
     { id: 'admin', label: t('nav.admin'), icon: ShieldCheck },
   ];
@@ -197,7 +197,7 @@ export const Header: React.FC<HeaderProps> = ({
                 title={isArabic ? 'وضع الملتقى الأكاديمي للشاشات الكبيرة والمعارض' : 'Exhibition Mode for large screens'}
                 className="px-2.5 py-0.5 rounded-full bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-300 transition-colors font-semibold flex items-center gap-1 shadow-sm"
               >
-                <Sparkles className="w-3 h-3 text-cyan-400 shrink-0" />
+                <Award className="w-3 h-3 text-cyan-400 shrink-0" />
                 <span className="hidden sm:inline">{t('nav.exhibition')}</span>
                 <span className="sm:hidden">{isArabic ? 'الملتقى' : 'Exhibit'}</span>
               </button>
@@ -515,7 +515,7 @@ export const Header: React.FC<HeaderProps> = ({
                 className="w-full flex items-center justify-between p-3 rounded-xl text-xs sm:text-sm font-bold bg-[#08182f] border border-cyan-500/40 text-cyan-300 min-h-[44px]"
               >
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <Award className="w-4 h-4 text-cyan-400 shrink-0" />
                   <span>{t('nav.exhibition')}</span>
                 </div>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-200 border border-cyan-800">

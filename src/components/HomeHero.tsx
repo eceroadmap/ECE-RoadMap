@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Compass, Map, ChevronDown, Laptop, Sparkles, QrCode } from 'lucide-react';
+import { ArrowLeft, Compass, Map, ChevronDown, Laptop, Award, QrCode } from 'lucide-react';
 import { ActiveTab } from '../types';
 
 interface HomeHeroProps {

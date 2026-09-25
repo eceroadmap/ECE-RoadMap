@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  Sparkles, 
+  Compass, 
   ArrowLeft, 
   ArrowRight,
   CheckCircle2, 
@@ -118,7 +118,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           <form onSubmit={handleNext} className="space-y-6">
             <div className="space-y-2">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/70 border border-cyan-800/50 text-cyan-300 text-xs font-mono">
-                <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                <Compass className="w-3.5 h-3.5 text-cyan-400" />
                 <span>{isArabic ? 'إعداد سريع • رحلتك الأكاديمية' : 'Quick Setup • Academic Journey'}</span>
               </div>
               <h2 className="text-xl sm:text-2xl font-black text-white">

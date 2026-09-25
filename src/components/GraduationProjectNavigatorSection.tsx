@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Sparkles, 
+  GraduationCap, 
   Search, 
   Bookmark, 
   BookmarkCheck, 
@@ -207,7 +207,7 @@ export const GraduationProjectNavigatorSection: React.FC<GraduationProjectNaviga
         <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
           <div className="space-y-3 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-xs font-semibold">
-              <Sparkles className="w-4 h-4" />
+              <GraduationCap className="w-4 h-4" />
               <span>مساعد مشروع التخرج الموجه</span>
             </div>
             <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
@@ -245,7 +245,7 @@ export const GraduationProjectNavigatorSection: React.FC<GraduationProjectNaviga
                 : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white'
             }`}
           >
-            <Sparkles className="w-4 h-4" />
+            <Compass className="w-4 h-4" />
             <span>مساعد المشروع</span>
           </button>
 
@@ -280,7 +280,7 @@ export const GraduationProjectNavigatorSection: React.FC<GraduationProjectNaviga
                 <div className="bg-slate-900/90 border border-cyan-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-8 animate-fadeIn">
                   <div className="space-y-2 border-b border-slate-800 pb-5">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-700 text-xs font-semibold">
-                      <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                      <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-400" />
                       <span>الخطوة الأولى — تحديد التفضيلات الهندسية</span>
                     </div>
                     <h2 className="text-xl sm:text-2xl font-black text-white">
@@ -481,7 +481,7 @@ export const GraduationProjectNavigatorSection: React.FC<GraduationProjectNaviga
                   <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div className="space-y-1.5">
                       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700 text-xs font-mono font-semibold">
-                        <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                         <span>حللنا تفضيلاتك ووجدنا لك {topRecommendations.length} مشاريع مناسبة</span>
                       </div>
                       <h2 className="text-xl sm:text-3xl font-black text-white">
@@ -547,7 +547,7 @@ export const GraduationProjectNavigatorSection: React.FC<GraduationProjectNaviga
 
                                 <div className="flex items-center gap-2">
                                   <div className="px-3.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-black flex items-center gap-1.5 shadow-md">
-                                    <Sparkles className="w-3.5 h-3.5" />
+                                    <Award className="w-3.5 h-3.5" />
                                     <span>التوافق {res.score}%</span>
                                   </div>
 

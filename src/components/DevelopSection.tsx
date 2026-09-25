@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Sparkles, 
   Radio, 
   Globe, 
   Code2, 
@@ -13,7 +12,9 @@ import {
   CheckCircle2, 
   Compass,
   FileCheck2,
-  ChevronDown
+  ChevronDown,
+  TrendingUp,
+  BookOpen
 } from 'lucide-react';
 import { SkillCategory, SkillCourse } from '../types';
 import { SKILL_COURSES_DATA, LEARNING_PATHS, LearningPath } from '../data/skills';
@@ -33,7 +34,7 @@ export const DevelopSection: React.FC = () => {
   }, []);
 
   const categories = [
-    { id: 'all', label: 'جميع المهارات', icon: Sparkles },
+    { id: 'all', label: 'جميع المهارات', icon: Layers },
     { id: 'communications', label: 'الاتصالات', icon: Radio },
     { id: 'networking', label: 'الشبكات', icon: Globe },
     { id: 'programming', label: 'البرمجة', icon: Code2 },
@@ -54,7 +55,7 @@ export const DevelopSection: React.FC = () => {
       {/* Section Header */}
       <div className="text-center max-w-3xl mx-auto space-y-3">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-800/40 text-cyan-300 text-xs font-mono">
-          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+          <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />
           التأهيل التقني وسوق العمل
         </div>
         <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
@@ -182,7 +183,7 @@ export const DevelopSection: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-cyan-400" />
+              <BookOpen className="w-4 h-4 text-cyan-400" />
               دليل المهارات والدورات المستقلة
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">

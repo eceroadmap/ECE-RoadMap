@@ -31,7 +31,7 @@ import { ExhibitionModeModal } from './components/ExhibitionModeModal';
 import { QRCodeDisplay } from './components/QRCodeDisplay';
 import { VisitorWelcomeWidget } from './components/VisitorWelcomeWidget';
 import { UsernamePasswordPromptModal } from './components/UsernamePasswordPromptModal';
-import { ArrowLeft, BookOpen, Cpu, Sparkles, Map, GraduationCap, Laptop, HelpCircle } from 'lucide-react';
+import { ArrowLeft, BookOpen, Cpu, TrendingUp, Map, GraduationCap, Laptop, HelpCircle } from 'lucide-react';
 import { COURSES_DATA } from './data/courses';
 import { SOFTWARE_DATA } from './data/software';
 import { useStudentState } from './services/useStudentState';

@@ -9,7 +9,8 @@ import {
   TrendingUp, 
   Clock, 
   CheckCircle2, 
-  Sparkles, 
+  Database, 
+  BookMarked,
   Layers, 
   RefreshCw,
   ArrowUpRight,
@@ -92,7 +93,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
             onClick={onOpenSeeder}
             className="px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-cyan-950 transition-transform active:scale-95"
           >
-            <Sparkles className="w-4 h-4" />
+            <Database className="w-4 h-4" />
             <span>مزامنة الخطة الدراسية</span>
           </button>
         </div>
@@ -315,7 +316,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
             onClick={() => onNavigateSection('resources')}
             className="p-4 rounded-2xl bg-slate-900/80 hover:bg-slate-850 border border-slate-800 hover:border-cyan-500/50 text-right space-y-2 transition-all group"
           >
-            <Sparkles className="w-5 h-5 text-amber-400 group-hover:scale-110 transition-transform" />
+            <BookMarked className="w-5 h-5 text-amber-400 group-hover:scale-110 transition-transform" />
             <div className="text-xs font-bold text-white">مصادر فريق نُون</div>
             <div className="text-[10px] text-slate-500">روابط التلغرام والمستودعات</div>
           </button>

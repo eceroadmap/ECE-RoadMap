@@ -3,7 +3,7 @@ import {
   GraduationCap, 
   BookOpen, 
   Cpu, 
-  Sparkles, 
+  TrendingUp, 
   Laptop, 
   Share2, 
   Star, 
@@ -148,7 +148,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               onClick={handlePromoteToNextYear}
               className="px-5 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-all shadow-lg flex items-center gap-2 shrink-0 min-h-[44px]"
             >
-              <Sparkles className="w-4 h-4" />
+              <GraduationCap className="w-4 h-4" />
               <span>ترفع إلى السنة {profile.academicYear + 1} الآن ✦</span>
             </button>
           </div>
@@ -473,7 +473,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             <span className="text-xs sm:text-sm font-bold text-white group-hover:text-cyan-300 truncate block">طوّر نفسك</span>
           </div>
           <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-900 flex items-center justify-center text-cyan-400 shrink-0">
-            <Sparkles className="w-4 h-4" />
+            <TrendingUp className="w-4 h-4" />
           </div>
         </button>
 

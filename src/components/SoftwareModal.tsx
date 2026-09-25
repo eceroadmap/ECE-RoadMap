@@ -6,7 +6,6 @@ import {
   Download, 
   ExternalLink, 
   CheckCircle2, 
-  Sparkles,
   Layers
 } from 'lucide-react';
 import { SoftwareTool, Course } from '../types';
@@ -179,7 +178,7 @@ export const SoftwareModal: React.FC<SoftwareModalProps> = ({
           {/* Learning Resources */}
           <div className="space-y-2">
             <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-400" />
+              <BookOpen className="w-4 h-4 text-amber-400" />
               المصادر التعليمية والشروحات
             </h3>
             <div className="p-3.5 rounded-xl bg-slate-950/50 border border-slate-800/80 space-y-2">

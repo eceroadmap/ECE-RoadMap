@@ -9,7 +9,6 @@ import {
   XCircle, 
   X, 
   Save, 
-  Sparkles,
   BookOpen,
   Wrench,
   Tag

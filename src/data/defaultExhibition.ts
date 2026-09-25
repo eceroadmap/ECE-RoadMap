@@ -227,7 +227,7 @@ export const DEFAULT_EXHIBITION_CONFIG: ExhibitionFullConfig = {
         titleAr: 'مهندس ألياف ضوئية واتصالات ليزرية',
         titleEn: 'Fiber Optics & Photonics Engineer',
         domain: 'شبكات DWDM البحرية والأرضية، مقاسم الألياف، الحساسات الضوئية',
-        iconKey: 'Sparkles',
+        iconKey: 'Zap',
         colorClass: 'border-teal-500/40 bg-teal-950/40 text-teal-300'
       }
     ]

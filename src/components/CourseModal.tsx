@@ -5,7 +5,7 @@ import {
   Cpu, 
   CheckCircle2, 
   GitFork, 
-  Sparkles, 
+  Lightbulb, 
   FileText, 
   ExternalLink,
   Layers,
@@ -408,7 +408,7 @@ export const CourseModal: React.FC<CourseModalProps> = ({
           <div className="space-y-3 pt-3 border-t border-slate-800">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-400" />
+                <Lightbulb className="w-4 h-4 text-amber-400" />
                 <span>{t('tips.course_tips_title')}</span>
                 <span className="px-2 py-0.2 rounded-full bg-cyan-950 text-cyan-300 text-[10px] border border-cyan-800/50 font-mono">
                   {courseTips.length}

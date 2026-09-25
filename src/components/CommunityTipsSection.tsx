@@ -3,7 +3,7 @@ import {
   MessageSquarePlus, 
   ThumbsUp, 
   ThumbsDown,
-  Sparkles, 
+  Lightbulb, 
   Send, 
   BookOpen, 
   Flame, 
@@ -288,7 +288,7 @@ export const CommunityTipsSection: React.FC = () => {
         >
           <div className="flex items-center justify-between pb-2 border-b border-slate-800 text-white font-bold">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-cyan-400" />
+              <MessageSquarePlus className="w-4 h-4 text-cyan-400" />
               <span>{t('tips.add_btn')}</span>
             </div>
             {!isStudentLoggedIn && (
@@ -472,7 +472,7 @@ export const CommunityTipsSection: React.FC = () => {
       ) : sortedAndFilteredTips.length === 0 ? (
         <div className="p-8 rounded-3xl bg-[#091527] border border-slate-800/80 text-center space-y-3">
           <div className="w-12 h-12 rounded-2xl bg-cyan-950/60 border border-cyan-800/40 flex items-center justify-center text-cyan-400 mx-auto">
-            <Sparkles className="w-6 h-6" />
+            <Lightbulb className="w-6 h-6" />
           </div>
           <h4 className="text-base font-bold text-white">{t('tips.first_to_share')}</h4>
           <p className="text-xs text-slate-400 max-w-md mx-auto">

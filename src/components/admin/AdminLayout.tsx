@@ -5,7 +5,9 @@ import {
   Users, 
   BookOpen, 
   Cpu, 
-  Sparkles, 
+  TrendingUp, 
+  BookMarked,
+  Database,
   HelpCircle, 
   Clock, 
   LogOut, 
@@ -285,8 +287,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToApp }) => {
     { id: 'courses', label: 'إدارة المقررات الدراسية', icon: BookOpen },
     { id: 'course_skills', label: 'تعديل (من المادة إلى المهارة)', icon: GitMerge },
     { id: 'software', label: 'إدارة برمجيات المحاكاة', icon: Cpu },
-    { id: 'develop', label: 'إدارة قسم "طور نفسك"', icon: Sparkles },
-    { id: 'resources', label: 'موارد ومصادر فريق نُون', icon: Sparkles },
+    { id: 'develop', label: 'إدارة قسم "طور نفسك"', icon: TrendingUp },
+    { id: 'resources', label: 'موارد ومصادر فريق نُون', icon: BookMarked },
     { id: 'faq', label: 'الأسئلة الشائعة الأكاديمية', icon: HelpCircle },
     { id: 'community', label: 'الإشراف على نصائح الطلاب', icon: Users },
     ...(isOwner ? [{ id: 'logs', label: 'سجل العمليات الإدارية', icon: Clock }] : []),
@@ -406,7 +408,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToApp }) => {
               className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-cyan-500/40 text-slate-300 text-xs font-bold flex items-center justify-between transition-colors min-h-[44px]"
             >
               <div className="flex items-center gap-2">
-                <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                <Database className="w-3.5 h-3.5 text-cyan-400" />
                 <span>مزامنة الخطة الأكاديمية</span>
               </div>
               <ChevronLeft className="w-3.5 h-3.5 text-slate-500" />

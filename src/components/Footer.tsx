@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ActiveTab } from '../types';
-import { Layers, ShieldCheck, Heart, Users, X, Send, ExternalLink, Sparkles } from 'lucide-react';
+import { Layers, ShieldCheck, Heart, Users, X, Send, ExternalLink, Award } from 'lucide-react';
 
 interface FooterProps {
   onSelectTab: (tab: ActiveTab) => void;
@@ -211,7 +211,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
               {/* فريق ملتقى وجهتك الأكاديمية */}
               <div className="p-3 sm:p-3.5 rounded-xl bg-gradient-to-r from-cyan-950/70 via-slate-900/90 to-blue-950/60 border border-cyan-500/40 shadow-md shadow-cyan-950/40">
                 <div className="font-bold text-cyan-300 text-xs mb-2 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse shrink-0" />
+                  <Award className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
                   <span className="text-xs sm:text-sm font-black text-white">فريق ملتقى وجهتك الأكاديمية 2026:</span>
                 </div>
                 {/* خط الأسماء على سطر واحد على الموبايل */}

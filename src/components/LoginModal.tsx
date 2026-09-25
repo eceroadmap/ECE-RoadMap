@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, 
-  Sparkles, 
+  Compass, 
   User, 
   Users, 
   LogIn, 
@@ -306,7 +306,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         {/* Header Branding */}
         <div className="text-center space-y-2 relative">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/90 border border-cyan-500/40 text-cyan-300 text-[11px] font-mono">
-            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+            <Compass className="w-3.5 h-3.5 text-cyan-400" />
             <span>{t('auth.portal_title')}</span>
           </div>
 
@@ -393,7 +393,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 onClick={handleStartEdit}
                 className="w-full py-2.5 px-4 rounded-2xl bg-slate-900 hover:bg-slate-850 border border-cyan-500/40 text-cyan-300 text-xs font-bold transition-colors flex items-center justify-center gap-1.5 min-h-[40px]"
               >
-                <Sparkles className="w-4 h-4 text-cyan-400" />
+                <User className="w-4 h-4 text-cyan-400" />
                 <span>{isArabic ? 'تعديل الاسم والملف الشخصي' : 'Edit Name & Profile'}</span>
               </button>
 
@@ -536,7 +536,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 <span>{isArabic ? 'حماية وخصوصية تامة' : 'Safe & Private'}</span>
               </div>
               <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800/80 flex items-center justify-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <Check className="w-3.5 h-3.5 text-amber-400" />
                 <span>{isArabic ? 'تجربة مخصصة لكل طالب' : 'Personalized'}</span>
               </div>
             </div>

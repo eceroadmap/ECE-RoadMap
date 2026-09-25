@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Sparkles, 
+  BookMarked, 
   Plus, 
   Search, 
   Archive, 
@@ -189,7 +189,7 @@ export const ResourcesManager: React.FC = () => {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-5 rounded-3xl bg-[#091527] border border-slate-800 shadow-xl">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-cyan-400 text-xs font-bold">
-            <Sparkles className="w-4 h-4 text-amber-400" />
+            <BookMarked className="w-4 h-4 text-amber-400" />
             <span>إدارة الموارد وروابط فريق نُون الأكاديمي</span>
           </div>
           <h2 className="text-lg font-black text-white">

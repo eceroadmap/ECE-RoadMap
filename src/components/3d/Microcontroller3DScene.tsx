@@ -5,7 +5,7 @@ import {
   Eye, 
   Maximize2, 
   Minimize2, 
-  Sparkles, 
+  Zap, 
   Cpu, 
   Activity, 
   Compass, 
@@ -1130,7 +1130,7 @@ export const Microcontroller3DScene: React.FC<Microcontroller3DSceneProps> = ({
         {activeComponentName && (
           <div className="animate-in fade-in slide-in-from-top-1 duration-200 px-3 py-2 rounded-2xl bg-[#09182d]/95 border border-cyan-400/50 text-right max-w-xs backdrop-blur-md shadow-xl shadow-cyan-950/60 pointer-events-auto">
             <div className="text-[11px] font-bold text-white flex items-center gap-1.5">
-              <Sparkles className="w-3 h-3 text-amber-400" />
+              <Zap className="w-3 h-3 text-amber-400" />
               <span>{activeComponentName}</span>
             </div>
             {activeComponentDesc && (

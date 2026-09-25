@@ -6,7 +6,8 @@ import {
   ShieldCheck, 
   AlertTriangle, 
   CheckCircle2, 
-  Sparkles, 
+  Lightbulb,
+  Award, 
   Info, 
   Save, 
   Trash2, 
@@ -610,7 +611,7 @@ export const LaptopAdvisorSection: React.FC = () => {
             {evaluation.practicalAdvice.length > 0 && (
               <div className="pt-3 space-y-2 text-xs">
                 <span className="text-[11px] font-bold text-cyan-400 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5" />
+                  <Lightbulb className="w-3.5 h-3.5" />
                   نصائح عملية للترقية أو الاستخدام:
                 </span>
                 <ul className="space-y-1.5 text-slate-300 text-[11px]">
@@ -668,7 +669,7 @@ export const LaptopAdvisorSection: React.FC = () => {
       {/* Recommended Laptop Archetypes */}
       <div className="space-y-4 pt-4 sm:pt-6">
         <div className="flex items-center gap-2 text-xs font-bold text-slate-300 uppercase tracking-wider">
-          <Sparkles className="w-4 h-4 text-cyan-400" />
+          <Laptop className="w-4 h-4 text-cyan-400" />
           نماذج الأجهزة الموصى بها للشراء لطلاب القسم
         </div>
 
@@ -689,7 +690,7 @@ export const LaptopAdvisorSection: React.FC = () => {
                   </span>
                   {arch.isRecommended && (
                     <span className="text-[10px] font-bold text-cyan-400 flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" />
+                      <Award className="w-3 h-3" />
                       الأكثر توازناً
                     </span>
                   )}

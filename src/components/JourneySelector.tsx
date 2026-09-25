@@ -2,7 +2,7 @@ import React from 'react';
 import { 
   GraduationCap, 
   BookOpen, 
-  Sparkles, 
+  TrendingUp, 
   ArrowLeft, 
   CheckCircle, 
   Laptop, 
@@ -144,7 +144,7 @@ export const JourneySelector: React.FC<JourneySelectorProps> = ({ onNavigateTab 
           >
             <div className="space-y-4">
               <div className="w-12 h-12 rounded-xl bg-indigo-950/80 border border-indigo-800/60 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
-                <Sparkles className="w-6 h-6" />
+                <TrendingUp className="w-6 h-6" />
               </div>
 
               <div>
@@ -174,7 +174,7 @@ export const JourneySelector: React.FC<JourneySelectorProps> = ({ onNavigateTab 
                 onClick={() => onNavigateTab('develop')}
                 className="w-full py-2.5 px-4 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-indigo-200 text-xs font-bold flex items-center justify-center gap-2 transition-colors"
               >
-                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                <TrendingUp className="w-3.5 h-3.5 text-indigo-400" />
                 <span>استكشف مسارات طوّر نفسك</span>
                 <ArrowLeft className="w-3.5 h-3.5" />
               </button>

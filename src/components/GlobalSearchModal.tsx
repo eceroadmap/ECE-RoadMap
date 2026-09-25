@@ -4,7 +4,7 @@ import {
   X, 
   BookOpen, 
   Cpu, 
-  Sparkles, 
+  TrendingUp, 
   HelpCircle, 
   Users, 
   ArrowLeft,
@@ -384,7 +384,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                 <div className="space-y-2">
                   <div className="flex items-center justify-between px-1">
                     <span className="text-xs font-bold text-cyan-300 uppercase tracking-wider flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                      <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />
                       مسارات التطوير الذاتي (Paths)
                     </span>
                     <button

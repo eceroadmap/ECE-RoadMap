@@ -6,7 +6,7 @@ import {
   BookOpen, 
   Download, 
   ExternalLink, 
-  Sparkles, 
+  Award, 
   ShieldCheck, 
   FileText,
   Share2,
@@ -100,7 +100,7 @@ export const StudentHubSection: React.FC<StudentHubSectionProps> = ({
                       {featuredResource.titleAr}
                     </h3>
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-700/60 flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" />
+                      <Award className="w-3 h-3" />
                       مبادرة أكاديمية معتمدة
                     </span>
                   </div>

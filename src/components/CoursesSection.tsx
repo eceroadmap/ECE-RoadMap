@@ -5,7 +5,6 @@ import {
   Filter, 
   ArrowLeft, 
   Cpu, 
-  Sparkles,
   Layers
 } from 'lucide-react';
 import { Course, AcademicYearNumber, SoftwareTool } from '../types';

@@ -6,7 +6,6 @@ import {
   ArrowLeft, 
   Download, 
   Layers, 
-  Sparkles,
   Radio,
   Globe,
   Code

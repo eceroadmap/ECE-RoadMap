@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Sparkles, 
+  TrendingUp, 
   Plus, 
   Search, 
   Edit3, 
@@ -139,9 +139,9 @@ export const DevelopManager: React.FC = () => {
       });
 
       setIsModalOpen(false);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to save skill:', error);
-      alert(error?.message || 'حدث خطأ أثناء حفظ مهارة "طور نفسك".');
+      alert('حدث خطأ أثناء حفظ مهارة "طور نفسك".');
     } finally {
       setIsSaving(false);
     }
@@ -152,9 +152,9 @@ export const DevelopManager: React.FC = () => {
     try {
       await adminRepository.deleteSkill(id);
       setSkills(prev => prev.filter(s => s.id !== id));
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to delete skill:', error);
-      alert(error?.message || 'تعذر حذف المهارة حالياً.');
+      alert('تعذر حذف المهارة حالياً.');
     }
   };
 
@@ -172,7 +172,7 @@ export const DevelopManager: React.FC = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 rounded-3xl bg-[#091527] border border-cyan-500/30 shadow-xl">
         <div className="space-y-1">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-800/60 text-cyan-300 text-xs font-mono">
-            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+            <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />
             إدارة محتوى قسم "طور نفسك"
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-white">إدارة السلاسل والمهارات التقنية</h2>

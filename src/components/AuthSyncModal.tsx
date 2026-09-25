@@ -12,8 +12,7 @@ import {
   Loader2,
   GraduationCap,
   Calendar,
-  UserCheck,
-  Sparkles
+  UserCheck
 } from 'lucide-react';
 import { useStudentState } from '../services/useStudentState';
 import { firebaseSyncService } from '../services/firebaseSync';

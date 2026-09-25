@@ -7,7 +7,7 @@ import {
   Pause, 
   Layers, 
   Map, 
-  Sparkles, 
+  TrendingUp, 
   QrCode, 
   GraduationCap, 
   Cpu, 
@@ -66,7 +66,7 @@ const ICON_LOOKUP: Record<string, React.ComponentType<{ className?: string }>> =
   Zap,
   Wifi,
   ShieldCheck,
-  Sparkles,
+  TrendingUp,
   Briefcase,
   Layers,
   Map,
@@ -149,7 +149,7 @@ export const ExhibitionModeModal: React.FC<ExhibitionModeModalProps> = ({
     switch (id) {
       case 'hero': return Layers;
       case 'journey': return Map;
-      case 'skills_pipeline': return Sparkles;
+      case 'skills_pipeline': return TrendingUp;
       case 'software_toolkit': return Cpu;
       case 'graduation_projects': return GraduationCap;
       case 'careers': return Briefcase;
@@ -1008,7 +1008,7 @@ export const ExhibitionModeModal: React.FC<ExhibitionModeModalProps> = ({
               {selected3DComponent ? (
                 <div className="space-y-0.5 animate-in fade-in duration-200">
                   <div className="font-bold text-cyan-300 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <Cpu className="w-3.5 h-3.5 text-amber-400" />
                     <span>{selected3DComponent.nameAr}</span>
                   </div>
                   <p className="text-[10px] text-slate-300 leading-relaxed">
@@ -1019,7 +1019,7 @@ export const ExhibitionModeModal: React.FC<ExhibitionModeModalProps> = ({
                 <div className="space-y-0.5">
                   <div className="text-cyan-300 font-bold flex items-center justify-between">
                     <span className="flex items-center gap-1">
-                      <Sparkles className="w-3 h-3 text-cyan-400" />
+                      <Zap className="w-3 h-3 text-cyan-400" />
                       <span>الربط العتادي مع محتوى الشريحة:</span>
                     </span>
                     <span className="text-[10px] text-slate-400 font-mono">اسحب 360° &bull; انقر للفحص</span>

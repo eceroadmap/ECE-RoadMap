@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Sparkles, 
   ArrowLeft, 
   BookOpen, 
   Cpu, 
@@ -9,7 +8,8 @@ import {
   TrendingUp, 
   GraduationCap,
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  Compass
 } from 'lucide-react';
 import { ActiveTab, Course, SoftwareTool } from '../types';
 import { COURSES_DATA } from '../data/courses';
@@ -57,7 +57,7 @@ export const FromCourseToSkillSection: React.FC<FromCourseToSkillSectionProps> =
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-12 space-y-3">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-950/80 border border-cyan-700/60 text-cyan-300 text-xs font-mono">
-            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+            <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />
             <span>من النظري إلى العملي • From University to Skill</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
@@ -109,7 +109,7 @@ export const FromCourseToSkillSection: React.FC<FromCourseToSkillSectionProps> =
                 onClick={() => onNavigateTab('develop')}
                 className="px-4 py-2.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-300 text-xs font-bold flex items-center gap-2 transition-colors"
               >
-                <Sparkles className="w-3.5 h-3.5" />
+                <Compass className="w-3.5 h-3.5" />
                 <span>استكشف كورسات هذا المسار</span>
                 <ArrowLeft className="w-3.5 h-3.5" />
               </button>

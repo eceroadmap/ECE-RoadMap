@@ -5,7 +5,7 @@ import {
   Check, 
   ExternalLink, 
   Smartphone, 
-  Sparkles, 
+  Share2, 
   Download,
   X 
 } from 'lucide-react';
@@ -69,7 +69,7 @@ export const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
       {/* Badge & Title */}
       <div className="space-y-1">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950/90 border border-cyan-600/70 text-cyan-300 text-xs font-mono shadow-sm">
-          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+          <Share2 className="w-3.5 h-3.5 text-cyan-400" />
           <span>{badge}</span>
         </div>
         <h3 className="text-lg sm:text-xl font-black text-white">{title}</h3>
