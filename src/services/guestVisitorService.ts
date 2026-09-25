@@ -113,13 +113,15 @@ export const guestVisitorService = {
   async fetchRecentGuests(count: number = 100): Promise<GuestVisitorRecord[]> {
     try {
       await ensureFirebaseAuth();
-      const q = query(collection(db, 'guest_visitors'), orderBy('createdAt', 'desc'), limit(count));
-      const snap = await getDocs(q);
+      const colRef = collection(db, 'guest_visitors');
+      const snap = await getDocs(colRef);
       const list: GuestVisitorRecord[] = [];
       snap.forEach((d) => {
-        list.push(d.data() as GuestVisitorRecord);
+        list.push({ ...(d.data() as GuestVisitorRecord), id: d.id });
       });
-      return list;
+      return list
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+        .slice(0, count);
     } catch (e) {
       console.warn('Could not fetch guest list:', e);
       return [];

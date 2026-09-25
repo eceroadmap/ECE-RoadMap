@@ -81,16 +81,32 @@ export async function fetchPlatformStatistics(): Promise<PlatformStatistics> {
 
   try {
     await ensureFirebaseAuth();
-    // 1. Fetch data from both 'students' and 'guest_visitors' collections simultaneously
-    const [studentsSnapResult, guestsSnapResult, tipsSnapResult] = await Promise.allSettled([
+    // 1. Fetch data from 'students', 'guest_visitors', 'communityTips', and 'student_auth_index'
+    const [studentsSnapResult, guestsSnapResult, tipsSnapResult, authIndexSnapResult] = await Promise.allSettled([
       getDocs(collection(db, 'students')),
       getDocs(collection(db, 'guest_visitors')),
-      getDocs(collection(db, 'communityTips'))
+      getDocs(collection(db, 'communityTips')),
+      getDocs(collection(db, 'student_auth_index'))
     ]);
+
+    if (studentsSnapResult.status === 'rejected') {
+      console.error('STUDENTS COLLECTION FETCH REJECTED:', studentsSnapResult.reason);
+    }
+    if (guestsSnapResult.status === 'rejected') {
+      console.error('GUEST VISITORS COLLECTION FETCH REJECTED:', guestsSnapResult.reason);
+    }
 
     const studentsSnap = studentsSnapResult.status === 'fulfilled' ? studentsSnapResult.value : null;
     const guestsSnap = guestsSnapResult.status === 'fulfilled' ? guestsSnapResult.value : null;
     const tipsSnap = tipsSnapResult.status === 'fulfilled' ? tipsSnapResult.value : null;
+    const authIndexSnap = authIndexSnapResult.status === 'fulfilled' ? authIndexSnapResult.value : null;
+
+    console.log('ADMIN STATS RAW COUNTS:', {
+      studentsDocs: studentsSnap?.size || 0,
+      guestVisitorsDocs: guestsSnap?.size || 0,
+      tipsDocs: tipsSnap?.size || 0,
+      authIndexDocs: authIndexSnap?.size || 0
+    });
 
     let cloudSyncedCount = 0;
     let onboardingCompletedCount = 0;
@@ -114,19 +130,30 @@ export async function fetchPlatformStatistics(): Promise<PlatformStatistics> {
       unifiedStudentsMap.set(uid, { ...data, uid, _source: 'students' });
     });
 
-    // B. Process 'guest_visitors' collection (Registered visitors & local guest entries)
+    // B. Process 'guest_visitors' collection (Registered visitors & guest entries)
     guestsSnap?.forEach((docSnap) => {
       const data = docSnap.data() || {};
       if (isPlatformOwnerRecord(data)) return;
 
       const guestId = docSnap.id || data.id;
-      // If already present via student UID, avoid double counting
       if (!unifiedStudentsMap.has(guestId)) {
         unifiedStudentsMap.set(guestId, { ...data, uid: guestId, _source: 'guest_visitors' });
       }
     });
 
-    // C. Aggregate statistics across all unified student records
+    // C. Process 'student_auth_index' collection
+    authIndexSnap?.forEach((docSnap) => {
+      const data = docSnap.data() || {};
+      if (isPlatformOwnerRecord(data)) return;
+
+      const uid = data.uid || docSnap.id;
+      if (!unifiedStudentsMap.has(uid) && !unifiedStudentsMap.has(docSnap.id)) {
+        const studentPayload = data.studentData || data;
+        unifiedStudentsMap.set(uid, { ...studentPayload, uid, _source: 'student_auth_index' });
+      }
+    });
+
+    // D. Aggregate statistics across all unified student records
     unifiedStudentsMap.forEach((student) => {
       const hasRealEmail = !!(
         student.email && 

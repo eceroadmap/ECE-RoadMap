@@ -509,15 +509,39 @@ export const adminRepository = {
     const p = 'students';
     try {
       await ensureFirebaseAuth();
-      const snap = await getDocs(collection(db, p));
-      return snap.docs
-        .map(d => ({
+      const [snap, authIndexSnap] = await Promise.all([
+        getDocs(collection(db, p)),
+        getDocs(collection(db, 'student_auth_index')).catch(() => ({ docs: [] } as any))
+      ]);
+
+      const map = new Map<string, AdminStudentRecord>();
+
+      snap.docs.forEach(d => {
+        const data = d.data() as Partial<AdminStudentRecord>;
+        map.set(d.id, {
           uid: d.id,
-          ...(d.data() as Omit<AdminStudentRecord, 'uid'>)
-        }))
+          ...data
+        });
+      });
+
+      authIndexSnap.docs.forEach((d: any) => {
+        const data = d.data();
+        const uid = data.uid || d.id;
+        if (!map.has(uid) && !map.has(d.id)) {
+          const studentPayload = data.studentData || data;
+          map.set(uid, {
+            uid,
+            ...studentPayload,
+            username: data.username || studentPayload.username,
+            authProvider: 'local'
+          });
+        }
+      });
+
+      return Array.from(map.values())
         .filter(s => {
-          const email = s.email?.toLowerCase().trim() || '';
-          const name = s.displayName?.toLowerCase().trim() || '';
+          const email = (s.email || '').toLowerCase().trim();
+          const name = (s.displayName || '').toLowerCase().trim();
           const isOwnerAccount = 
             email === 'marwa.mgd.shmdeen@gmail.com' ||
             email.includes('marwa.mgd.shmdeen') ||
