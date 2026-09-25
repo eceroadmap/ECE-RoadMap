@@ -1,7 +1,8 @@
 import { 
   db, 
   collection, 
-  getDocs 
+  getDocs,
+  ensureFirebaseAuth 
 } from '../../lib/firebase';
 import { PlatformStatistics } from '../../types/admin';
 import { AcademicYearNumber, AcademicSemester } from '../../types';
@@ -79,6 +80,7 @@ export async function fetchPlatformStatistics(): Promise<PlatformStatistics> {
   const defaultSemesterStats: Record<AcademicSemester, number> = { 1: 0, 2: 0 };
 
   try {
+    await ensureFirebaseAuth();
     // 1. Fetch data from both 'students' and 'guest_visitors' collections simultaneously
     const [studentsSnapResult, guestsSnapResult, tipsSnapResult] = await Promise.allSettled([
       getDocs(collection(db, 'students')),

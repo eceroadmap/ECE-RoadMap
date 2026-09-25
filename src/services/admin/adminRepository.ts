@@ -2,6 +2,7 @@ import {
   db, 
   auth, 
   getOrCreateFirebaseUser,
+  ensureFirebaseAuth,
   doc, 
   getDoc, 
   getDocs, 
@@ -507,6 +508,7 @@ export const adminRepository = {
   async getStudents(): Promise<AdminStudentRecord[]> {
     const p = 'students';
     try {
+      await ensureFirebaseAuth();
       const snap = await getDocs(collection(db, p));
       return snap.docs
         .map(d => ({

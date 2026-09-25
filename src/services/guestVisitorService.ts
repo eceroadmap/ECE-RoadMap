@@ -1,4 +1,4 @@
-import { db, collection, addDoc, doc, setDoc, getDocs, query, orderBy, limit } from '../lib/firebase';
+import { db, collection, addDoc, doc, setDoc, getDocs, query, orderBy, limit, ensureFirebaseAuth } from '../lib/firebase';
 import { studentRepository } from './studentRepository';
 import { AcademicYearNumber } from '../types';
 
@@ -112,6 +112,7 @@ export const guestVisitorService = {
 
   async fetchRecentGuests(count: number = 100): Promise<GuestVisitorRecord[]> {
     try {
+      await ensureFirebaseAuth();
       const q = query(collection(db, 'guest_visitors'), orderBy('createdAt', 'desc'), limit(count));
       const snap = await getDocs(q);
       const list: GuestVisitorRecord[] = [];

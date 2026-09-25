@@ -24,18 +24,17 @@ service cloud.firestore {
             !('status' in get(/databases/$(database)/documents/admins/$(request.auth.uid)).data)
             || get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.status == 'active'
           ))
-        // 2. Direct active record in moderators collection by email
+        // 2. Direct active record in moderators collection by email or UID
         || (
           request.auth.token.email != null &&
-          exists(/databases/$(database)/documents/moderators/$(request.auth.token.email.lower()))
+          exists(/databases/$(database)/documents/moderators/$(request.auth.token.email))
         )
-        // 3. Direct active record in moderators collection by UID
         || exists(/databases/$(database)/documents/moderators/$(request.auth.uid))
-        // 4. In system_config/moderators_list activeEmails
+        // 3. In system_config/moderators_list activeEmails
         || (
           exists(/databases/$(database)/documents/system_config/moderators_list) &&
           request.auth.token.email != null &&
-          request.auth.token.email.lower() in get(/databases/$(database)/documents/system_config/moderators_list).data.activeEmails
+          request.auth.token.email in get(/databases/$(database)/documents/system_config/moderators_list).data.activeEmails
         )
       );
     }
@@ -114,9 +113,9 @@ service cloud.firestore {
 
     // 11. Guest Student Visitors Registration & Moderator Activation Signals
     match /guest_visitors/{guestId} {
-      allow read: if isAdmin();
-      allow create: if true;
-      allow update, delete: if isAdmin();
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isAdmin();
     }
 
     // 12. Course to Skill Pipelines
