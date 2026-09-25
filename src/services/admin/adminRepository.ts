@@ -38,24 +38,14 @@ enum OperationType {
 }
 
 function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errStr = error instanceof Error ? error.message : String(error);
-  const isPermission = errStr.includes('permission') || errStr.includes('PERMISSION_DENIED');
-  const user = auth.currentUser;
-
-  if (isPermission) {
-    const friendlyMsg = `تعذر إتمام عملية الحفظ (${path || 'قاعدة البيانات'}) بسبب قيود صلاحيات Firestore السحابية.\n\nيرجى من المالك إما:\n1. الضغط على زر "تفعيل المشرفين في Firestore" من قسم المشرفين.\n2. أو نسخ قواعد أمان Firebase Console المحدثة ولصقها في تبويب Rules.`;
-    console.error('Firestore Permission Error:', { path, email: user?.email, uid: user?.uid });
-    throw new Error(friendlyMsg);
-  }
-
   const errInfo = {
-    error: errStr,
+    error: error instanceof Error ? error.message : String(error),
     authInfo: {
-      userId: user?.uid,
-      email: user?.email,
-      emailVerified: user?.emailVerified,
-      isAnonymous: user?.isAnonymous,
-      tenantId: user?.tenantId,
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
     },
     operationType,
     path
@@ -395,70 +385,14 @@ export const adminRepository = {
     const p = 'communityTips';
     try {
       const snap = await getDocs(collection(db, p));
-      if (!snap.empty) {
-        return snap.docs.map(d => {
-          const data = d.data() || {};
-          return {
-            id: d.id, // Ensure 'id' is ALWAYS the true Firestore Document Key
-            authorId: data.authorId || '',
-            authorName: data.authorName || 'طالب',
-            authorYear: data.authorYear || '',
-            courseId: data.courseId || '',
-            courseNameAr: data.courseNameAr || '',
-            content: data.content || '',
-            category: data.category || 'study_tip',
-            likesCount: typeof data.likesCount === 'number' ? data.likesCount : 0,
-            likedBy: Array.isArray(data.likedBy) ? data.likedBy : [],
-            dislikesCount: typeof data.dislikesCount === 'number' ? data.dislikesCount : 0,
-            dislikedBy: Array.isArray(data.dislikedBy) ? data.dislikedBy : [],
-            status: data.status || 'active',
-            createdAt: data.createdAt || ''
-          };
-        });
-      }
-      return [];
+      return snap.docs.map(d => ({
+        ...d.data(),
+        id: d.id // Ensure 'id' is ALWAYS the true Firestore Document Key
+      }));
     } catch (error) {
       console.warn('Failed to list community tips from Firestore:', error);
       return [];
     }
-  },
-
-  async deleteCommunityTip(tipId: string, tipContentPreview: string = ''): Promise<void> {
-    const p = `communityTips/${tipId}`;
-    try {
-      await deleteDoc(doc(db, 'communityTips', tipId));
-      this.logAction(
-        'TIP_DELETED',
-        'community_tip',
-        tipId,
-        `حذف نصيحة طلابية نهائياً من قاعدة البيانات: ${(tipContentPreview || '').substring(0, 30)}`
-      ).catch(() => null);
-    } catch (error) {
-      console.error("DELETE TIP ERROR", error);
-      handleFirestoreError(error, OperationType.DELETE, p);
-    }
-  },
-
-  async purgeSyntheticMockTips(): Promise<number> {
-    const mockIds = [
-      'tip-official-welcome-2026',
-      'tip-official-graduation-proj',
-      'tip-official-dsp-matlab'
-    ];
-    let removedCount = 0;
-    for (const id of mockIds) {
-      try {
-        const ref = doc(db, 'communityTips', id);
-        const s = await getDoc(ref);
-        if (s.exists()) {
-          await deleteDoc(ref);
-          removedCount++;
-        }
-      } catch (err) {
-        console.warn(`Could not purge mock tip ${id}:`, err);
-      }
-    }
-    return removedCount;
   },
 
   async archiveCommunityTip(tipId: string, tipContentPreview: string): Promise<void> {
@@ -467,16 +401,29 @@ export const adminRepository = {
       status: 'archived',
       updatedAt: new Date().toISOString()
     };
+    console.log("ARCHIVE FUNCTION START", tipId);
+    console.log("ARCHIVE TIP REQUEST", tipId, data);
     try {
-      await setDoc(doc(db, 'communityTips', tipId), data, { merge: true });
-      this.logAction(
+      await getOrCreateFirebaseUser();
+      console.log("ARCHIVE UPDATE TARGET", {
+        collection: "communityTips",
+        documentId: tipId,
+        data: {
+          status: "archived",
+          updatedAt: new Date().toISOString()
+        }
+      });
+      await updateDoc(doc(db, 'communityTips', tipId), data);
+      console.log("ARCHIVE UPDATE SUCCESS");
+      await this.logAction(
         'TIP_ARCHIVED',
         'community_tip',
         tipId,
-        `حجب نصيحة طلابية: ${(tipContentPreview || '').substring(0, 30)}`
-      ).catch(() => null);
+        `حجب نصيحة طلابية: ${tipContentPreview.substring(0, 30)}`
+      );
     } catch (error) {
       console.error("ARCHIVE UPDATE FAILED", error);
+      console.error("ARCHIVE TIP ERROR", error);
       handleFirestoreError(error, OperationType.UPDATE, p);
     }
   },
@@ -487,14 +434,17 @@ export const adminRepository = {
       status: 'active',
       updatedAt: new Date().toISOString()
     };
+    console.log("RESTORE TIP REQUEST", tipId, data);
     try {
-      await setDoc(doc(db, 'communityTips', tipId), data, { merge: true });
-      this.logAction(
+      await getOrCreateFirebaseUser();
+      await updateDoc(doc(db, 'communityTips', tipId), data);
+      console.log("RESTORE TIP SUCCESS");
+      await this.logAction(
         'TIP_RESTORED',
         'community_tip',
         tipId,
-        `استعادة نصيحة طلابية: ${(tipContentPreview || '').substring(0, 30)}`
-      ).catch(() => null);
+        `استعادة نصيحة طلابية: ${tipContentPreview.substring(0, 30)}`
+      );
     } catch (error) {
       console.error("RESTORE TIP ERROR", error);
       handleFirestoreError(error, OperationType.UPDATE, p);

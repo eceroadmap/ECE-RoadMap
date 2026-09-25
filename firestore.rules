@@ -17,25 +17,13 @@ service cloud.firestore {
 
     function isAuthorizedModerator() {
       return isAuthenticated() && (
-        // 1. Direct active record in admins collection
         (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) 
-          && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'moderator'
-          && (
-            !('status' in get(/databases/$(database)/documents/admins/$(request.auth.uid)).data)
-            || get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.status == 'active'
-          ))
-        // 2. Direct active record in moderators collection by email
-        || (
-          request.auth.token.email != null &&
-          exists(/databases/$(database)/documents/moderators/$(request.auth.token.email.lower()))
-        )
-        // 3. Direct active record in moderators collection by UID
-        || exists(/databases/$(database)/documents/moderators/$(request.auth.uid))
-        // 4. In system_config/moderators_list activeEmails
+          && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'moderator')
         || (
           exists(/databases/$(database)/documents/system_config/moderators_list) &&
+          get(/databases/$(database)/documents/system_config/moderators_list).data.keys().hasAll(['activeEmails']) &&
           request.auth.token.email != null &&
-          request.auth.token.email.lower() in get(/databases/$(database)/documents/system_config/moderators_list).data.activeEmails
+          request.auth.token.email in get(/databases/$(database)/documents/system_config/moderators_list).data.activeEmails
         )
       );
     }
@@ -55,21 +43,7 @@ service cloud.firestore {
     // 2. Dedicated Administrator Authorization Collection
     match /admins/{adminId} {
       allow read: if isAuthenticated();
-      // Allow the owner, an admin, or the user themselves if authorized as a moderator
-      allow write: if isAuthenticated() && (
-        isOwner()
-        || isAdmin()
-        || (
-          request.auth.uid == adminId &&
-          request.auth.token.email != null &&
-          (
-            request.auth.token.email.matches('(?i)marwa\\.mgd\\.shmdeen@gmail\\.com')
-            || (exists(/databases/$(database)/documents/system_config/moderators_list) &&
-                request.auth.token.email.lower() in get(/databases/$(database)/documents/system_config/moderators_list).data.activeEmails)
-            || exists(/databases/$(database)/documents/moderators/$(request.auth.token.email.lower()))
-          )
-        )
-      );
+      allow write: if isAuthenticated() && (request.auth.uid == adminId || isOwner() || isAdmin());
     }
 
     // 3. Managed Public Curriculum Courses
@@ -104,7 +78,10 @@ service cloud.firestore {
 
     // 7. Community Tips & Moderation
     match /communityTips/{tipId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null;
     }
 
     // 8. Administrator Activity Audit Log
@@ -114,7 +91,7 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // 9. System Configuration & Settings (system_config/moderators_list)
+    // 9. System Configuration & Exhibition Settings (system_config/moderators_list)
     match /system_config/{configId} {
       allow read: if true;
       allow write: if isOwner() || isAdmin();
@@ -126,7 +103,7 @@ service cloud.firestore {
       allow create, update: if true;
     }
 
-    // 11. Guest Student Visitors Registration & Moderator Activation Signals
+    // 11. Guest Student Visitors Registration
     match /guest_visitors/{guestId} {
       allow read: if isAdmin();
       allow create: if true;
@@ -142,7 +119,7 @@ service cloud.firestore {
     // 13. Authorized Supervisors / Moderators (إدارة المشرفين)
     match /moderators/{modId} {
       allow read: if isAuthenticated();
-      allow write: if isOwner() || isAdmin() || (isAuthenticated() && request.auth.uid == modId);
+      allow write: if isOwner() || isAdmin();
     }
 
     // 14. Student Authentication Index

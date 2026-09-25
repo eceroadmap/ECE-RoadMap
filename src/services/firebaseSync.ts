@@ -8,7 +8,6 @@ import {
   doc, 
   getDoc,
   setDoc, 
-  deleteDoc,
   onSnapshot, 
   collection, 
   query, 
@@ -587,35 +586,32 @@ class FirebaseSyncService {
 
       return onSnapshot(q, (snapshot) => {
         const firestoreTips: CommunityTip[] = snapshot.docs
-          .map((docSnap) => {
-            const data = docSnap.data() || {};
-            return {
-              ...(data as CommunityTip),
-              id: docSnap.id,
-              authorName: data.authorName || 'طالب',
-              content: data.content || '',
-              status: data.status || 'active'
-            };
-          })
+          .map((docSnap) => ({
+            ...(docSnap.data() as CommunityTip),
+            id: docSnap.id
+          }))
           .filter(t => (t.status || 'active') === 'active');
+
+        // Auto re-seed if collection is empty
+        if (firestoreTips.length === 0) {
+          this.rebuildCommunityTipsCollection().catch(console.warn);
+        }
 
         callback({ tips: firestoreTips, isLoading: false, error: null });
       }, (err) => {
         console.warn('Fallback onSnapshot for community tips (no index query):', err.message);
         return onSnapshot(tipsCol, (snap) => {
           const tips: CommunityTip[] = snap.docs
-            .map((docSnap) => {
-              const data = docSnap.data() || {};
-              return {
-                ...(data as CommunityTip),
-                id: docSnap.id,
-                authorName: data.authorName || 'طالب',
-                content: data.content || '',
-                status: data.status || 'active'
-              };
-            })
+            .map((docSnap) => ({
+              ...(docSnap.data() as CommunityTip),
+              id: docSnap.id
+            }))
             .filter(t => (t.status || 'active') === 'active')
             .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+          if (tips.length === 0) {
+            this.rebuildCommunityTipsCollection().catch(console.warn);
+          }
 
           callback({ tips, isLoading: false, error: null });
         }, (err2) => {
@@ -763,11 +759,6 @@ class FirebaseSyncService {
     }
 
     await updateDoc(tipRef, updates);
-  }
-
-  public async deleteCommunityTip(tipId: string): Promise<void> {
-    const tipRef = doc(db, 'communityTips', tipId);
-    await deleteDoc(tipRef);
   }
 }
 

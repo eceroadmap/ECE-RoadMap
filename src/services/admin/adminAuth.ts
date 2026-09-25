@@ -70,10 +70,6 @@ export async function checkIsAdmin(user: User | null): Promise<boolean> {
 
       try {
         await setDoc(adminDocRef, ownerData, { merge: true });
-        // Automatically sync pending moderators from owner's privileged session
-        moderatorsService.syncPendingModeratorsByOwner().catch(err => {
-          console.warn('Auto-sync moderators caught:', err);
-        });
       } catch (e) {
         console.warn('Saving owner admin doc caught:', e);
       }
@@ -97,17 +93,6 @@ export async function checkIsAdmin(user: User | null): Promise<boolean> {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
-
-      // Register check-in signal and attempt direct self-provisioning
-      try {
-        await moderatorsService.registerModeratorCheckIn(
-          effectiveUser.uid, 
-          userEmail, 
-          effectiveUser.displayName || undefined
-        );
-      } catch (e) {
-        console.warn('Moderator check-in caught:', e);
-      }
 
       try {
         await setDoc(adminDocRef, modData, { merge: true });

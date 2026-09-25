@@ -139,9 +139,9 @@ export const DevelopManager: React.FC = () => {
       });
 
       setIsModalOpen(false);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to save skill:', error);
-      alert(error?.message || 'حدث خطأ أثناء حفظ مهارة "طور نفسك".');
+      alert('حدث خطأ أثناء حفظ مهارة "طور نفسك".');
     } finally {
       setIsSaving(false);
     }
@@ -152,9 +152,9 @@ export const DevelopManager: React.FC = () => {
     try {
       await adminRepository.deleteSkill(id);
       setSkills(prev => prev.filter(s => s.id !== id));
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to delete skill:', error);
-      alert(error?.message || 'تعذر حذف المهارة حالياً.');
+      alert('تعذر حذف المهارة حالياً.');
     }
   };
 
