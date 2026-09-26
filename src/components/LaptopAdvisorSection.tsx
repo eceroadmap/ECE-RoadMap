@@ -18,13 +18,11 @@ import {
   ArrowLeft,
   ArrowRight,
   Filter,
-  Monitor,
-  ExternalLink,
   Layers,
   Sparkles,
   ChevronRight,
   Sliders,
-  DollarSign
+  ArrowUpRight
 } from 'lucide-react';
 import { 
   LaptopSpecs, 
@@ -36,14 +34,12 @@ import {
   CpuGen,
   StorageType,
   GpuTier,
-  OperatingSystem,
-  ScreenSize
+  OperatingSystem
 } from '../types/laptop';
 import { 
   evaluateLaptop, 
   DEFAULT_LAPTOP_SPECS, 
-  DEFAULT_DEPARTMENT_SPECS, 
-  RECOMMENDED_ARCHETYPES 
+  DEFAULT_DEPARTMENT_SPECS 
 } from '../data/laptopRules';
 import { 
   useLiveRecommendedLaptops, 
@@ -53,17 +49,17 @@ import { useStudentState } from '../services/useStudentState';
 import { SOFTWARE_DATA } from '../data/software';
 import { soundEffects } from '../utils/soundEffects';
 
-type AdvisorViewMode = 'recommended_models' | 'test_laptop';
+type AdvisorViewMode = 'landing' | 'recommended_models' | 'test_laptop';
 
 export const LaptopAdvisorSection: React.FC = () => {
   const { profile, savedLaptop, saveLaptop, removeSavedLaptop } = useStudentState();
   const liveLaptops = useLiveRecommendedLaptops();
   const deptSpecs = useLiveDepartmentSpecs();
 
-  // Active top-level view: Choice 1 (Recommended Laptops) or Choice 2 (Test Your Laptop)
-  const [activeView, setActiveView] = useState<AdvisorViewMode>('recommended_models');
+  // Landing selection screen is the first page ('landing')
+  const [activeView, setActiveView] = useState<AdvisorViewMode>('landing');
 
-  // Test Multi-step Flow State (Step 1: Input Specs, Step 2: Evaluation Result)
+  // Multi-step Flow for the Laptop Test (1: Input Specs -> 2: Evaluation Result)
   const [testStep, setTestStep] = useState<1 | 2>(1);
 
   // Form specs state for the test
@@ -81,7 +77,7 @@ export const LaptopAdvisorSection: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSuitabilityFilter, setSelectedSuitabilityFilter] = useState<'all' | 'budget' | 'balanced' | 'pro'>('all');
 
-  // Sync saved laptop from profile if available and user hasn't started editing
+  // Sync saved laptop from profile if available
   useEffect(() => {
     if (savedLaptop?.specs) {
       setSpecs(savedLaptop.specs);
@@ -93,15 +89,14 @@ export const LaptopAdvisorSection: React.FC = () => {
     return evaluateLaptop(specs, deptSpecs);
   }, [specs, deptSpecs]);
 
-  // Handle stepping to evaluation screen
+  // Step progression handler
   const handleProceedToEvaluation = () => {
-    // Validate that essential fields are selected
     if (!specs.ramGb) {
       setValidationError('يرجى تحديد سعة الذاكرة العشوائية (RAM)');
       return;
     }
     if (!specs.storageCapacityGb) {
-      setValidationError('يرجى تحديد سعة وسيط التخزين الداخلي');
+      setValidationError('يرجى تحديد سعة وسيط التخزين');
       return;
     }
     if (!specs.cpuTier) {
@@ -114,12 +109,12 @@ export const LaptopAdvisorSection: React.FC = () => {
       soundEffects.playSuccess();
     } catch {}
     setTestStep(2);
-    // Scroll smoothly to top of test container
-    window.scrollTo({ top: 300, behavior: 'smooth' });
+    window.scrollTo({ top: 150, behavior: 'smooth' });
   };
 
   const handleBackToForm = () => {
     setTestStep(1);
+    window.scrollTo({ top: 150, behavior: 'smooth' });
   };
 
   const handleSaveSpecs = () => {
@@ -147,10 +142,7 @@ export const LaptopAdvisorSection: React.FC = () => {
       let status: 'smooth' | 'acceptable' | 'heavy' = 'smooth';
       let note = 'يعمل بسلاسة ممتازة';
 
-      if (specs.os === 'macos' && (sw.id === 'quartus' || sw.id === 'multisim' || sw.id === 'pspice' || sw.id === 'proteus' || sw.id === 'pathloss')) {
-        status = 'heavy';
-        note = 'غير متوفر رسمياً لنظام macOS (يتطلب نظاماً وهمياً)';
-      } else if (isHeavyEM) {
+      if (isHeavyEM) {
         if (specs.ramGb < 16 || specs.storageType === 'hdd') {
           status = 'heavy';
           note = 'يتطلب 16GB RAM وقرص SSD لحسابات الشبكات ثلاثية الأبعاد';
@@ -206,7 +198,7 @@ export const LaptopAdvisorSection: React.FC = () => {
         const matchBrand = lap.brand.toLowerCase().includes(q);
         const matchCpu = lap.cpu.toLowerCase().includes(q);
         const matchGpu = lap.gpu.toLowerCase().includes(q);
-        const matchFields = lap.suitableFor.some(f => f.toLowerCase().includes(q));
+        const matchFields = lap.suitableFor?.some(f => f.toLowerCase().includes(q));
         return matchName || matchBrand || matchCpu || matchGpu || matchFields;
       }
       return true;
@@ -214,158 +206,191 @@ export const LaptopAdvisorSection: React.FC = () => {
   }, [liveLaptops, selectedSuitabilityFilter, searchQuery]);
 
   return (
-    <div className="space-y-8 sm:space-y-12 max-w-6xl mx-auto w-full overflow-hidden selection:bg-cyan-500/30 selection:text-cyan-200" dir="rtl">
+    <div className="space-y-8 max-w-6xl mx-auto w-full overflow-hidden selection:bg-cyan-500/30 selection:text-cyan-200" dir="rtl">
       
-      {/* 1. Header & Introduction */}
-      <div className="text-center max-w-3xl mx-auto px-4 space-y-3">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-950/70 border border-cyan-500/40 text-cyan-300 text-xs font-mono shadow-md">
-          <Laptop className="w-4 h-4 text-cyan-400" />
-          <span>مستشار العتاد والأجهزة • ECE Laptop Advisor</span>
-        </div>
-        <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
-          مستشار لابتوب هندسة الإلكترونيات والاتصالات
-        </h2>
-        <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-2xl mx-auto">
-          دليلك الأكاديمي الشامل لاختيار الحاسوب المحمول المناسب لدراسة ومشاريع القسم، أو اختبار جهازك الحالي للتأكد من قدرته على تشغيل برمجيات المحاكاة والبرمجة بكل سلاسة.
-        </p>
-      </div>
-
-      {/* 2. Primary Choice Tabs (The 2 Core Paths) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto px-2">
-        {/* Choice 1: Recommended Laptops */}
-        <button
-          type="button"
-          onClick={() => {
-            setActiveView('recommended_models');
-            try { soundEffects.playClick(); } catch {}
-          }}
-          className={`p-5 sm:p-6 rounded-3xl border text-right transition-all duration-300 relative overflow-hidden group flex flex-col justify-between ${
-            activeView === 'recommended_models'
-              ? 'bg-gradient-to-br from-[#091a33] to-[#081528] border-cyan-500/80 ring-2 ring-cyan-500/40 shadow-xl shadow-cyan-950/40 scale-[1.01]'
-              : 'bg-[#091527]/90 border-slate-800 hover:border-slate-700 hover:bg-[#0a182c]'
-          }`}
-        >
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${
-                activeView === 'recommended_models'
-                  ? 'bg-cyan-500 text-slate-950 font-black shadow-lg shadow-cyan-500/30'
-                  : 'bg-slate-900 text-cyan-400 border border-slate-800 group-hover:border-cyan-500/40'
-              }`}>
-                <Laptop className="w-6 h-6" />
-              </div>
-
-              {activeView === 'recommended_models' && (
-                <span className="px-2.5 py-1 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800/80 text-[11px] font-bold flex items-center gap-1">
-                  <Check className="w-3 h-3 text-cyan-400" />
-                  <span>القسم المحدد</span>
-                </span>
-              )}
+      {/* ========================================================================= */}
+      {/* 1. FIRST SCREEN: LANDING & CHOICE SELECTION                              */}
+      {/* ========================================================================= */}
+      {activeView === 'landing' && (
+        <div className="space-y-10 sm:space-y-12 py-4 sm:py-8 animate-fadeIn">
+          
+          {/* Hero Header */}
+          <div className="text-center max-w-3xl mx-auto px-4 space-y-4">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-950/70 border border-cyan-500/40 text-cyan-300 text-xs font-mono shadow-md">
+              <Laptop className="w-4 h-4 text-cyan-400" />
+              <span>مستشار العتاد • ECE Laptop Advisor</span>
             </div>
-
-            <div>
-              <h3 className="text-base sm:text-lg font-black text-white group-hover:text-cyan-300 transition-colors">
-                💻 اللابتوبات الموصى بها لطلاب القسم
-              </h3>
-              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                استعرض نماذج الأجهزة المقترحة والمطابقة لمتطلبات مقررات ومشاريع هندسة الاتصالات والإلكترونيات، مع مواصفاتها ومجالات عملها.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-xs font-bold text-cyan-400">
-            <span>تصفح النماذج المقترحة ({liveLaptops.length} جهاز)</span>
-            <ChevronRight className="w-4 h-4 rotate-180 transform group-hover:-translate-x-1 transition-transform" />
-          </div>
-        </button>
-
-        {/* Choice 2: Test Your Laptop */}
-        <button
-          type="button"
-          onClick={() => {
-            setActiveView('test_laptop');
-            try { soundEffects.playClick(); } catch {}
-          }}
-          className={`p-5 sm:p-6 rounded-3xl border text-right transition-all duration-300 relative overflow-hidden group flex flex-col justify-between ${
-            activeView === 'test_laptop'
-              ? 'bg-gradient-to-br from-[#091a33] to-[#081528] border-cyan-500/80 ring-2 ring-cyan-500/40 shadow-xl shadow-cyan-950/40 scale-[1.01]'
-              : 'bg-[#091527]/90 border-slate-800 hover:border-slate-700 hover:bg-[#0a182c]'
-          }`}
-        >
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${
-                activeView === 'test_laptop'
-                  ? 'bg-cyan-500 text-slate-950 font-black shadow-lg shadow-cyan-500/30'
-                  : 'bg-slate-900 text-cyan-400 border border-slate-800 group-hover:border-cyan-500/40'
-              }`}>
-                <Search className="w-6 h-6" />
-              </div>
-
-              {activeView === 'test_laptop' && (
-                <span className="px-2.5 py-1 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800/80 text-[11px] font-bold flex items-center gap-1">
-                  <Check className="w-3 h-3 text-cyan-400" />
-                  <span>القسم المحدد</span>
-                </span>
-              )}
-            </div>
-
-            <div>
-              <h3 className="text-base sm:text-lg font-black text-white group-hover:text-cyan-300 transition-colors">
-                🔍 هل لابتوبك مناسب للقسم؟ (اختبر جهازك)
-              </h3>
-              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                أدخل مواصفات حاسوبك الحالي أو الذي تنوي شراءه، وسيقوم النظام بتحليله خطوة بخطوة ومقارنته بالتوصية المعتمدة لطلاب القسم.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-xs font-bold text-cyan-400">
-            <span>بدء الاختبار والتحليل الذاتي</span>
-            <ChevronRight className="w-4 h-4 rotate-180 transform group-hover:-translate-x-1 transition-transform" />
-          </div>
-        </button>
-      </div>
-
-      {/* 3. Global Storage Baseline Callout Notice */}
-      <div className="max-w-4xl mx-auto px-2">
-        <div className="p-4 rounded-2xl bg-cyan-950/40 border border-cyan-500/30 flex items-start gap-3.5 text-xs text-slate-300 shadow-sm">
-          <Sparkles className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <div className="font-bold text-cyan-200 flex items-center gap-2 flex-wrap">
-              <span>التوصية المعتمدة للتخزين الداخلي لطلاب القسم:</span>
-              <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono font-bold">
-                1 TB NVMe SSD (1000 GB)
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
-              نظراً لضخامة حزم برمجيات هندسة الإلكترونيات والاتصالات (مثل MATLAB, Ansys HFSS, Intel Quartus, Visual Studio) واحتياجها لمساحات تزيد عن 150GB إجمالاً بالإضافة للمراجع ومشاريع التخرج، فإن سعة 1TB هي الحد الموصى به لضمان الراحة طوال سنوات الدراسة الخمس دون الحاجة لمسح دوري للملفات.
+            
+            <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
+              مستشار لابتوب هندسة الاتصالات والإلكترونيات
+            </h2>
+            
+            <p className="text-sm sm:text-base text-slate-400 leading-relaxed max-w-2xl mx-auto">
+              اختر المسار الذي ترغب به: استعراض الأجهزة المقترحة والمطابقة للقسم، أو اختبار مواصفات لابتوبك الحالي ومعرفة مدى ملاءمته للدراسة.
             </p>
           </div>
+
+          {/* Two Big Main Choice Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 max-w-4xl mx-auto px-4">
+            
+            {/* Choice 1: Recommended Laptops */}
+            <div
+              onClick={() => {
+                setActiveView('recommended_models');
+                try { soundEffects.playClick(); } catch {}
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="p-7 sm:p-8 rounded-3xl bg-gradient-to-b from-[#091a33] to-[#071324] border border-cyan-500/40 hover:border-cyan-400/80 ring-1 ring-cyan-500/30 hover:shadow-2xl hover:shadow-cyan-950/50 transition-all duration-300 cursor-pointer group flex flex-col justify-between relative overflow-hidden"
+            >
+              <div className="space-y-4">
+                <div className="w-14 h-14 rounded-2xl bg-cyan-500 text-slate-950 font-black flex items-center justify-center shadow-lg shadow-cyan-500/30 group-hover:scale-105 transition-transform">
+                  <Laptop className="w-7 h-7" />
+                </div>
+
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-black text-white group-hover:text-cyan-300 transition-colors">
+                    💻 اللابتوبات الموصى بها لطلاب القسم
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed">
+                    استعرض نماذج أجهزة لابتوب مقترحة ومناسبة لدراسة هندسة الإلكترونيات والاتصالات ومشاريع التخرج، مع مواصفاتها ومجالات عملها.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs sm:text-sm font-bold text-cyan-400">
+                <span>استعراض الأجهزة المقترحة ({liveLaptops.length} أجهزة)</span>
+                <ChevronRight className="w-5 h-5 rotate-180 transform group-hover:-translate-x-1.5 transition-transform" />
+              </div>
+            </div>
+
+            {/* Choice 2: Test Your Laptop */}
+            <div
+              onClick={() => {
+                setActiveView('test_laptop');
+                setTestStep(1);
+                try { soundEffects.playClick(); } catch {}
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="p-7 sm:p-8 rounded-3xl bg-gradient-to-b from-[#091a33] to-[#071324] border border-cyan-500/40 hover:border-cyan-400/80 ring-1 ring-cyan-500/30 hover:shadow-2xl hover:shadow-cyan-950/50 transition-all duration-300 cursor-pointer group flex flex-col justify-between relative overflow-hidden"
+            >
+              <div className="space-y-4">
+                <div className="w-14 h-14 rounded-2xl bg-cyan-500 text-slate-950 font-black flex items-center justify-center shadow-lg shadow-cyan-500/30 group-hover:scale-105 transition-transform">
+                  <Search className="w-7 h-7" />
+                </div>
+
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-black text-white group-hover:text-cyan-300 transition-colors">
+                    🔍 هل لابتوبك مناسب للقسم؟ (اختبر جهازك)
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed">
+                    لديك لابتوب بالفعل أو تنوي الشراء؟ أدخل مواصفات جهازك خطوة بخطوة واعرف مدى ملاءمته للدراسة والمشاريع ومقارنته بالتوصية.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs sm:text-sm font-bold text-cyan-400">
+                <span>بدء اختبار ومطابقة لابتوبك</span>
+                <ChevronRight className="w-5 h-5 rotate-180 transform group-hover:-translate-x-1.5 transition-transform" />
+              </div>
+            </div>
+
+          </div>
+
+          {/* Saved Specs Preview (if student already tested and saved their laptop) */}
+          {savedLaptop && (
+            <div className="max-w-4xl mx-auto px-4">
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-cyan-950 text-cyan-300 border border-cyan-800/60 flex items-center justify-center shrink-0">
+                    <Laptop className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-white block">مواصفات جهازك المحفوظة في ملفك:</span>
+                    <span className="text-[11px] text-slate-400 font-mono">
+                      RAM {savedLaptop.specs.ramGb}GB • {savedLaptop.specs.storageCapacityGb >= 1000 ? `${savedLaptop.specs.storageCapacityGb / 1000}TB` : `${savedLaptop.specs.storageCapacityGb}GB`} • {savedLaptop.specs.cpuTier}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setSpecs(savedLaptop.specs);
+                    setActiveView('test_laptop');
+                    setTestStep(2);
+                    try { soundEffects.playClick(); } catch {}
+                  }}
+                  className="px-4 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold transition-colors"
+                >
+                  عرض تقييم ومطابقة جهازك المحفوظ ←
+                </button>
+              </div>
+            </div>
+          )}
+
         </div>
-      </div>
+      )}
 
       {/* ========================================================================= */}
-      {/* VIEW A: RECOMMENDED LAPTOPS FOR ECE STUDENTS                              */}
+      {/* 2. CHOICE 1: RECOMMENDED LAPTOPS FOR ECE STUDENTS                         */}
       {/* ========================================================================= */}
       {activeView === 'recommended_models' && (
         <div className="space-y-6 animate-fadeIn">
           
+          {/* Top Back Navigation Bar */}
+          <div className="flex items-center justify-between gap-4 pb-2">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveView('landing');
+                try { soundEffects.playClick(); } catch {}
+              }}
+              className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs font-bold flex items-center gap-2 transition-colors"
+            >
+              <ArrowRight className="w-4 h-4" />
+              <span>← العودة لاختيار القسم</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setActiveView('test_laptop');
+                setTestStep(1);
+                try { soundEffects.playClick(); } catch {}
+              }}
+              className="px-4 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold flex items-center gap-1.5 transition-colors"
+            >
+              <Search className="w-3.5 h-3.5" />
+              <span>اختبر لابتوبك بدلاً من ذلك</span>
+            </button>
+          </div>
+
+          {/* Section Header */}
+          <div className="p-6 rounded-3xl bg-[#091527] border border-slate-800 shadow-xl space-y-2">
+            <div className="flex items-center gap-2 text-cyan-400 text-xs font-bold">
+              <Laptop className="w-4 h-4" />
+              <span>الخيار الأول</span>
+            </div>
+            <h3 className="text-xl sm:text-2xl font-black text-white">
+              اللابتوبات الموصى بها لطلاب هندسة الاتصالات والإلكترونيات
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-400">
+              نماذج مختارة ومناسبة لمقررات المحاكاة (MATLAB, Ansys HFSS, Quartus, Visual Studio) ومشاريع التخرج.
+            </p>
+          </div>
+
           {/* Filter & Search Bar */}
           <div className="p-4 rounded-3xl bg-[#091527] border border-slate-800 shadow-lg flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-            {/* Search input */}
             <div className="relative flex-1">
               <Search className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="بحث باسم اللابتوب، المعالج، كرت الشاشة، الماركة..."
+                placeholder="بحث باسم اللابتوب، المعالج، الماركة..."
                 className="w-full pr-10 pl-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-500"
               />
             </div>
 
-            {/* Category Filter Pills */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 text-xs font-medium">
               {[
                 { id: 'all', label: 'جميع الأجهزة' },
@@ -377,7 +402,7 @@ export const LaptopAdvisorSection: React.FC = () => {
                   key={tab.id}
                   type="button"
                   onClick={() => setSelectedSuitabilityFilter(tab.id as any)}
-                  className={`px-3 py-2 rounded-xl border whitespace-nowrap transition-colors min-h-[38px] ${
+                  className={`px-3.5 py-2 rounded-xl border whitespace-nowrap transition-colors min-h-[38px] ${
                     selectedSuitabilityFilter === tab.id
                       ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50 font-bold'
                       : 'bg-slate-900 text-slate-400 hover:text-white border-slate-800'
@@ -392,181 +417,146 @@ export const LaptopAdvisorSection: React.FC = () => {
           {/* Laptops Cards Grid */}
           {filteredLaptops.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredLaptops.map((laptop) => {
-                return (
-                  <div
-                    key={laptop.id}
-                    className={`rounded-3xl border overflow-hidden shadow-xl flex flex-col justify-between transition-all duration-300 hover:border-cyan-500/50 hover:shadow-cyan-950/30 ${
-                      laptop.isRecommended
-                        ? 'bg-gradient-to-b from-[#091a33] to-[#071324] border-cyan-500/40 ring-1 ring-cyan-500/30'
-                        : 'bg-[#091527] border-slate-800/80'
-                    }`}
-                  >
-                    {/* Laptop Card Top Header with Image */}
-                    <div>
-                      <div className="relative h-48 w-full bg-slate-900/80 overflow-hidden border-b border-slate-800">
-                        <img
-                          src={laptop.image}
-                          alt={laptop.name}
-                          className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                          loading="lazy"
-                          onError={(e) => {
-                            // Fallback image if remote url fails
-                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?auto=format&fit=crop&w=800&q=80';
-                          }}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#091527] via-transparent to-black/30" />
+              {filteredLaptops.map((laptop) => (
+                <div
+                  key={laptop.id}
+                  className={`rounded-3xl border overflow-hidden shadow-xl flex flex-col justify-between transition-all duration-300 hover:border-cyan-500/50 hover:shadow-cyan-950/30 ${
+                    laptop.isRecommended
+                      ? 'bg-gradient-to-b from-[#091a33] to-[#071324] border-cyan-500/40 ring-1 ring-cyan-500/30'
+                      : 'bg-[#091527] border-slate-800/80'
+                  }`}
+                >
+                  <div>
+                    {/* Laptop Image */}
+                    <div className="relative h-48 w-full bg-slate-900 overflow-hidden border-b border-slate-800">
+                      <img
+                        src={laptop.image}
+                        alt={laptop.name}
+                        className="w-full h-full object-cover object-center"
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?auto=format&fit=crop&w=800&q=80';
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#091527] via-transparent to-black/30" />
 
-                        {/* Badges Overlay */}
-                        <div className="absolute top-3 right-3 left-3 flex items-center justify-between gap-2">
-                          <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border backdrop-blur-md ${
-                            laptop.isRecommended
-                              ? 'bg-cyan-950/90 text-cyan-300 border-cyan-500/60 shadow-md'
-                              : 'bg-slate-900/90 text-slate-300 border-slate-700'
-                          }`}>
-                            {laptop.suitabilityBadge}
+                      <div className="absolute top-3 right-3 left-3 flex items-center justify-between gap-2">
+                        <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border backdrop-blur-md ${
+                          laptop.isRecommended
+                            ? 'bg-cyan-950/90 text-cyan-300 border-cyan-500/60 shadow-md'
+                            : 'bg-slate-900/90 text-slate-300 border-slate-700'
+                        }`}>
+                          {laptop.suitabilityBadge}
+                        </span>
+
+                        {laptop.priceEstimate && (
+                          <span className="px-2.5 py-1 rounded-full bg-slate-950/90 text-amber-300 border border-amber-500/40 text-[11px] font-mono font-bold">
+                            {laptop.priceEstimate}
                           </span>
-
-                          {laptop.priceEstimate && (
-                            <span className="px-2.5 py-1 rounded-full bg-slate-950/90 text-amber-300 border border-amber-500/40 text-[11px] font-mono font-bold">
-                              {laptop.priceEstimate}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Title at bottom of image */}
-                        <div className="absolute bottom-3 right-3 left-3">
-                          <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider block">
-                            {laptop.brand}
-                          </span>
-                          <h4 className="text-base font-black text-white drop-shadow-md truncate">
-                            {laptop.name}
-                          </h4>
-                        </div>
+                        )}
                       </div>
 
-                      {/* Specs Matrix */}
-                      <div className="p-5 space-y-4">
-                        <div className="grid grid-cols-2 gap-2.5 text-xs">
-                          {/* CPU */}
-                          <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 space-y-0.5">
-                            <span className="text-[10px] text-slate-400 block">المعالج (CPU)</span>
-                            <span className="font-bold text-white text-[11px] line-clamp-1" title={laptop.cpu}>
-                              {laptop.cpu}
-                            </span>
-                          </div>
-
-                          {/* RAM */}
-                          <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 space-y-0.5">
-                            <span className="text-[10px] text-slate-400 block">الذاكرة (RAM)</span>
-                            <span className="font-bold text-cyan-300 text-[11px]">
-                              {laptop.ram}
-                            </span>
-                          </div>
-
-                          {/* Storage */}
-                          <div className="p-2.5 rounded-xl bg-cyan-950/30 border border-cyan-800/40 space-y-0.5">
-                            <span className="text-[10px] text-cyan-300 block font-bold">التخزين (Storage)</span>
-                            <span className="font-black text-white text-[11px]">
-                              {laptop.storage}
-                            </span>
-                          </div>
-
-                          {/* GPU */}
-                          <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 space-y-0.5">
-                            <span className="text-[10px] text-slate-400 block">كرت الشاشة (GPU)</span>
-                            <span className="font-bold text-white text-[11px] line-clamp-1" title={laptop.gpu}>
-                              {laptop.gpu}
-                            </span>
-                          </div>
-
-                          {/* Screen */}
-                          <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 space-y-0.5">
-                            <span className="text-[10px] text-slate-400 block">الشاشة</span>
-                            <span className="font-medium text-slate-300 text-[11px]">
-                              {laptop.screenSize}
-                            </span>
-                          </div>
-
-                          {/* OS */}
-                          <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 space-y-0.5">
-                            <span className="text-[10px] text-slate-400 block">نظام التشغيل</span>
-                            <span className="font-medium text-slate-300 text-[11px]">
-                              {laptop.os}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Suitable Fields */}
-                        {laptop.suitableFor && laptop.suitableFor.length > 0 && (
-                          <div className="space-y-1.5 pt-2 border-t border-slate-800/60">
-                            <span className="text-[11px] font-bold text-slate-300 block">
-                              مناسب لمجالات:
-                            </span>
-                            <div className="flex flex-wrap gap-1.5">
-                              {laptop.suitableFor.map((field, idx) => (
-                                <span
-                                  key={idx}
-                                  className="px-2 py-0.5 rounded-md bg-slate-900 text-cyan-300 border border-slate-800 text-[10px] font-medium"
-                                >
-                                  {field}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Pros / Highlights */}
-                        {laptop.pros && laptop.pros.length > 0 && (
-                          <div className="space-y-1.5 pt-2 border-t border-slate-800/60">
-                            <span className="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              أبرز الميزات:
-                            </span>
-                            <ul className="space-y-1 text-[11px] text-slate-300">
-                              {laptop.pros.map((pro, idx) => (
-                                <li key={idx} className="flex items-start gap-1.5">
-                                  <span className="text-emerald-400">•</span>
-                                  <span>{pro}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
+                      <div className="absolute bottom-3 right-3 left-3">
+                        <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider block">
+                          {laptop.brand}
+                        </span>
+                        <h4 className="text-base font-black text-white drop-shadow-md truncate">
+                          {laptop.name}
+                        </h4>
                       </div>
                     </div>
 
-                    {/* Action button: Test and Compare */}
-                    <div className="p-5 pt-0">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          // Pre-fill test specs based on this laptop model
-                          setSpecs({
-                            cpuBrand: laptop.cpu.toLowerCase().includes('ryzen') || laptop.cpu.toLowerCase().includes('amd') ? 'amd' : 'intel',
-                            cpuTier: laptop.cpu.toLowerCase().includes('i7') ? 'i7' : laptop.cpu.toLowerCase().includes('i5') ? 'i5' : laptop.cpu.toLowerCase().includes('ryzen 7') ? 'ryzen7' : 'ryzen5',
-                            cpuGen: 'gen13_plus',
-                            ramGb: laptop.ram.includes('32') ? 32 : 16,
-                            storageType: 'ssd_nvme',
-                            storageCapacityGb: 1000,
-                            gpuTier: laptop.gpu.toLowerCase().includes('4060') ? 'dedicated_mid_high' : laptop.gpu.toLowerCase().includes('rtx') ? 'dedicated_entry' : 'integrated',
-                            screenSize: '15_6',
-                            os: 'windows'
-                          });
-                          setActiveView('test_laptop');
-                          setTestStep(2); // Jump straight to evaluation of this model
-                          try { soundEffects.playClick(); } catch {}
-                          window.scrollTo({ top: 350, behavior: 'smooth' });
-                        }}
-                        className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-cyan-500 hover:text-slate-950 text-cyan-300 border border-cyan-500/40 text-xs font-bold transition-all flex items-center justify-center gap-2 min-h-[42px]"
-                      >
-                        <Search className="w-3.5 h-3.5" />
-                        <span>اختبر وحلل هذا النموذج بالتفصيل</span>
-                      </button>
+                    {/* Specs Grid */}
+                    <div className="p-5 space-y-4">
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 space-y-0.5">
+                          <span className="text-[10px] text-slate-400 block">المعالج CPU</span>
+                          <span className="font-bold text-white text-[11px] line-clamp-1">{laptop.cpu}</span>
+                        </div>
+
+                        <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 space-y-0.5">
+                          <span className="text-[10px] text-slate-400 block">الذاكرة RAM</span>
+                          <span className="font-bold text-cyan-300 text-[11px]">{laptop.ram}</span>
+                        </div>
+
+                        <div className="p-2.5 rounded-xl bg-cyan-950/30 border border-cyan-800/40 space-y-0.5">
+                          <span className="text-[10px] text-cyan-300 block font-bold">التخزين Storage</span>
+                          <span className="font-black text-white text-[11px]">{laptop.storage}</span>
+                        </div>
+
+                        <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 space-y-0.5">
+                          <span className="text-[10px] text-slate-400 block">كرت الشاشة GPU</span>
+                          <span className="font-bold text-white text-[11px] line-clamp-1">{laptop.gpu}</span>
+                        </div>
+                      </div>
+
+                      {/* Suitable Fields */}
+                      {laptop.suitableFor && laptop.suitableFor.length > 0 && (
+                        <div className="space-y-1.5 pt-2 border-t border-slate-800/60">
+                          <span className="text-[11px] font-bold text-slate-300 block">
+                            مناسب لمجالات:
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {laptop.suitableFor.map((field, idx) => (
+                              <span
+                                key={idx}
+                                className="px-2 py-0.5 rounded-md bg-slate-900 text-cyan-300 border border-slate-800 text-[10px] font-medium"
+                              >
+                                {field}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Pros */}
+                      {laptop.pros && laptop.pros.length > 0 && (
+                        <div className="space-y-1.5 pt-2 border-t border-slate-800/60">
+                          <span className="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            الميزات:
+                          </span>
+                          <ul className="space-y-1 text-[11px] text-slate-300">
+                            {laptop.pros.map((pro, idx) => (
+                              <li key={idx} className="flex items-start gap-1.5">
+                                <span className="text-emerald-400">•</span>
+                                <span>{pro}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   </div>
-                );
-              })}
+
+                  {/* Card Action Button */}
+                  <div className="p-5 pt-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSpecs({
+                          cpuBrand: laptop.cpu.toLowerCase().includes('ryzen') || laptop.cpu.toLowerCase().includes('amd') ? 'amd' : 'intel',
+                          cpuTier: laptop.cpu.toLowerCase().includes('i7') ? 'i7' : laptop.cpu.toLowerCase().includes('i5') ? 'i5' : laptop.cpu.toLowerCase().includes('ryzen 7') ? 'ryzen7' : 'ryzen5',
+                          cpuGen: 'gen13_plus',
+                          ramGb: laptop.ram.includes('32') ? 32 : 16,
+                          storageType: 'ssd_nvme',
+                          storageCapacityGb: 1000,
+                          gpuTier: laptop.gpu.toLowerCase().includes('منفصل') ? 'dedicated_entry' : 'integrated',
+                          os: 'windows'
+                        });
+                        setActiveView('test_laptop');
+                        setTestStep(2);
+                        try { soundEffects.playClick(); } catch {}
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-cyan-500 hover:text-slate-950 text-cyan-300 border border-cyan-500/40 text-xs font-bold transition-all flex items-center justify-center gap-2 min-h-[42px]"
+                    >
+                      <Search className="w-3.5 h-3.5" />
+                      <span>اختبر وحلل هذا النموذج</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="p-12 text-center rounded-3xl bg-[#091527] border border-slate-800 text-slate-400 space-y-3">
@@ -583,68 +573,47 @@ export const LaptopAdvisorSection: React.FC = () => {
               </button>
             </div>
           )}
-
-          {/* Department Baseline Specs Summary Card */}
-          <div className="rounded-3xl bg-[#091527] border border-slate-800 p-6 sm:p-7 shadow-xl space-y-4">
-            <div className="flex items-center gap-2 text-white font-black text-sm sm:text-base">
-              <Award className="w-5 h-5 text-cyan-400" />
-              <span>المواصفات القياسية الموصى بها رسمياً لطلاب هندسة الإلكترونيات والاتصالات</span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-              <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-1">
-                <span className="text-slate-400 block font-medium">الذاكرة الموصى بها:</span>
-                <span className="text-cyan-300 font-bold font-mono text-sm">16 GB DDR4/DDR5</span>
-                <span className="text-[10px] text-slate-500 block">(الحد الأدنى المقبول 8GB)</span>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-cyan-950/40 border border-cyan-500/40 space-y-1 ring-1 ring-cyan-500/30">
-                <span className="text-cyan-300 block font-bold">التخزين الموصى به:</span>
-                <span className="text-white font-black font-mono text-sm">1 TB NVMe SSD</span>
-                <span className="text-[10px] text-cyan-400 block">(لتجنب امتلاء قرص المحاكاة)</span>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-1">
-                <span className="text-slate-400 block font-medium">المعالج الموصى به:</span>
-                <span className="text-slate-200 font-bold text-xs">Core i5/i7 (11+) / Ryzen 5/7</span>
-                <span className="text-[10px] text-slate-500 block">فئات H / HX / HS للمحاكاة</span>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-1">
-                <span className="text-slate-400 block font-medium">نظام التشغيل المعتمد:</span>
-                <span className="text-slate-200 font-bold text-xs">Windows 10 / 11 64-bit</span>
-                <span className="text-[10px] text-slate-500 block">توافق 100% مع برامج القسم</span>
-              </div>
-            </div>
-          </div>
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* VIEW B: TEST YOUR LAPTOP (STEP 1: INPUT SPECS -> STEP 2: EVALUATION)       */}
+      {/* 3. CHOICE 2: TEST YOUR LAPTOP (STEP 1: FORM -> STEP 2: EVALUATION)         */}
       {/* ========================================================================= */}
       {activeView === 'test_laptop' && (
         <div className="space-y-6 animate-fadeIn">
           
-          {/* Progress Indicator */}
-          <div className="p-4 sm:p-5 rounded-3xl bg-[#091527] border border-slate-800 shadow-md flex items-center justify-between gap-4 max-w-3xl mx-auto">
+          {/* Top Navigation & Step Indicator */}
+          <div className="p-4 sm:p-5 rounded-3xl bg-[#091527] border border-slate-800 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-cyan-500 text-slate-950 font-black flex items-center justify-center text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveView('landing');
+                  try { soundEffects.playClick(); } catch {}
+                }}
+                className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 transition-colors"
+                title="العودة لاختيار القسم"
+              >
+                <ArrowRight className="w-4 h-4" />
+              </button>
+
+              <div className="w-8 h-8 rounded-xl bg-cyan-500 text-slate-950 font-black flex items-center justify-center text-xs shrink-0">
                 {testStep} / 2
               </div>
+              
               <div>
-                <span className="text-[11px] text-slate-400 block">مرحلة التقييم:</span>
+                <span className="text-[10px] text-slate-400 block">اختبار ومطابقة اللابتوب:</span>
                 <h4 className="text-xs sm:text-sm font-bold text-white">
-                  {testStep === 1 ? 'الخطوة الأولى: إدخال مواصفات اللابتوب' : 'الخطوة الثانية: نتيجة التقييم والتحليل ومقارنة التوصية'}
+                  {testStep === 1 ? 'الخطوة 1: تحديد مواصفات الجهاز' : 'الخطوة 2: نتيجة التقييم والتحليل'}
                 </h4>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 text-xs">
               <button
                 type="button"
                 onClick={() => setTestStep(1)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${
+                className={`px-3 py-1.5 rounded-xl font-bold transition-colors ${
                   testStep === 1
                     ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
                     : 'text-slate-400 hover:text-white'
@@ -658,45 +627,42 @@ export const LaptopAdvisorSection: React.FC = () => {
                 onClick={() => {
                   if (testStep === 1) handleProceedToEvaluation();
                 }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${
+                className={`px-3 py-1.5 rounded-xl font-bold transition-colors ${
                   testStep === 2
                     ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
                     : 'text-slate-500'
                 }`}
               >
-                2. النتيجة والمطابقة
+                2. النتيجة والمقارنة
               </button>
             </div>
           </div>
 
-          {/* STEP 1: Interactive Specs Input Form */}
+          {/* STEP 1: Interactive Form (Simplified & Clean) */}
           {testStep === 1 && (
             <div className="max-w-3xl mx-auto bg-[#091527] border border-slate-800/90 rounded-3xl p-5 sm:p-7 shadow-xl space-y-6 animate-fadeIn">
               
               <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-                <div className="flex items-center gap-2.5">
-                  <Sliders className="w-5 h-5 text-cyan-400" />
-                  <div>
-                    <h3 className="text-base font-black text-white">
-                      حدد مواصفات جهازك (أو الجهاز المستهدف للشراء)
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      اختر بدقة كل عنصر لتقييم مدى جاهزيته لمقررات ومخابر ومشاريع القسم.
-                    </p>
-                  </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-white">
+                    أدخل مواصفات جهازك الحالي أو المستهدف
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    اختر المواصفات الأساسية لجهازك وسنحلل مدى ملاءمته لمقررات القسم.
+                  </p>
                 </div>
 
                 <button
                   type="button"
                   onClick={handleResetTest}
-                  className="text-xs text-slate-400 hover:text-cyan-300 transition-colors py-1 px-2.5 rounded-lg border border-slate-800 hover:border-slate-700"
+                  className="text-xs text-slate-400 hover:text-cyan-300 transition-colors py-1.5 px-3 rounded-xl border border-slate-800 hover:border-slate-700 shrink-0"
                 >
                   استعادة الافتراضي
                 </button>
               </div>
 
               {validationError && (
-                <div className="p-3.5 rounded-2xl bg-rose-950/80 border border-rose-800 text-rose-300 text-xs flex items-center justify-between animate-shake">
+                <div className="p-3.5 rounded-2xl bg-rose-950/80 border border-rose-800 text-rose-300 text-xs flex items-center justify-between">
                   <span>{validationError}</span>
                   <button onClick={() => setValidationError(null)} className="text-rose-400">✕</button>
                 </div>
@@ -704,21 +670,18 @@ export const LaptopAdvisorSection: React.FC = () => {
 
               <div className="space-y-5 text-xs">
                 
-                {/* 1. RAM Selection */}
+                {/* 1. RAM Selection (Clean without stars) */}
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between flex-wrap gap-1">
-                    <label className="font-bold text-slate-200 block">
-                      1. الذاكرة العشوائية (RAM):
-                    </label>
-                    <span className="text-[11px] text-cyan-400 font-mono font-bold">16 GB موصى به للقسم</span>
-                  </div>
+                  <label className="font-bold text-slate-200 block">
+                    1. الذاكرة العشوائية (RAM):
+                  </label>
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                     {[
-                      { val: 4, label: '4 GB (ضعيف)' },
-                      { val: 8, label: '8 GB (مقبول)' },
-                      { val: 16, label: '16 GB (موصى به ⭐)' },
-                      { val: 32, label: '32 GB (ممتاز)' },
-                      { val: 64, label: '64 GB+ (فائق)' }
+                      { val: 4, label: '4 GB' },
+                      { val: 8, label: '8 GB' },
+                      { val: 16, label: '16 GB' },
+                      { val: 32, label: '32 GB' },
+                      { val: 64, label: '64 GB+' }
                     ].map((item) => (
                       <button
                         key={item.val}
@@ -739,20 +702,17 @@ export const LaptopAdvisorSection: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 2. Storage Capacity (With 1TB explicitly recommended) */}
+                {/* 2. Storage Capacity (Clean without stars) */}
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between flex-wrap gap-1">
-                    <label className="font-bold text-slate-200 block">
-                      2. سعة وسيط التخزين الداخلي:
-                    </label>
-                    <span className="text-[11px] text-emerald-400 font-mono font-bold">1 TB المعتمد رسمياً لطلاب القسم</span>
-                  </div>
+                  <label className="font-bold text-slate-200 block">
+                    2. سعة وسيط التخزين الداخلي:
+                  </label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {[
-                      { val: 256, label: '256 GB (ضيق جداً)' },
-                      { val: 512, label: '512 GB (كافٍ للبدايات)' },
-                      { val: 1000, label: '1 TB (موصى به للقسم ⭐)' },
-                      { val: 2000, label: '2 TB+ (سعة فائقة)' }
+                      { val: 256, label: '256 GB' },
+                      { val: 512, label: '512 GB' },
+                      { val: 1000, label: '1 TB' },
+                      { val: 2000, label: '2 TB+' }
                     ].map((item) => (
                       <button
                         key={item.val}
@@ -780,9 +740,9 @@ export const LaptopAdvisorSection: React.FC = () => {
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     {[
-                      { id: 'ssd_nvme', label: 'NVMe M.2 SSD (فائق السرعة - موصى به ⭐)' },
-                      { id: 'ssd_sata', label: 'SATA 2.5" SSD (سريع وجيد)' },
-                      { id: 'hdd', label: 'HDD ميكانيكي تقليدي (بطيء - لا يُنصح به)' }
+                      { id: 'ssd_nvme', label: 'NVMe SSD (سريع جداً)' },
+                      { id: 'ssd_sata', label: 'SATA SSD (سريع)' },
+                      { id: 'hdd', label: 'HDD ميكانيكي تقليدي' }
                     ].map((item) => (
                       <button
                         key={item.id}
@@ -800,21 +760,21 @@ export const LaptopAdvisorSection: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 4. CPU Brand & Tier */}
+                {/* 4. CPU Selection */}
                 <div className="space-y-2">
                   <label className="font-bold text-slate-200 block">
-                    4. فئة المعالج (CPU Tier):
+                    4. فئة المعالج (CPU):
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {[
-                      { brand: 'intel', tier: 'i5', label: 'Intel Core i5 (موصى به)' },
-                      { brand: 'intel', tier: 'i7', label: 'Intel Core i7 (أداء عالي)' },
-                      { brand: 'amd', tier: 'ryzen5', label: 'AMD Ryzen 5 (موصى به)' },
-                      { brand: 'amd', tier: 'ryzen7', label: 'AMD Ryzen 7 (أداء عالي)' },
-                      { brand: 'intel', tier: 'i9', label: 'Intel Core i9 (احترافي)' },
-                      { brand: 'amd', tier: 'ryzen9', label: 'AMD Ryzen 9 (احترافي)' },
-                      { brand: 'intel', tier: 'i3', label: 'Intel Core i3 (اقتصادي)' },
-                      { brand: 'apple', tier: 'appleM', label: 'Apple Silicon (M1/M2/M3)' }
+                      { brand: 'intel', tier: 'i5', label: 'Intel Core i5' },
+                      { brand: 'intel', tier: 'i7', label: 'Intel Core i7' },
+                      { brand: 'amd', tier: 'ryzen5', label: 'AMD Ryzen 5' },
+                      { brand: 'amd', tier: 'ryzen7', label: 'AMD Ryzen 7' },
+                      { brand: 'intel', tier: 'i9', label: 'Intel Core i9' },
+                      { brand: 'amd', tier: 'ryzen9', label: 'AMD Ryzen 9' },
+                      { brand: 'intel', tier: 'i3', label: 'Intel Core i3' },
+                      { brand: 'apple', tier: 'appleM', label: 'Apple Silicon (M)' }
                     ].map((item) => (
                       <button
                         key={item.tier}
@@ -824,8 +784,7 @@ export const LaptopAdvisorSection: React.FC = () => {
                             ...specs, 
                             cpuBrand: item.brand as any, 
                             cpuTier: item.tier as any,
-                            cpuGen: item.brand === 'apple' ? 'apple_silicon' : specs.cpuGen,
-                            os: item.brand === 'apple' ? 'macos' : specs.os
+                            cpuGen: item.brand === 'apple' ? 'apple_silicon' : specs.cpuGen
                           });
                           setValidationError(null);
                         }}
@@ -849,9 +808,9 @@ export const LaptopAdvisorSection: React.FC = () => {
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       {[
-                        { gen: 'gen13_plus', label: 'حديث جداً (13 / 14 أو AMD 7000+)' },
-                        { gen: 'gen11_12', label: 'متوازن وحديث (11 / 12 أو AMD 5000)' },
-                        { gen: 'gen8_10', label: 'متوسط (الجيل 8 إلى 10)' }
+                        { gen: 'gen13_plus', label: 'معالج حديث (الجيل 11 أو أحدث)' },
+                        { gen: 'gen8_10', label: 'معالج متوسط (الجيل 8 إلى 10)' },
+                        { gen: 'older', label: 'معالج قديم' }
                       ].map((item) => (
                         <button
                           key={item.gen}
@@ -870,16 +829,16 @@ export const LaptopAdvisorSection: React.FC = () => {
                   </div>
                 )}
 
-                {/* 5. GPU Tier */}
+                {/* 5. Simplified GPU Selection (No RTX/brand restrictions) */}
                 <div className="space-y-2">
                   <label className="font-bold text-slate-200 block">
                     5. كرت الشاشة (GPU):
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     {[
-                      { id: 'integrated', label: 'مدمج (Intel UHD / Iris Xe / AMD Radeon)' },
-                      { id: 'dedicated_entry', label: 'منفصل اقتصادي (RTX 3050 / 2050 / GTX)' },
-                      { id: 'dedicated_mid_high', label: 'منفصل قوي (RTX 4060 / 4070 فأعلى)' }
+                      { id: 'integrated', label: 'كرت شاشة مدمج (Integrated GPU)' },
+                      { id: 'dedicated_entry', label: 'كرت شاشة منفصل (Dedicated GPU)' },
+                      { id: 'apple_gpu', label: 'كرت شاشة مدمج من Apple' }
                     ].map((item) => (
                       <button
                         key={item.id}
@@ -897,72 +856,12 @@ export const LaptopAdvisorSection: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 6. Screen Size */}
-                <div className="space-y-2">
-                  <label className="font-bold text-slate-200 block">
-                    6. حجم الشاشة:
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { id: '13_14', label: '13 - 14 بوصة (خفيف وسهل الحمل)' },
-                      { id: '15_6', label: '15.6 بوصة (الحجم القياسي ⭐)' },
-                      { id: '16_17', label: '16 - 17 بوصة (مساحة عرض واسعة)' }
-                    ].map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setSpecs({ ...specs, screenSize: item.id as any })}
-                        className={`py-2.5 px-2 text-center rounded-2xl font-medium transition-all min-h-[44px] flex items-center justify-center ${
-                          specs.screenSize === item.id
-                            ? 'bg-cyan-500/20 text-cyan-300 border-2 border-cyan-500 shadow-md font-bold'
-                            : 'bg-slate-900 text-slate-400 hover:bg-slate-800 border border-slate-800'
-                        }`}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 7. Operating System */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between flex-wrap gap-1">
-                    <label className="font-bold text-slate-200 block">
-                      7. نظام التشغيل (OS):
-                    </label>
-                    <span className="text-[11px] text-amber-400 flex items-center gap-1">
-                      <Info className="w-3 h-3" />
-                      برمجيات القسم (Quartus, PSpice, Multisim) مخصصة لنظام Windows
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    {[
-                      { id: 'windows', label: 'Windows 10 / 11 (الأساسي والمعتمد ⭐)' },
-                      { id: 'macos', label: 'macOS (أجهزة Mac - يحتاج نظام وهمي)' },
-                      { id: 'linux', label: 'Linux (Ubuntu / Fedora)' }
-                    ].map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setSpecs({ ...specs, os: item.id as any })}
-                        className={`py-3 px-2 text-center rounded-2xl font-medium transition-all min-h-[44px] flex items-center justify-center ${
-                          specs.os === item.id
-                            ? 'bg-cyan-500/20 text-cyan-300 border-2 border-cyan-500 shadow-md font-bold'
-                            : 'bg-slate-900 text-slate-400 hover:bg-slate-800 border border-slate-800'
-                        }`}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
               </div>
 
-              {/* Next Button Action */}
+              {/* Next Button */}
               <div className="pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="text-xs text-slate-400 text-center sm:text-right">
-                  اضغط على &quot;التالي&quot; لحساب نسبة الملاءمة وتحليل البرمجيات الهندسية.
+                  اضغط على &quot;التالي&quot; للانتقال لشاشة تقييم الجهاز ومطابقته.
                 </div>
 
                 <button
@@ -977,18 +876,17 @@ export const LaptopAdvisorSection: React.FC = () => {
             </div>
           )}
 
-          {/* STEP 2: Rich Evaluation & Department Comparison Result */}
+          {/* STEP 2: Evaluation Screen */}
           {testStep === 2 && (
             <div className="space-y-6 animate-fadeIn">
               
-              {/* Top Result Card with Score Ring */}
+              {/* Score Card with Progress Ring */}
               <div className="rounded-3xl bg-gradient-to-b from-[#0a1b35] to-[#081527] border border-cyan-500/50 p-6 sm:p-8 shadow-2xl relative overflow-hidden">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8">
                   
-                  {/* Left: Animated Score Circle */}
+                  {/* Circular Score Meter */}
                   <div className="flex flex-col items-center justify-center shrink-0">
                     <div className="relative w-32 h-32 sm:w-36 sm:h-36 flex items-center justify-center">
-                      {/* SVG Circular Ring */}
                       <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
                         <circle
                           cx="60"
@@ -1019,7 +917,6 @@ export const LaptopAdvisorSection: React.FC = () => {
                         />
                       </svg>
 
-                      {/* Percentage in center */}
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
                         <span className="text-3xl sm:text-4xl font-black text-white font-mono">
                           {evaluation.scorePercentage}%
@@ -1031,7 +928,7 @@ export const LaptopAdvisorSection: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Right: Badge, Title & Summary */}
+                  {/* Summary & Details */}
                   <div className="flex-1 text-center md:text-right space-y-2">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border backdrop-blur-md bg-slate-900/80 text-cyan-300 border-cyan-500/40">
                       <ShieldCheck className="w-4 h-4 text-cyan-400" />
@@ -1046,7 +943,6 @@ export const LaptopAdvisorSection: React.FC = () => {
                       {evaluation.summaryAr}
                     </p>
 
-                    {/* Quick Specs summary pill */}
                     <div className="pt-2 flex items-center justify-center md:justify-start gap-2 flex-wrap text-[11px] text-slate-400 font-mono">
                       <span className="px-2.5 py-1 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-300">
                         RAM: {specs.ramGb}GB
@@ -1057,17 +953,13 @@ export const LaptopAdvisorSection: React.FC = () => {
                       <span className="px-2.5 py-1 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-300">
                         معالج: {specs.cpuTier}
                       </span>
-                      <span className="px-2.5 py-1 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-300">
-                        نظام: {specs.os}
-                      </span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Strengths & Attention Points (2-Column Cards) */}
+              {/* Strengths & Attention Points (2 Columns) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Strengths */}
                 <div className="p-5 sm:p-6 rounded-3xl bg-[#091527] border border-emerald-900/50 shadow-xl space-y-3">
                   <div className="flex items-center gap-2 text-emerald-400 font-black text-sm">
                     <CheckCircle2 className="w-4 h-4" />
@@ -1083,7 +975,6 @@ export const LaptopAdvisorSection: React.FC = () => {
                   </ul>
                 </div>
 
-                {/* Attention Points / Limitations */}
                 <div className="p-5 sm:p-6 rounded-3xl bg-[#091527] border border-amber-900/50 shadow-xl space-y-3">
                   <div className="flex items-center gap-2 text-amber-400 font-black text-sm">
                     <AlertTriangle className="w-4 h-4" />
@@ -1099,14 +990,14 @@ export const LaptopAdvisorSection: React.FC = () => {
                       ))
                     ) : (
                       <li className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-slate-400 text-xs">
-                        لا توجد نقاط ضعف بارزة! مواصفاتك ممتازة وتغطي كافة متطلبات الدراسة.
+                        لا توجد ملاحظات بارزة! مواصفاتك ممتازة وتغطي كافة متطلبات الدراسة.
                       </li>
                     )}
                   </ul>
                 </div>
               </div>
 
-              {/* 🎯 Suitable Fields & Engineering Software */}
+              {/* Suitable Fields */}
               {evaluation.suitableFields.length > 0 && (
                 <div className="p-5 sm:p-6 rounded-3xl bg-[#091527] border border-slate-800 shadow-xl space-y-3">
                   <div className="flex items-center gap-2 text-cyan-300 font-black text-sm">
@@ -1126,7 +1017,7 @@ export const LaptopAdvisorSection: React.FC = () => {
                 </div>
               )}
 
-              {/* 🧪 SIDE-BY-SIDE COMPARISON TABLE (Your Laptop vs Department Baseline) */}
+              {/* Comparison Table (Your Laptop vs Department Baseline) */}
               <div className="p-5 sm:p-7 rounded-3xl bg-[#091527] border border-slate-800 shadow-xl space-y-4">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                   <div className="flex items-center gap-2">
@@ -1135,9 +1026,6 @@ export const LaptopAdvisorSection: React.FC = () => {
                       مقارنة مباشرة: مواصفات جهازك مقابل التوصية المعتمدة لطلاب القسم
                     </h4>
                   </div>
-                  <span className="text-[11px] text-slate-400 font-mono">
-                    Official Department Baseline
-                  </span>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -1151,88 +1039,45 @@ export const LaptopAdvisorSection: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/60">
-                      {evaluation.comparison.map((item, idx) => {
-                        return (
-                          <tr key={idx} className="hover:bg-slate-900/40 transition-colors">
-                            <td className="py-3 px-3 font-bold text-white whitespace-nowrap">
-                              {item.aspect}
-                            </td>
-                            <td className="py-3 px-3 font-mono font-bold text-slate-200 whitespace-nowrap">
-                              {item.userValue}
-                            </td>
-                            <td className="py-3 px-3 font-mono font-bold text-cyan-300 whitespace-nowrap">
-                              {item.recommendedValue}
-                            </td>
-                            <td className="py-3 px-3">
-                              <div className="flex items-center gap-2">
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
-                                  item.status === 'optimal'
-                                    ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/60'
-                                    : item.status === 'pass'
-                                    ? 'bg-blue-950 text-blue-300 border border-blue-800/60'
-                                    : 'bg-amber-950 text-amber-300 border border-amber-800/60'
-                                }`}>
-                                  {item.status === 'optimal' ? 'ممتاز ⭐' : item.status === 'pass' ? 'مقبول ✓' : 'انتبه ⚠️'}
+                      {evaluation.comparison.map((item, idx) => (
+                        <tr key={idx} className="hover:bg-slate-900/40 transition-colors">
+                          <td className="py-3 px-3 font-bold text-white whitespace-nowrap">
+                            {item.aspect}
+                          </td>
+                          <td className="py-3 px-3 font-mono font-bold text-slate-200 whitespace-nowrap">
+                            {item.userValue}
+                          </td>
+                          <td className="py-3 px-3 font-mono font-bold text-cyan-300 whitespace-nowrap">
+                            {item.recommendedValue}
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                                item.status === 'optimal'
+                                  ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/60'
+                                  : item.status === 'pass'
+                                  ? 'bg-blue-950 text-blue-300 border border-blue-800/60'
+                                  : 'bg-amber-950 text-amber-300 border border-amber-800/60'
+                              }`}>
+                                {item.status === 'optimal' ? 'ممتاز' : item.status === 'pass' ? 'مقبول' : 'انتبه'}
+                              </span>
+                              {item.note && (
+                                <span className="text-[11px] text-slate-400">
+                                  {item.note}
                                 </span>
-                                {item.note && (
-                                  <span className="text-[11px] text-slate-400">
-                                    {item.note}
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
-                </div>
-              </div>
-
-              {/* Software Compatibility Breakdown */}
-              <div className="p-5 sm:p-6 rounded-3xl bg-[#091527] border border-slate-800 shadow-xl space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                  <div className="flex items-center gap-2">
-                    <Cpu className="w-4 h-4 text-cyan-400" />
-                    <h4 className="text-xs sm:text-sm font-bold text-white">
-                      توافق برمجيات القسم الأساسية مع هذا العتاد
-                    </h4>
-                  </div>
-                  <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-slate-900 text-cyan-300 border border-slate-800">
-                    {smoothCount} برامج تعمل بسلاسة • {heavyCount} قد تتطلب عتاداً أعلى
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-64 overflow-y-auto pr-1">
-                  {softwareCompatibility.map((sw) => (
-                    <div
-                      key={sw.id}
-                      className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800/80 flex flex-col justify-between gap-1 text-xs"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-bold text-white truncate">{sw.name}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold shrink-0 ${
-                          sw.compatibilityStatus === 'smooth'
-                            ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/60'
-                            : sw.compatibilityStatus === 'acceptable'
-                            ? 'bg-blue-950 text-blue-300 border border-blue-800/60'
-                            : 'bg-amber-950 text-amber-300 border border-amber-800/60'
-                        }`}>
-                          {sw.compatibilityStatus === 'smooth' ? 'سلس' : sw.compatibilityStatus === 'acceptable' ? 'مقبول' : 'قد يعاني'}
-                        </span>
-                      </div>
-                      <span className="text-[10px] text-slate-400 line-clamp-1">
-                        {sw.compatibilityNote}
-                      </span>
-                    </div>
-                  ))}
                 </div>
               </div>
 
               {/* Action Buttons Bar */}
               <div className="p-5 rounded-3xl bg-[#091527] border border-slate-800 shadow-xl flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2 flex-wrap">
-                  {/* Edit Specs Button */}
                   <button
                     type="button"
                     onClick={handleBackToForm}
@@ -1242,7 +1087,6 @@ export const LaptopAdvisorSection: React.FC = () => {
                     <span>تعديل المواصفات</span>
                   </button>
 
-                  {/* Reset Test Button */}
                   <button
                     type="button"
                     onClick={handleResetTest}
@@ -1252,7 +1096,6 @@ export const LaptopAdvisorSection: React.FC = () => {
                     <span>إعادة الاختبار</span>
                   </button>
 
-                  {/* Switch to Recommended Models */}
                   <button
                     type="button"
                     onClick={() => {
@@ -1266,7 +1109,6 @@ export const LaptopAdvisorSection: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Save to Student Profile Button */}
                 <button
                   type="button"
                   onClick={handleSaveSpecs}
@@ -1285,6 +1127,7 @@ export const LaptopAdvisorSection: React.FC = () => {
                   )}
                 </button>
               </div>
+
             </div>
           )}
 
