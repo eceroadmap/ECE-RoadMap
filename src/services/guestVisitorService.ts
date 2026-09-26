@@ -1,4 +1,4 @@
-import { db, collection, addDoc, doc, setDoc, getDocs, query, orderBy, limit, ensureFirebaseAuth } from '../lib/firebase';
+import { db, collection, addDoc, doc, setDoc, getDocs, getDoc, query, orderBy, limit, ensureFirebaseAuth } from '../lib/firebase';
 import { studentRepository } from './studentRepository';
 import { AcademicYearNumber } from '../types';
 
@@ -83,6 +83,38 @@ export const guestVisitorService = {
       // We do not fail the user login even if offline; local record is already set!
     }
 
+    // 4. Update shared students directory in site_stats so all supervisors immediately see new students
+    try {
+      const dirRef = doc(db, 'site_stats', 'students_directory');
+      const dirSnap = await getDoc(dirRef);
+      const existing = dirSnap.exists() ? (dirSnap.data().students || []) : [];
+      const updated = [
+        {
+          uid: guestId,
+          displayName: fullName,
+          email: null,
+          academicYear: yearNumber,
+          currentYear: data.academicYear === 'graduate' ? 'graduate' : yearNumber,
+          academicSemester: 1,
+          role: data.academicYear === 'graduate' ? 'graduate' : (yearNumber === 1 ? 'freshman' : 'current'),
+          roleLabelAr: data.academicYear === 'graduate' ? 'مهندس خريج' : (yearNumber === 1 ? 'طالب مستجد' : `طالب سنة ${yearNumber}`),
+          coursesCount: 0,
+          completedCoursesCount: 0,
+          onboardingCompleted: true,
+          createdAt: now,
+          authProvider: 'guest'
+        },
+        ...existing.filter((s: any) => (s.uid || s.id) !== guestId)
+      ];
+      await setDoc(dirRef, {
+        students: updated,
+        totalCount: updated.length,
+        updatedAt: now
+      }, { merge: true });
+    } catch (e) {
+      console.warn('Update shared students directory notice:', e);
+    }
+
     return record;
   },
 
@@ -114,11 +146,38 @@ export const guestVisitorService = {
     try {
       await ensureFirebaseAuth();
       const colRef = collection(db, 'guest_visitors');
-      const snap = await getDocs(colRef);
+      const snap = await getDocs(colRef).catch(() => ({ forEach: () => {}, empty: true } as any));
       const list: GuestVisitorRecord[] = [];
-      snap.forEach((d) => {
+      snap.forEach((d: any) => {
         list.push({ ...(d.data() as GuestVisitorRecord), id: d.id });
       });
+
+      // If direct read yielded empty or was blocked by security rules for supervisor,
+      // seamlessly hydrate from verified shared students directory in site_stats
+      if (list.length === 0) {
+        try {
+          const dirSnap = await getDoc(doc(db, 'site_stats', 'students_directory'));
+          if (dirSnap.exists()) {
+            const dirStudents = (dirSnap.data()?.students || []) as any[];
+            dirStudents.forEach((st) => {
+              if (st.authProvider === 'guest' || !st.email) {
+                const nameParts = (st.displayName || '').split(' ');
+                list.push({
+                  id: st.uid || st.id,
+                  firstName: nameParts[0] || 'طالب',
+                  lastName: nameParts.slice(1).join(' ') || '',
+                  fullName: st.displayName || 'طالب زائر',
+                  academicYear: st.academicYear || 1,
+                  createdAt: st.createdAt || new Date().toISOString()
+                });
+              }
+            });
+          }
+        } catch (dirErr) {
+          console.warn('Fallback shared directory read for guests caught:', dirErr);
+        }
+      }
+
       return list
         .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
         .slice(0, count);

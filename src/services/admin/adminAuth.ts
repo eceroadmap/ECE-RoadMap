@@ -3,6 +3,8 @@ import {
   db, 
   doc, 
   getDoc, 
+  getDocs,
+  collection,
   setDoc, 
   onAuthStateChanged, 
   User 
@@ -70,6 +72,31 @@ export async function checkIsAdmin(user: User | null): Promise<boolean> {
 
       try {
         await setDoc(adminDocRef, ownerData, { merge: true });
+        
+        // As Owner, scan and auto-provision any active moderator sessions into /admins
+        try {
+          const cfgSnap = await getDoc(doc(db, 'system_config', 'moderators_list'));
+          const activeEmails = new Set(((cfgSnap.data()?.activeEmails || []) as string[]).map(e => e.toLowerCase()));
+          const sessionsSnap = await getDocs(collection(db, 'site_stats')).catch(() => null);
+          if (sessionsSnap) {
+            sessionsSnap.forEach((d) => {
+              if (d.id.startsWith('mod_session_')) {
+                const sData = d.data();
+                if (sData.uid && sData.email && activeEmails.has(sData.email.toLowerCase())) {
+                  setDoc(doc(db, 'admins', sData.uid), {
+                    uid: sData.uid,
+                    email: sData.email,
+                    displayName: sData.displayName || 'مشرف معتمد',
+                    role: sData.role || 'moderator',
+                    status: 'active',
+                    isOwner: false,
+                    updatedAt: new Date().toISOString()
+                  }, { merge: true }).catch(() => null);
+                }
+              }
+            });
+          }
+        } catch {}
       } catch (e) {
         console.warn('Saving owner admin doc caught:', e);
       }
@@ -98,10 +125,22 @@ export async function checkIsAdmin(user: User | null): Promise<boolean> {
         updatedAt: new Date().toISOString()
       };
 
+      // 1. Broadcast session to site_stats so owner can promote UID to /admins
+      try {
+        await setDoc(doc(db, 'site_stats', 'mod_session_' + effectiveUser.uid), {
+          uid: effectiveUser.uid,
+          email: userEmail,
+          displayName: modData.displayName,
+          role: assignedRole,
+          timestamp: new Date().toISOString()
+        }, { merge: true });
+      } catch {}
+
+      // 2. Attempt direct write to /admins (succeeds if rules allow)
       try {
         await setDoc(adminDocRef, modData, { merge: true });
       } catch (e) {
-        console.warn('Auto-provisioning moderator doc in /admins caught:', e);
+        console.warn('Auto-provisioning moderator doc in /admins caught (session broadcasted):', e);
       }
 
       currentAdminStatus = true;

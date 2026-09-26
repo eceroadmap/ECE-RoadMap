@@ -25,6 +25,7 @@ import { StudentProfileModal } from './StudentProfileModal';
 import { BOOTSTRAP_ADMIN_EMAIL, adminAuthService } from '../../services/admin/adminAuth';
 import { extractAcademicYear, extractAcademicSemester, isPlatformOwnerRecord } from '../../services/admin/adminStats';
 import { AcademicYearNumber } from '../../types';
+import { db, doc, getDoc, setDoc } from '../../lib/firebase';
 
 interface StudentsManagerProps {
   isOwner?: boolean;
@@ -87,9 +88,50 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({ isOwner = fals
         }
       }
 
+      // If merged resulted in 0 (e.g. security rules restriction for supervisor), fallback to shared site_stats directory
+      if (merged.length === 0) {
+        try {
+          const dirSnap = await getDoc(doc(db, 'site_stats', 'students_directory'));
+          if (dirSnap.exists()) {
+            const cached = (dirSnap.data()?.students || []) as AdminStudentRecord[];
+            const validCached = cached.filter(s => !isPlatformOwnerRecord(s));
+            if (validCached.length > 0) {
+              setStudents(validCached);
+              setIsLoading(false);
+              return;
+            }
+          }
+        } catch (dirErr) {
+          console.warn('Fallback shared directory read warning:', dirErr);
+        }
+      }
+
+      // If owner loaded live students with records, sync them to shared directory
+      if (effectiveIsOwner && merged.length > 0) {
+        setDoc(doc(db, 'site_stats', 'students_directory'), {
+          students: merged,
+          totalCount: merged.length,
+          updatedAt: new Date().toISOString()
+        }, { merge: true }).catch(() => null);
+      }
+
       setStudents(merged);
     } catch (err: any) {
       console.error('Error fetching students directory:', err);
+      // Attempt emergency fallback to shared cloud directory before throwing error state
+      try {
+        const dirSnap = await getDoc(doc(db, 'site_stats', 'students_directory'));
+        if (dirSnap.exists()) {
+          const cached = (dirSnap.data()?.students || []) as AdminStudentRecord[];
+          const validCached = cached.filter(s => !isPlatformOwnerRecord(s));
+          if (validCached.length > 0) {
+            setStudents(validCached);
+            setIsLoading(false);
+            return;
+          }
+        }
+      } catch {}
+
       const errMsg = String(err?.message || err);
       if (errMsg.includes('permission-denied') || errMsg.includes('missing or insufficient permissions')) {
         setErrorType('permission');

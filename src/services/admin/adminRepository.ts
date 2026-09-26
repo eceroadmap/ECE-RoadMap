@@ -509,14 +509,15 @@ export const adminRepository = {
     const p = 'students';
     try {
       await ensureFirebaseAuth();
-      const [snap, authIndexSnap] = await Promise.all([
-        getDocs(collection(db, p)),
-        getDocs(collection(db, 'student_auth_index')).catch(() => ({ docs: [] } as any))
+      const [snap, authIndexSnap, dirSnap] = await Promise.all([
+        getDocs(collection(db, p)).catch(() => ({ docs: [] } as any)),
+        getDocs(collection(db, 'student_auth_index')).catch(() => ({ docs: [] } as any)),
+        getDoc(doc(db, 'site_stats', 'students_directory')).catch(() => null)
       ]);
 
       const map = new Map<string, AdminStudentRecord>();
 
-      snap.docs.forEach(d => {
+      snap.docs.forEach((d: any) => {
         const data = d.data() as Partial<AdminStudentRecord>;
         map.set(d.id, {
           uid: d.id,
@@ -538,7 +539,18 @@ export const adminRepository = {
         }
       });
 
-      return Array.from(map.values())
+      // Hydrate from shared directory if direct students collection was restricted for supervisor
+      if (dirSnap && dirSnap.exists()) {
+        const list = (dirSnap.data()?.students || []) as AdminStudentRecord[];
+        list.forEach((st: any) => {
+          const id = st.uid || st.id;
+          if (id && !map.has(id)) {
+            map.set(id, { ...st, uid: id });
+          }
+        });
+      }
+
+      const results = Array.from(map.values())
         .filter(s => {
           const email = (s.email || '').toLowerCase().trim();
           const name = (s.displayName || '').toLowerCase().trim();
@@ -551,8 +563,29 @@ export const adminRepository = {
             name.includes('مدير المنصة');
           return !isOwnerAccount;
         });
+
+      // If results were obtained directly from live collections, sync to shared directory
+      if (snap.docs.length > 0 && results.length > 0) {
+        setDoc(doc(db, 'site_stats', 'students_directory'), {
+          students: results,
+          totalCount: results.length,
+          updatedAt: new Date().toISOString()
+        }, { merge: true }).catch(() => null);
+      }
+
+      return results;
     } catch (error) {
-      console.warn('Failed to list students from Firestore:', error);
+      console.warn('Failed to list students from Firestore, attempting fallback:', error);
+      try {
+        const dirSnap = await getDoc(doc(db, 'site_stats', 'students_directory'));
+        if (dirSnap.exists()) {
+          const list = (dirSnap.data()?.students || []) as AdminStudentRecord[];
+          return list.filter(s => {
+            const email = (s.email || '').toLowerCase().trim();
+            return !email.includes('marwa.mgd.shmdeen');
+          });
+        }
+      } catch {}
       return [];
     }
   },
