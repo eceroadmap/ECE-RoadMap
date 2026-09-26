@@ -27,6 +27,7 @@ import {
 import { AdminStudentRecord } from '../../types/admin';
 import { CommunityTip } from '../../types/student';
 import { adminRepository } from '../../services/admin/adminRepository';
+import { studentPresenceService } from '../../services/studentPresenceService';
 import { COURSES_DATA } from '../../data/courses';
 import { adminAuthService } from '../../services/admin/adminAuth';
 
@@ -206,6 +207,26 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
               <p className="text-xs text-slate-400 mt-0.5 font-mono">
                 {student.email || 'حساب زائر محلي على المتصفح'}
               </p>
+
+              {adminAuthService.getIsOwner() && (() => {
+                const presence = studentPresenceService.getPresenceStatus(
+                  student.lastActiveAt,
+                  student.lastSyncedAt,
+                  student.updatedAt,
+                  student.createdAt
+                );
+                return (
+                  <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-slate-900/90 border border-slate-700/80 text-xs font-bold">
+                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${presence.isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+                    <span className={presence.isOnline ? 'text-emerald-300' : 'text-slate-300'}>
+                      {presence.statusLabelAr}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      ({presence.exactDateFormatted})
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 

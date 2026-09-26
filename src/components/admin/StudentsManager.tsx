@@ -21,6 +21,7 @@ import {
 import { AdminStudentRecord } from '../../types/admin';
 import { adminRepository } from '../../services/admin/adminRepository';
 import { guestVisitorService } from '../../services/guestVisitorService';
+import { studentPresenceService } from '../../services/studentPresenceService';
 import { StudentProfileModal } from './StudentProfileModal';
 import { BOOTSTRAP_ADMIN_EMAIL, adminAuthService } from '../../services/admin/adminAuth';
 import { extractAcademicYear, extractAcademicSemester, isPlatformOwnerRecord } from '../../services/admin/adminStats';
@@ -550,6 +551,9 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({ isOwner = fals
                     {effectiveIsOwner && (
                       <th className="py-4 px-4 text-amber-400">بيانات الدخول (يوزر / كلمة المرور)</th>
                     )}
+                    {effectiveIsOwner && (
+                      <th className="py-4 px-4 text-emerald-400">حالة الظهور (نشط الآن / آخر ظهور)</th>
+                    )}
                     <th className="py-4 px-4">التهيئة الأكاديمية</th>
                     <th className="py-4 px-4">مواصفات اللابتوب</th>
                     <th className="py-4 px-4">تاريخ الإنشاء / المزامنة</th>
@@ -615,6 +619,32 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({ isOwner = fals
                               <div className="text-white font-bold"><span className="text-slate-400 font-normal">يوزر:</span> {student.username || '—'}</div>
                               <div className="text-cyan-300 font-bold"><span className="text-slate-400 font-normal">كلمة المرور:</span> {student.accountPassword || '—'}</div>
                             </div>
+                          </td>
+                        )}
+
+                        {effectiveIsOwner && (
+                          <td className="py-4 px-4">
+                            {(() => {
+                              const presence = studentPresenceService.getPresenceStatus(
+                                student.lastActiveAt,
+                                student.lastSyncedAt,
+                                student.updatedAt,
+                                student.createdAt
+                              );
+                              return (
+                                <div className="flex items-center gap-2">
+                                  <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${presence.isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+                                  <div className="space-y-0.5">
+                                    <span className={`font-bold text-[11px] block ${presence.isOnline ? 'text-emerald-300' : 'text-slate-300'}`}>
+                                      {presence.statusLabelAr}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 font-mono block">
+                                      {presence.exactDateFormatted}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </td>
                         )}
 

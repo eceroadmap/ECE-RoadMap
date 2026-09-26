@@ -37,6 +37,7 @@ import { COURSES_DATA } from './data/courses';
 import { SOFTWARE_DATA } from './data/software';
 import { useStudentState } from './services/useStudentState';
 import { guestVisitorService } from './services/guestVisitorService';
+import { studentPresenceService } from './services/studentPresenceService';
 import { getProductionAppUrl } from './lib/firebase';
 
 export default function App() {
@@ -64,6 +65,10 @@ export default function App() {
     firebaseUser,
     isLoggedInWithGoogle
   } = useStudentState();
+
+  useEffect(() => {
+    studentPresenceService.startHeartbeat();
+  }, []);
 
   useEffect(() => {
     if ((firebaseUser || isLoggedInWithGoogle) && (!profile.username || !profile.accountPassword)) {
