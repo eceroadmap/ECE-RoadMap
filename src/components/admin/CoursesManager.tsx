@@ -50,37 +50,14 @@ export const CoursesManager: React.FC = () => {
     status: 'active' as 'active' | 'archived'
   });
 
-  const loadCourses = async () => {
+  useEffect(() => {
     setIsLoading(true);
     setActionError(null);
-    try {
-      // adminRepository.getCourses() now merges all 57 base courses with any Firestore customizations
-      const allCourses = await adminRepository.getCourses();
-      if (allCourses.length > 0) {
-        setCourses(allCourses);
-      } else {
-        const mapped: ManagedCourse[] = COURSES_DATA.map(c => ({
-          ...c,
-          status: 'active',
-          updatedAt: new Date().toISOString()
-        }));
-        setCourses(mapped);
-      }
-    } catch (e) {
-      console.warn('Using local courses fallback:', e);
-      const mapped: ManagedCourse[] = COURSES_DATA.map(c => ({
-        ...c,
-        status: 'active',
-        updatedAt: new Date().toISOString()
-      }));
-      setCourses(mapped);
-    } finally {
+    const unsub = adminRepository.subscribeCourses((latestCourses) => {
+      setCourses(latestCourses);
       setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadCourses();
+    });
+    return () => unsub();
   }, []);
 
   const handleOpenAdd = () => {

@@ -40,35 +40,13 @@ export const SoftwareManager: React.FC = () => {
     status: 'active' as 'active' | 'archived'
   });
 
-  const loadSoftware = async () => {
-    setIsLoading(true);
-    try {
-      const remote = await adminRepository.getSoftware();
-      if (remote.length > 0) {
-        setSoftwareList(remote);
-      } else {
-        const mapped: ManagedSoftware[] = SOFTWARE_DATA.map(s => ({
-          ...s,
-          status: 'active',
-          updatedAt: new Date().toISOString()
-        }));
-        setSoftwareList(mapped);
-      }
-    } catch (e) {
-      console.warn('Fallback to local software:', e);
-      const mapped: ManagedSoftware[] = SOFTWARE_DATA.map(s => ({
-        ...s,
-        status: 'active',
-        updatedAt: new Date().toISOString()
-      }));
-      setSoftwareList(mapped);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadSoftware();
+    setIsLoading(true);
+    const unsub = adminRepository.subscribeSoftware((latest) => {
+      setSoftwareList(latest);
+      setIsLoading(false);
+    });
+    return () => unsub();
   }, []);
 
   const handleOpenAdd = () => {

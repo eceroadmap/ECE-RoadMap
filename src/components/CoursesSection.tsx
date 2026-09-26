@@ -8,7 +8,7 @@ import {
   Layers
 } from 'lucide-react';
 import { Course, AcademicYearNumber, SoftwareTool } from '../types';
-import { COURSES_DATA } from '../data/courses';
+import { useLiveCourses } from '../services/curriculumSyncService';
 import { soundEffects } from '../utils/soundEffects';
 
 interface CoursesSectionProps {
@@ -21,12 +21,18 @@ export const CoursesSection: React.FC<CoursesSectionProps> = ({
   initialYearFilter = 'all',
   onSelectCourse
 }) => {
+  const liveCourses = useLiveCourses();
+  // Filter out archived courses for public view
+  const activeCourses = useMemo(() => {
+    return liveCourses.filter(c => (c as any).status !== 'archived');
+  }, [liveCourses]);
+
   const [yearFilter, setYearFilter] = useState<AcademicYearNumber | 'all'>(initialYearFilter);
   const [semesterFilter, setSemesterFilter] = useState<1 | 2 | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredCourses = useMemo(() => {
-    return COURSES_DATA.filter((course) => {
+    return activeCourses.filter((course) => {
       // Year filter
       if (yearFilter !== 'all' && course.year !== yearFilter) return false;
       // Semester filter
@@ -37,20 +43,20 @@ export const CoursesSection: React.FC<CoursesSectionProps> = ({
         const matchAr = course.nameAr.toLowerCase().includes(q);
         const matchEn = course.nameEn ? course.nameEn.toLowerCase().includes(q) : false;
         const matchTags = course.tags.some(t => t.toLowerCase().includes(q));
-        const matchSoftware = course.relatedSoftware.some(s => s.toLowerCase().includes(q));
+        const matchSoftware = (course.relatedSoftware || []).some(s => s.toLowerCase().includes(q));
         return matchAr || matchEn || matchTags || matchSoftware;
       }
       return true;
     });
-  }, [yearFilter, semesterFilter, searchQuery]);
+  }, [activeCourses, yearFilter, semesterFilter, searchQuery]);
 
   const yearCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: COURSES_DATA.length };
+    const counts: Record<string, number> = { all: activeCourses.length };
     [1, 2, 3, 4, 5].forEach((y) => {
-      counts[y] = COURSES_DATA.filter(c => c.year === y).length;
+      counts[y] = activeCourses.filter(c => c.year === y).length;
     });
     return counts;
-  }, []);
+  }, [activeCourses]);
 
   return (
     <div className="space-y-8">
@@ -138,7 +144,7 @@ export const CoursesSection: React.FC<CoursesSectionProps> = ({
 
       {/* Results Count Bar */}
       <div className="max-w-5xl mx-auto flex items-center justify-between text-xs text-slate-400 px-2">
-        <span>عرض {filteredCourses.length} من أصل {COURSES_DATA.length} مقرراً دراسياً</span>
+        <span>عرض {filteredCourses.length} من أصل {activeCourses.length} مقرراً دراسياً</span>
         {(yearFilter !== 'all' || semesterFilter !== 'all' || searchQuery) && (
           <button
             onClick={() => {

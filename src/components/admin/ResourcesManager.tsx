@@ -41,37 +41,13 @@ export const ResourcesManager: React.FC = () => {
     status: 'active' as 'active' | 'archived'
   });
 
-  const loadResources = async () => {
-    setIsLoading(true);
-    try {
-      const remote = await adminRepository.getResources();
-      if (remote.length > 0) {
-        setResources(remote);
-      } else {
-        const mapped: ManagedResource[] = RESOURCES_DATA.map(r => ({
-          id: r.id,
-          titleAr: r.titleAr,
-          descriptionAr: r.descriptionAr,
-          resourceType: (r.type === 'telegram' ? 'telegram' : r.source?.includes('نُون') ? 'team_noon' : 'official') as any,
-          url: r.url || '#',
-          relatedCourseIds: r.relatedCourse ? [r.relatedCourse] : [],
-          academicYear: r.year || 'all',
-          sourceAttribution: r.source || 'فريق نُون الأكاديمي',
-          status: 'active',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }));
-        setResources(mapped);
-      }
-    } catch (e) {
-      console.warn('Fallback to local resources:', e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadResources();
+    setIsLoading(true);
+    const unsub = adminRepository.subscribeResources((latest) => {
+      setResources(latest);
+      setIsLoading(false);
+    });
+    return () => unsub();
   }, []);
 
   const handleOpenAdd = () => {

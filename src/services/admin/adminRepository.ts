@@ -32,6 +32,7 @@ import { COURSES_DATA } from '../../data/courses';
 import { SOFTWARE_DATA } from '../../data/software';
 import { RESOURCES_DATA } from '../../data/resources';
 import { FAQ_DATA } from '../../data/faq';
+import { curriculumSyncService } from '../curriculumSyncService';
 
 enum OperationType {
   CREATE = 'create',
@@ -112,409 +113,95 @@ export const adminRepository = {
   },
 
   // ==========================================
-  // 2. Courses Management
+  // 2. Courses Management (Real-Time Multi-Actor Sync)
   // ==========================================
   async getCourses(): Promise<ManagedCourse[]> {
-    const p = 'courses';
-    try {
-      const snap = await getDocs(collection(db, p)).catch(() => ({ docs: [] } as any));
-      const map = new Map<string, ManagedCourse>();
+    return curriculumSyncService.getCourses();
+  },
 
-      // 1. Seed complete base curriculum (57 courses)
-      COURSES_DATA.forEach(c => {
-        map.set(c.id, {
-          ...c,
-          status: 'active',
-          updatedAt: (c as any).updatedAt || new Date().toISOString()
-        });
-      });
-
-      // 2. Overlay any remote edits/custom courses from Firestore
-      snap.docs.forEach((d: any) => {
-        const remote = d.data() as ManagedCourse;
-        const existing = map.get(d.id);
-        map.set(d.id, {
-          ...(existing || {}),
-          ...remote,
-          id: d.id
-        });
-      });
-
-      return Array.from(map.values()).sort((a, b) => {
-        if (a.year !== b.year) return a.year - b.year;
-        if (a.semester !== b.semester) return a.semester - b.semester;
-        return (a.nameAr || '').localeCompare(b.nameAr || '', 'ar');
-      });
-    } catch (error) {
-      console.warn('Failed to list courses from Firestore, returning base curriculum:', error);
-      return COURSES_DATA.map(c => ({
-        ...c,
-        status: 'active',
-        updatedAt: new Date().toISOString()
-      }));
-    }
+  subscribeCourses(callback: (courses: ManagedCourse[]) => void): () => void {
+    return curriculumSyncService.subscribeCourses(callback);
   },
 
   async saveCourse(course: ManagedCourse): Promise<void> {
-    const p = `courses/${course.id}`;
-    const payload = {
-      ...course,
-      updatedAt: new Date().toISOString(),
-      updatedBy: auth.currentUser?.email || auth.currentUser?.uid || 'admin'
-    };
-    try {
-      await setDoc(doc(db, 'courses', course.id), payload, { merge: true });
-      await this.logAction(
-        'COURSE_UPDATED',
-        'course',
-        course.id,
-        `تحديث مقرر: ${course.nameAr}`
-      );
-    } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, p);
-    }
+    await curriculumSyncService.saveCourse(course);
   },
 
   async archiveCourse(courseId: string, courseNameAr: string): Promise<void> {
-    const p = `courses/${courseId}`;
-    try {
-      await updateDoc(doc(db, 'courses', courseId), {
-        status: 'archived',
-        updatedAt: new Date().toISOString()
-      });
-      await this.logAction(
-        'COURSE_ARCHIVED',
-        'course',
-        courseId,
-        `أرشفة مقرر: ${courseNameAr}`
-      );
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, p);
-    }
+    await curriculumSyncService.setCourseStatus(courseId, courseNameAr, 'archived');
   },
 
   async restoreCourse(courseId: string, courseNameAr: string): Promise<void> {
-    const p = `courses/${courseId}`;
-    try {
-      await updateDoc(doc(db, 'courses', courseId), {
-        status: 'active',
-        updatedAt: new Date().toISOString()
-      });
-      await this.logAction(
-        'COURSE_RESTORED',
-        'course',
-        courseId,
-        `استعادة مقرر: ${courseNameAr}`
-      );
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, p);
-    }
+    await curriculumSyncService.setCourseStatus(courseId, courseNameAr, 'active');
   },
 
   // ==========================================
-  // 3. Software Management
+  // 3. Software Management (Real-Time Multi-Actor Sync)
   // ==========================================
   async getSoftware(): Promise<ManagedSoftware[]> {
-    const p = 'software';
-    try {
-      const snap = await getDocs(collection(db, p)).catch(() => ({ docs: [] } as any));
-      const map = new Map<string, ManagedSoftware>();
+    return curriculumSyncService.getSoftware();
+  },
 
-      SOFTWARE_DATA.forEach(s => {
-        map.set(s.id, {
-          ...s,
-          status: 'active',
-          updatedAt: new Date().toISOString()
-        });
-      });
-
-      snap.docs.forEach((d: any) => {
-        const remote = d.data() as ManagedSoftware;
-        const existing = map.get(d.id);
-        map.set(d.id, {
-          ...(existing || {}),
-          ...remote,
-          id: d.id
-        });
-      });
-
-      return Array.from(map.values());
-    } catch (error) {
-      console.warn('Failed to list software tools from Firestore:', error);
-      return SOFTWARE_DATA.map(s => ({
-        ...s,
-        status: 'active',
-        updatedAt: new Date().toISOString()
-      }));
-    }
+  subscribeSoftware(callback: (items: ManagedSoftware[]) => void): () => void {
+    return curriculumSyncService.subscribeSoftware(callback);
   },
 
   async saveSoftware(software: ManagedSoftware): Promise<void> {
-    const p = `software/${software.id}`;
-    const payload = {
-      ...software,
-      updatedAt: new Date().toISOString(),
-      updatedBy: auth.currentUser?.email || 'admin'
-    };
-    try {
-      await setDoc(doc(db, 'software', software.id), payload, { merge: true });
-      await this.logAction(
-        'SOFTWARE_UPDATED',
-        'software',
-        software.id,
-        `تحديث أداة برمجية: ${software.name}`
-      );
-    } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, p);
-    }
+    await curriculumSyncService.saveSoftware(software);
   },
 
   async archiveSoftware(softwareId: string, softwareName: string): Promise<void> {
-    const p = `software/${softwareId}`;
-    try {
-      await updateDoc(doc(db, 'software', softwareId), {
-        status: 'archived',
-        updatedAt: new Date().toISOString()
-      });
-      await this.logAction(
-        'SOFTWARE_ARCHIVED',
-        'software',
-        softwareId,
-        `أرشفة برنامج: ${softwareName}`
-      );
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, p);
-    }
+    await curriculumSyncService.setSoftwareStatus(softwareId, softwareName, 'archived');
   },
 
   async restoreSoftware(softwareId: string, softwareName: string): Promise<void> {
-    const p = `software/${softwareId}`;
-    try {
-      await updateDoc(doc(db, 'software', softwareId), {
-        status: 'active',
-        updatedAt: new Date().toISOString()
-      });
-      await this.logAction(
-        'SOFTWARE_RESTORED',
-        'software',
-        softwareId,
-        `استعادة برنامج: ${softwareName}`
-      );
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, p);
-    }
+    await curriculumSyncService.setSoftwareStatus(softwareId, softwareName, 'active');
   },
 
   // ==========================================
-  // 4. Academic Resources (Team Noon, Telegram, etc.)
+  // 4. Academic Resources (Real-Time Multi-Actor Sync)
   // ==========================================
   async getResources(): Promise<ManagedResource[]> {
-    const p = 'academicResources';
-    try {
-      const snap = await getDocs(collection(db, p)).catch(() => ({ docs: [] } as any));
-      const map = new Map<string, ManagedResource>();
+    return curriculumSyncService.getResources();
+  },
 
-      RESOURCES_DATA.forEach(r => {
-        map.set(r.id, {
-          id: r.id,
-          titleAr: r.titleAr,
-          descriptionAr: r.descriptionAr,
-          resourceType: (r.type === 'telegram' ? 'telegram' : r.source?.includes('نُون') ? 'team_noon' : 'official') as any,
-          url: r.url || '#',
-          relatedCourseIds: r.relatedCourse ? [r.relatedCourse] : [],
-          academicYear: r.year || 'all',
-          sourceAttribution: r.source || 'فريق نُون الأكاديمي',
-          status: 'active',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        });
-      });
-
-      snap.docs.forEach((d: any) => {
-        const remote = d.data() as ManagedResource;
-        const existing = map.get(d.id);
-        map.set(d.id, {
-          ...(existing || {}),
-          ...remote,
-          id: d.id
-        });
-      });
-
-      return Array.from(map.values());
-    } catch (error) {
-      console.warn('Failed to list academic resources from Firestore:', error);
-      return RESOURCES_DATA.map(r => ({
-        id: r.id,
-        titleAr: r.titleAr,
-        descriptionAr: r.descriptionAr,
-        resourceType: (r.type === 'telegram' ? 'telegram' : r.source?.includes('نُون') ? 'team_noon' : 'official') as any,
-        url: r.url || '#',
-        relatedCourseIds: r.relatedCourse ? [r.relatedCourse] : [],
-        academicYear: r.year || 'all',
-        sourceAttribution: r.source || 'فريق نُون الأكاديمي',
-        status: 'active',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }));
-    }
+  subscribeResources(callback: (items: ManagedResource[]) => void): () => void {
+    return curriculumSyncService.subscribeResources(callback);
   },
 
   async saveResource(resource: ManagedResource): Promise<void> {
-    const p = `academicResources/${resource.id}`;
-    const payload = {
-      ...resource,
-      updatedAt: new Date().toISOString(),
-      updatedBy: auth.currentUser?.email || 'admin'
-    };
-    try {
-      await setDoc(doc(db, 'academicResources', resource.id), payload, { merge: true });
-      await this.logAction(
-        'RESOURCE_UPDATED',
-        'resource',
-        resource.id,
-        `حفظ مورد أكاديمي: ${resource.titleAr} (${resource.sourceAttribution})`
-      );
-    } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, p);
-    }
+    await curriculumSyncService.saveResource(resource);
   },
 
   async archiveResource(resourceId: string, titleAr: string): Promise<void> {
-    const p = `academicResources/${resourceId}`;
-    try {
-      await updateDoc(doc(db, 'academicResources', resourceId), {
-        status: 'archived',
-        updatedAt: new Date().toISOString()
-      });
-      await this.logAction(
-        'RESOURCE_ARCHIVED',
-        'resource',
-        resourceId,
-        `أرشفة مورد: ${titleAr}`
-      );
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, p);
-    }
+    await curriculumSyncService.setResourceStatus(resourceId, titleAr, 'archived');
   },
 
   async restoreResource(resourceId: string, titleAr: string): Promise<void> {
-    const p = `academicResources/${resourceId}`;
-    try {
-      await updateDoc(doc(db, 'academicResources', resourceId), {
-        status: 'active',
-        updatedAt: new Date().toISOString()
-      });
-      await this.logAction(
-        'RESOURCE_RESTORED',
-        'resource',
-        resourceId,
-        `استعادة مورد: ${titleAr}`
-      );
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, p);
-    }
+    await curriculumSyncService.setResourceStatus(resourceId, titleAr, 'active');
   },
 
   // ==========================================
-  // 5. Frequently Asked Questions (FAQ)
+  // 5. Frequently Asked Questions (Real-Time Multi-Actor Sync)
   // ==========================================
   async getFAQs(): Promise<ManagedFAQ[]> {
-    const p = 'faqs';
-    try {
-      const snap = await getDocs(collection(db, p)).catch(() => ({ docs: [] } as any));
-      const map = new Map<string, ManagedFAQ>();
+    return curriculumSyncService.getFAQs();
+  },
 
-      FAQ_DATA.forEach((f, idx) => {
-        map.set(f.id, {
-          id: f.id,
-          questionAr: f.questionAr,
-          answerAr: f.answerAr,
-          categoryAr: f.categoryAr,
-          orderIndex: idx + 1,
-          status: 'active',
-          updatedAt: new Date().toISOString()
-        });
-      });
-
-      snap.docs.forEach((d: any) => {
-        const remote = d.data() as ManagedFAQ;
-        const existing = map.get(d.id);
-        map.set(d.id, {
-          ...(existing || {}),
-          ...remote,
-          id: d.id
-        });
-      });
-
-      return Array.from(map.values()).sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-    } catch (error) {
-      console.warn('Failed to list FAQs from Firestore:', error);
-      return FAQ_DATA.map((f, idx) => ({
-        id: f.id,
-        questionAr: f.questionAr,
-        answerAr: f.answerAr,
-        categoryAr: f.categoryAr,
-        orderIndex: idx + 1,
-        status: 'active',
-        updatedAt: new Date().toISOString()
-      }));
-    }
+  subscribeFAQs(callback: (items: ManagedFAQ[]) => void): () => void {
+    return curriculumSyncService.subscribeFAQs(callback);
   },
 
   async saveFAQ(faq: ManagedFAQ): Promise<void> {
-    const p = `faqs/${faq.id}`;
-    const payload = {
-      ...faq,
-      updatedAt: new Date().toISOString(),
-      updatedBy: auth.currentUser?.email || 'admin'
-    };
-    try {
-      await setDoc(doc(db, 'faqs', faq.id), payload, { merge: true });
-      await this.logAction(
-        'FAQ_UPDATED',
-        'faq',
-        faq.id,
-        `تحديث سؤال شائع: ${faq.questionAr.substring(0, 40)}...`
-      );
-    } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, p);
-    }
+    await curriculumSyncService.saveFAQ(faq);
   },
 
   async archiveFAQ(faqId: string, questionAr: string): Promise<void> {
-    const p = `faqs/${faqId}`;
-    try {
-      await updateDoc(doc(db, 'faqs', faqId), {
-        status: 'archived',
-        updatedAt: new Date().toISOString()
-      });
-      await this.logAction(
-        'FAQ_ARCHIVED',
-        'faq',
-        faqId,
-        `أرشفة سؤال شائع: ${questionAr.substring(0, 30)}`
-      );
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, p);
-    }
+    await curriculumSyncService.setFAQStatus(faqId, questionAr, 'archived');
   },
 
   async restoreFAQ(faqId: string, questionAr: string): Promise<void> {
-    const p = `faqs/${faqId}`;
-    try {
-      await updateDoc(doc(db, 'faqs', faqId), {
-        status: 'active',
-        updatedAt: new Date().toISOString()
-      });
-      await this.logAction(
-        'FAQ_RESTORED',
-        'faq',
-        faqId,
-        `استعادة سؤال شائع: ${questionAr.substring(0, 30)}`
-      );
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, p);
-    }
+    await curriculumSyncService.setFAQStatus(faqId, questionAr, 'active');
   },
 
   // ==========================================

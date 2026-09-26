@@ -34,33 +34,13 @@ export const FaqManager: React.FC = () => {
     status: 'active' as 'active' | 'archived'
   });
 
-  const loadFaqs = async () => {
-    setIsLoading(true);
-    try {
-      const remote = await adminRepository.getFAQs();
-      if (remote.length > 0) {
-        setFaqs(remote);
-      } else {
-        const mapped: ManagedFAQ[] = FAQ_DATA.map((f, idx) => ({
-          id: f.id,
-          questionAr: f.questionAr,
-          answerAr: f.answerAr,
-          categoryAr: f.categoryAr,
-          orderIndex: idx + 1,
-          status: 'active',
-          updatedAt: new Date().toISOString()
-        }));
-        setFaqs(mapped);
-      }
-    } catch (e) {
-      console.warn('Fallback to local FAQs:', e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadFaqs();
+    setIsLoading(true);
+    const unsub = adminRepository.subscribeFAQs((latest) => {
+      setFaqs(latest);
+      setIsLoading(false);
+    });
+    return () => unsub();
   }, []);
 
   const handleOpenAdd = () => {

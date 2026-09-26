@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { HelpCircle, ChevronDown, ChevronUp, Info, MessageSquare } from 'lucide-react';
-import { FAQ_DATA } from '../data/faq';
+import { useLiveFAQs } from '../services/curriculumSyncService';
 
 export const FaqSection: React.FC = () => {
+  const liveFaqs = useLiveFAQs();
+  const activeFaqs = useMemo(() => {
+    return liveFaqs.filter(f => (f as any).status !== 'archived');
+  }, [liveFaqs]);
+
   const [openItems, setOpenItems] = useState<Record<string, boolean>>({
     'faq-1': true,
     'faq-2': false
@@ -33,7 +38,7 @@ export const FaqSection: React.FC = () => {
 
       {/* Accordion Container */}
       <div className="space-y-3">
-        {FAQ_DATA.map((item) => {
+        {activeFaqs.map((item) => {
           const isOpen = !!openItems[item.id];
           return (
             <div

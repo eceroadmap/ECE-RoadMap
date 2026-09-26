@@ -11,7 +11,7 @@ import {
   Code
 } from 'lucide-react';
 import { SoftwareTool, Course } from '../types';
-import { SOFTWARE_DATA } from '../data/software';
+import { useLiveSoftware } from '../services/curriculumSyncService';
 
 interface SoftwareSectionProps {
   onSelectSoftware: (software: SoftwareTool) => void;
@@ -21,11 +21,16 @@ interface SoftwareSectionProps {
 export const SoftwareSection: React.FC<SoftwareSectionProps> = ({
   onSelectSoftware
 }) => {
+  const liveSoftware = useLiveSoftware();
+  const activeSoftware = useMemo(() => {
+    return liveSoftware.filter(s => (s as any).status !== 'archived');
+  }, [liveSoftware]);
+
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const categories = [
-    { id: 'all', label: 'جميع البرمجيات (16)' },
+  const categories = useMemo(() => [
+    { id: 'all', label: `جميع البرمجيات (${activeSoftware.length})` },
     { id: 'simulation', label: 'المحاكاة والدارات' },
     { id: 'math', label: 'الرياضيات والإشارات' },
     { id: 'rf', label: 'الهوائيات وRF' },
@@ -33,10 +38,10 @@ export const SoftwareSection: React.FC<SoftwareSectionProps> = ({
     { id: 'embedded', label: 'الأنظمة المضمنة والمعالجات' },
     { id: 'fpga', label: 'الأنظمة الرقمية وFPGA' },
     { id: 'programming', label: 'بيئات البرمجة والتطوير' }
-  ];
+  ], [activeSoftware.length]);
 
   const filteredSoftware = useMemo(() => {
-    return SOFTWARE_DATA.filter((item) => {
+    return activeSoftware.filter((item) => {
       // Category filter
       if (selectedCategory !== 'all' && item.category !== selectedCategory) {
         return false;
@@ -46,13 +51,13 @@ export const SoftwareSection: React.FC<SoftwareSectionProps> = ({
         const q = searchQuery.toLowerCase().trim();
         const matchName = item.name.toLowerCase().includes(q);
         const matchArName = item.arabicName ? item.arabicName.toLowerCase().includes(q) : false;
-        const matchCourses = item.usedInCourses.some((c) => c.toLowerCase().includes(q));
-        const matchPurpose = item.purpose.toLowerCase().includes(q);
+        const matchCourses = (item.usedInCourses || []).some((c) => c.toLowerCase().includes(q));
+        const matchPurpose = (item.purpose || '').toLowerCase().includes(q);
         return matchName || matchArName || matchCourses || matchPurpose;
       }
       return true;
     });
-  }, [selectedCategory, searchQuery]);
+  }, [activeSoftware, selectedCategory, searchQuery]);
 
   return (
     <div className="space-y-8">
