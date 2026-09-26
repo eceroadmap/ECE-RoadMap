@@ -31,6 +31,8 @@ export const CoursesManager: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<ManagedCourse | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
   // Form fields
   const [formData, setFormData] = useState({
@@ -50,12 +52,13 @@ export const CoursesManager: React.FC = () => {
 
   const loadCourses = async () => {
     setIsLoading(true);
+    setActionError(null);
     try {
-      const remoteCourses = await adminRepository.getCourses();
-      if (remoteCourses.length > 0) {
-        setCourses(remoteCourses);
+      // adminRepository.getCourses() now merges all 57 base courses with any Firestore customizations
+      const allCourses = await adminRepository.getCourses();
+      if (allCourses.length > 0) {
+        setCourses(allCourses);
       } else {
-        // Fallback to local courses if Firestore not yet seeded
         const mapped: ManagedCourse[] = COURSES_DATA.map(c => ({
           ...c,
           status: 'active',
@@ -160,10 +163,11 @@ export const CoursesManager: React.FC = () => {
         return [updatedCourse, ...prev];
       });
 
+      setActionSuccess(`تم حفظ المقرر "${updatedCourse.nameAr}" بنجاح.`);
       setIsModalOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save course:', error);
-      alert('حدث خطأ أثناء حفظ المقرر. يرجى المحاولة مرة أخرى.');
+      setActionError(error?.message || 'حدث خطأ أثناء حفظ المقرر. يرجى المحاولة مرة أخرى.');
     } finally {
       setIsSaving(false);
     }
@@ -180,8 +184,10 @@ export const CoursesManager: React.FC = () => {
     try {
       if (isArchiving) {
         await adminRepository.archiveCourse(course.id, course.nameAr);
+        setActionSuccess(`تمت أرشفة مقرر "${course.nameAr}" بنجاح.`);
       } else {
         await adminRepository.restoreCourse(course.id, course.nameAr);
+        setActionSuccess(`تمت استعادة مقرر "${course.nameAr}" بنجاح.`);
       }
 
       setCourses(prev => prev.map(c => {
@@ -190,9 +196,9 @@ export const CoursesManager: React.FC = () => {
         }
         return c;
       }));
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to update course status:', e);
-      alert('حدث خطأ أثناء تعديل حالة المقرر.');
+      setActionError(e?.message || 'حدث خطأ أثناء تعديل حالة المقرر.');
     }
   };
 
@@ -229,6 +235,24 @@ export const CoursesManager: React.FC = () => {
           <span>إضافة مقرر جديد للخطة</span>
         </button>
       </div>
+
+      {actionSuccess && (
+        <div className="p-3.5 rounded-2xl bg-emerald-950/60 border border-emerald-800 text-emerald-300 text-xs flex items-center justify-between animate-fadeIn">
+          <span>{actionSuccess}</span>
+          <button onClick={() => setActionSuccess(null)} className="text-emerald-400 hover:text-emerald-200">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {actionError && (
+        <div className="p-3.5 rounded-2xl bg-rose-950/60 border border-rose-800 text-rose-300 text-xs flex items-center justify-between animate-fadeIn">
+          <span>{actionError}</span>
+          <button onClick={() => setActionError(null)} className="text-rose-400 hover:text-rose-200">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Filter Ribbon */}
       <div className="p-4 rounded-2xl bg-[#091527] border border-slate-800 shadow-md flex flex-wrap items-center gap-3 text-xs">

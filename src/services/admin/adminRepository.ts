@@ -28,6 +28,10 @@ import {
 } from '../../types/admin';
 import { CommunityTip } from '../../types/student';
 import { SkillCourse } from '../../types';
+import { COURSES_DATA } from '../../data/courses';
+import { SOFTWARE_DATA } from '../../data/software';
+import { RESOURCES_DATA } from '../../data/resources';
+import { FAQ_DATA } from '../../data/faq';
 
 enum OperationType {
   CREATE = 'create',
@@ -113,11 +117,41 @@ export const adminRepository = {
   async getCourses(): Promise<ManagedCourse[]> {
     const p = 'courses';
     try {
-      const snap = await getDocs(collection(db, p));
-      return snap.docs.map(d => ({ id: d.id, ...d.data() } as ManagedCourse));
+      const snap = await getDocs(collection(db, p)).catch(() => ({ docs: [] } as any));
+      const map = new Map<string, ManagedCourse>();
+
+      // 1. Seed complete base curriculum (57 courses)
+      COURSES_DATA.forEach(c => {
+        map.set(c.id, {
+          ...c,
+          status: 'active',
+          updatedAt: (c as any).updatedAt || new Date().toISOString()
+        });
+      });
+
+      // 2. Overlay any remote edits/custom courses from Firestore
+      snap.docs.forEach((d: any) => {
+        const remote = d.data() as ManagedCourse;
+        const existing = map.get(d.id);
+        map.set(d.id, {
+          ...(existing || {}),
+          ...remote,
+          id: d.id
+        });
+      });
+
+      return Array.from(map.values()).sort((a, b) => {
+        if (a.year !== b.year) return a.year - b.year;
+        if (a.semester !== b.semester) return a.semester - b.semester;
+        return (a.nameAr || '').localeCompare(b.nameAr || '', 'ar');
+      });
     } catch (error) {
-      console.warn('Failed to list courses from Firestore:', error);
-      return [];
+      console.warn('Failed to list courses from Firestore, returning base curriculum:', error);
+      return COURSES_DATA.map(c => ({
+        ...c,
+        status: 'active',
+        updatedAt: new Date().toISOString()
+      }));
     }
   },
 
@@ -183,11 +217,35 @@ export const adminRepository = {
   async getSoftware(): Promise<ManagedSoftware[]> {
     const p = 'software';
     try {
-      const snap = await getDocs(collection(db, p));
-      return snap.docs.map(d => ({ id: d.id, ...d.data() } as ManagedSoftware));
+      const snap = await getDocs(collection(db, p)).catch(() => ({ docs: [] } as any));
+      const map = new Map<string, ManagedSoftware>();
+
+      SOFTWARE_DATA.forEach(s => {
+        map.set(s.id, {
+          ...s,
+          status: 'active',
+          updatedAt: new Date().toISOString()
+        });
+      });
+
+      snap.docs.forEach((d: any) => {
+        const remote = d.data() as ManagedSoftware;
+        const existing = map.get(d.id);
+        map.set(d.id, {
+          ...(existing || {}),
+          ...remote,
+          id: d.id
+        });
+      });
+
+      return Array.from(map.values());
     } catch (error) {
       console.warn('Failed to list software tools from Firestore:', error);
-      return [];
+      return SOFTWARE_DATA.map(s => ({
+        ...s,
+        status: 'active',
+        updatedAt: new Date().toISOString()
+      }));
     }
   },
 
@@ -253,11 +311,51 @@ export const adminRepository = {
   async getResources(): Promise<ManagedResource[]> {
     const p = 'academicResources';
     try {
-      const snap = await getDocs(collection(db, p));
-      return snap.docs.map(d => ({ id: d.id, ...d.data() } as ManagedResource));
+      const snap = await getDocs(collection(db, p)).catch(() => ({ docs: [] } as any));
+      const map = new Map<string, ManagedResource>();
+
+      RESOURCES_DATA.forEach(r => {
+        map.set(r.id, {
+          id: r.id,
+          titleAr: r.titleAr,
+          descriptionAr: r.descriptionAr,
+          resourceType: (r.type === 'telegram' ? 'telegram' : r.source?.includes('نُون') ? 'team_noon' : 'official') as any,
+          url: r.url || '#',
+          relatedCourseIds: r.relatedCourse ? [r.relatedCourse] : [],
+          academicYear: r.year || 'all',
+          sourceAttribution: r.source || 'فريق نُون الأكاديمي',
+          status: 'active',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+      });
+
+      snap.docs.forEach((d: any) => {
+        const remote = d.data() as ManagedResource;
+        const existing = map.get(d.id);
+        map.set(d.id, {
+          ...(existing || {}),
+          ...remote,
+          id: d.id
+        });
+      });
+
+      return Array.from(map.values());
     } catch (error) {
       console.warn('Failed to list academic resources from Firestore:', error);
-      return [];
+      return RESOURCES_DATA.map(r => ({
+        id: r.id,
+        titleAr: r.titleAr,
+        descriptionAr: r.descriptionAr,
+        resourceType: (r.type === 'telegram' ? 'telegram' : r.source?.includes('نُون') ? 'team_noon' : 'official') as any,
+        url: r.url || '#',
+        relatedCourseIds: r.relatedCourse ? [r.relatedCourse] : [],
+        academicYear: r.year || 'all',
+        sourceAttribution: r.source || 'فريق نُون الأكاديمي',
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }));
     }
   },
 
@@ -323,13 +421,43 @@ export const adminRepository = {
   async getFAQs(): Promise<ManagedFAQ[]> {
     const p = 'faqs';
     try {
-      const snap = await getDocs(collection(db, p));
-      return snap.docs
-        .map(d => ({ id: d.id, ...d.data() } as ManagedFAQ))
-        .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+      const snap = await getDocs(collection(db, p)).catch(() => ({ docs: [] } as any));
+      const map = new Map<string, ManagedFAQ>();
+
+      FAQ_DATA.forEach((f, idx) => {
+        map.set(f.id, {
+          id: f.id,
+          questionAr: f.questionAr,
+          answerAr: f.answerAr,
+          categoryAr: f.categoryAr,
+          orderIndex: idx + 1,
+          status: 'active',
+          updatedAt: new Date().toISOString()
+        });
+      });
+
+      snap.docs.forEach((d: any) => {
+        const remote = d.data() as ManagedFAQ;
+        const existing = map.get(d.id);
+        map.set(d.id, {
+          ...(existing || {}),
+          ...remote,
+          id: d.id
+        });
+      });
+
+      return Array.from(map.values()).sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
     } catch (error) {
       console.warn('Failed to list FAQs from Firestore:', error);
-      return [];
+      return FAQ_DATA.map((f, idx) => ({
+        id: f.id,
+        questionAr: f.questionAr,
+        answerAr: f.answerAr,
+        categoryAr: f.categoryAr,
+        orderIndex: idx + 1,
+        status: 'active',
+        updatedAt: new Date().toISOString()
+      }));
     }
   },
 
