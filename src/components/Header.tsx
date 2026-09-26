@@ -43,7 +43,7 @@ interface HeaderProps {
   onOpenQRModal?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({
+export const Header: React.FC<HeaderProps> = React.memo(({
   activeTab,
   onSelectTab,
   onOpenSearch,
@@ -557,4 +557,4 @@ export const Header: React.FC<HeaderProps> = ({
       )}
     </header>
   );
-};
+});

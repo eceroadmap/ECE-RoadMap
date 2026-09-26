@@ -9,7 +9,7 @@ interface HomeHeroProps {
   onOpenQRModal?: () => void;
 }
 
-export const HomeHero: React.FC<HomeHeroProps> = ({
+export const HomeHero: React.FC<HomeHeroProps> = React.memo(({
   onNavigateTab,
   onScrollToJourney,
   onOpenExhibition,
@@ -183,4 +183,4 @@ export const HomeHero: React.FC<HomeHeroProps> = ({
       </div>
     </section>
   );
-};
+});
