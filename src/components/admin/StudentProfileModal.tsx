@@ -71,6 +71,8 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
 
   if (!student) return null;
 
+  const studentName = student.displayName || student.name || student.fullName || 'طالب مسجل';
+
   const handleCopyUid = () => {
     if (!student.uid) return;
     navigator.clipboard.writeText(student.uid);
@@ -180,12 +182,12 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
         <div className="p-5 sm:p-6 bg-gradient-to-r from-slate-900 via-cyan-950/40 to-slate-900 border-b border-slate-800 flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-13 h-13 rounded-2xl bg-cyan-950 border border-cyan-500/40 flex items-center justify-center text-cyan-400 text-xl font-black shadow-lg">
-              {student.displayName ? student.displayName.charAt(0).toUpperCase() : <User className="w-6 h-6" />}
+              {studentName.charAt(0).toUpperCase()}
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-lg sm:text-xl font-black text-white">
-                  {student.displayName || 'طالب هندسة اتصالات (بدون اسم مسجل)'}
+                  {studentName}
                 </h2>
                 {student.email ? (
                   <span className="px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-800/80 text-[10px] font-bold flex items-center gap-1">
@@ -319,7 +321,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
                   <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-1">
                     <span className="text-[11px] text-slate-400">الاسم الظاهر</span>
                     <div className="text-sm font-bold text-white">
-                      {student.displayName || 'غير محدد'}
+                      {studentName}
                     </div>
                   </div>
 

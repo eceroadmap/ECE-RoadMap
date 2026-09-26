@@ -4,6 +4,8 @@ import { CourseProgressStatus, SavedLaptopRecord, StudentRole, CourseGrade } fro
 export interface AdminStudentRecord {
   uid: string;
   displayName?: string | null;
+  name?: string | null;
+  fullName?: string | null;
   email?: string | null;
   username?: string | null;
   accountPassword?: string | null;

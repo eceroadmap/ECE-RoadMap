@@ -228,6 +228,8 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({ isOwner = fals
     }
   };
 
+  const getStudentName = (s: AdminStudentRecord) => s.displayName || s.name || s.fullName || 'طالب مسجل';
+
   return (
     <div className="space-y-6 w-full overflow-hidden">
       {/* Top Banner */}
@@ -484,11 +486,11 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({ isOwner = fals
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2.5">
                       <div className="w-10 h-10 rounded-xl bg-cyan-950 border border-cyan-800/60 flex items-center justify-center text-cyan-400 font-bold text-sm shrink-0">
-                        {student.displayName ? student.displayName.charAt(0).toUpperCase() : <User className="w-5 h-5" />}
+                        {getStudentName(student).charAt(0).toUpperCase()}
                       </div>
                       <div>
                         <h4 className="font-bold text-white text-sm">
-                          {student.displayName || 'طالب مسجل'}
+                          {getStudentName(student)}
                         </h4>
                         <p className="text-[11px] text-slate-400 font-mono truncate max-w-[180px]">
                           {student.email || 'زائر مسجل'}
@@ -574,11 +576,11 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({ isOwner = fals
                         <td className="py-4 px-4 sm:px-6">
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-xl bg-cyan-950/80 border border-cyan-800/60 flex items-center justify-center text-cyan-400 font-bold text-xs shrink-0">
-                              {student.displayName ? student.displayName.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
+                              {getStudentName(student).charAt(0).toUpperCase()}
                             </div>
                             <div className="space-y-0.5 min-w-0">
                               <div className="font-bold text-white truncate max-w-[160px]">
-                                {student.displayName || 'طالب مسجل'}
+                                {getStudentName(student)}
                               </div>
                               <div className="text-[11px] text-slate-400 font-mono truncate max-w-[160px]">
                                 {student.email || 'زائر مسجل'}
