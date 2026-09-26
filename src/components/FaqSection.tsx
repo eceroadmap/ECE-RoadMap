@@ -81,7 +81,7 @@ export const FaqSection: React.FC = () => {
                 <div className="px-5 pb-5 pt-1 text-xs sm:text-sm text-slate-300 leading-relaxed border-t border-slate-800/60 bg-slate-950/40">
                   <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 text-slate-300">
                     <p>{item.answerAr}</p>
-                    {item.isPlaceholder && (
+                    {(item as any).isPlaceholder && (
                       <p className="text-[11px] text-slate-400 mt-2 italic flex items-center gap-1.5">
                         <Info className="w-3 h-3 text-cyan-400" />
                         يجري تدقيق وتنسيق الصياغات الرسمية مع إدارة القسم واللجان الأكاديمية.

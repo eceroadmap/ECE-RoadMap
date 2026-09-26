@@ -599,7 +599,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
                       <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
                         <span className="text-[10px] text-slate-400">التخزين (Storage)</span>
                         <div className="text-xs font-bold text-white font-mono">
-                          {laptopSpecs?.storageCapacityGb ? `${laptopSpecs.storageCapacityGb} GB ` : ''}
+                          {laptopSpecs?.storageCapacityGb ? (laptopSpecs.storageCapacityGb >= 1000 ? `${laptopSpecs.storageCapacityGb / 1000} TB ` : `${laptopSpecs.storageCapacityGb} GB `) : ''}
                           <span className="uppercase text-slate-400 text-[11px]">({laptopSpecs?.storageType || 'N/A'})</span>
                         </div>
                       </div>

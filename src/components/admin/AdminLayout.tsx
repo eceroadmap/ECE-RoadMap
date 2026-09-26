@@ -22,7 +22,8 @@ import {
   GraduationCap,
   MonitorPlay,
   Settings,
-  FolderGit2
+  FolderGit2,
+  Laptop
 } from 'lucide-react';
 import { auth, signInWithGoogle, signOutUser, User } from '../../lib/firebase';
 import { adminAuthService } from '../../services/admin/adminAuth';
@@ -44,6 +45,7 @@ import { AdminGraduationProjectsView } from './AdminGraduationProjectsView';
 import { CourseSkillsManager } from './CourseSkillsManager';
 import { ModeratorsManager } from './ModeratorsManager';
 import { DevelopManager } from './DevelopManager';
+import { LaptopManager } from './LaptopManager';
 import { GitMerge, UserPlus } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -287,6 +289,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToApp }) => {
     { id: 'courses', label: 'إدارة المقررات الدراسية', icon: BookOpen },
     { id: 'course_skills', label: 'تعديل (من المادة إلى المهارة)', icon: GitMerge },
     { id: 'software', label: 'إدارة برمجيات المحاكاة', icon: Cpu },
+    { id: 'laptop', label: 'مستشار ومواصفات اللابتوب', icon: Laptop },
     { id: 'develop', label: 'إدارة قسم "طور نفسك"', icon: TrendingUp },
     { id: 'resources', label: 'موارد ومصادر فريق نُون', icon: BookMarked },
     { id: 'faq', label: 'الأسئلة الشائعة الأكاديمية', icon: HelpCircle },
@@ -444,6 +447,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToApp }) => {
             {activeSection === 'course_skills' && <CourseSkillsManager />}
 
             {activeSection === 'software' && <SoftwareManager />}
+
+            {activeSection === 'laptop' && <LaptopManager />}
 
             {activeSection === 'develop' && <DevelopManager />}
 

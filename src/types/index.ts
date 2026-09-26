@@ -68,29 +68,7 @@ export interface SkillCourse {
   linkPlaceholder: string;
 }
 
-export interface LaptopSpecs {
-  cpuBrand: 'intel' | 'amd' | 'apple';
-  cpuTier: 'i3' | 'i5' | 'i7' | 'i9' | 'ryzen3' | 'ryzen5' | 'ryzen7' | 'ryzen9' | 'appleM';
-  cpuGen: 'older' | 'gen8_10' | 'gen11_12' | 'gen13_plus' | 'apple_silicon';
-  ramGb: 4 | 8 | 16 | 32;
-  storageType: 'hdd' | 'ssd_sata' | 'ssd_nvme';
-  storageCapacityGb: 128 | 256 | 512 | 1000 | 2000;
-  gpuTier: 'integrated' | 'dedicated_entry' | 'dedicated_mid_high' | 'apple_gpu';
-  os: 'windows' | 'macos' | 'linux';
-}
-
-export type LaptopSuitabilityLevel = 'minimum' | 'preferred' | 'comfortable';
-
-export interface LaptopEvaluationResult {
-  level: LaptopSuitabilityLevel;
-  badgeAr: string;
-  titleAr: string;
-  summaryAr: string;
-  suitableFor: string[];
-  limitingFor: string[];
-  affectedSoftware: string[];
-  practicalAdvice: string[];
-}
+export * from './laptop';
 
 export type ResourceType = 
   | 'telegram'

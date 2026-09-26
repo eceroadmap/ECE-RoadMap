@@ -231,7 +231,7 @@ class CurriculumSyncService {
         },
         () => {}
       );
-      this.unsubscribers.push(unsharedSoftware => this.unsubscribers.push(unsharedSoftware));
+      this.unsubscribers.push(unsubSharedSoftware);
     } catch {}
 
     // -------------------------------------------------------------
