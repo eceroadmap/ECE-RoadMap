@@ -9,6 +9,7 @@ import {
   Sliders, 
   CheckCircle2, 
   Eye, 
+  EyeOff,
   Edit3, 
   Layers, 
   Briefcase, 
@@ -97,6 +98,26 @@ export const ExhibitionManager: React.FC = () => {
     }));
   };
 
+  // Toggle Exhibition visibility for public students
+  const handleToggleStudentVisibility = async (newVisibility: boolean) => {
+    const updated = {
+      ...config,
+      isVisibleToStudents: newVisibility
+    };
+    setConfig(updated);
+    try {
+      await exhibitionRepository.saveConfig(updated);
+      setSaveSuccessMessage(
+        newVisibility
+          ? 'تم تفعيل وإظهار وضع الملتقى للطلاب في واجهة الموقع بنجاح.'
+          : 'تم إخفاء وضع الملتقى تماماً عن واجهة الطلاب والزوار.'
+      );
+      setTimeout(() => setSaveSuccessMessage(null), 4000);
+    } catch {
+      alert('حدث خطأ أثناء حفظ التغيير.');
+    }
+  };
+
   // Calculate total exhibition cycle duration in seconds
   const totalDurationSeconds = config.slides
     .filter(s => s.isEnabled)
@@ -173,6 +194,73 @@ export const ExhibitionManager: React.FC = () => {
           <span>{saveSuccessMessage}</span>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* 1.5. Student Public Visibility Control Card                                */}
+      {/* ========================================================================= */}
+      <div className={`p-5 rounded-3xl border transition-all duration-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl ${
+        config.isVisibleToStudents !== false
+          ? 'bg-[#081b2f] border-cyan-500/40'
+          : 'bg-[#1a1215] border-amber-800/60'
+      }`}>
+        <div className="flex items-center gap-3.5">
+          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+            config.isVisibleToStudents !== false
+              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+              : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+          }`}>
+            {config.isVisibleToStudents !== false ? (
+              <Eye className="w-5 h-5" />
+            ) : (
+              <EyeOff className="w-5 h-5" />
+            )}
+          </div>
+
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-sm font-black text-white">
+                حالة ظهور وضع الملتقى في واجهة الطلاب والموقع
+              </h3>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                config.isVisibleToStudents !== false
+                  ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                  : 'bg-amber-950 text-amber-300 border border-amber-800'
+              }`}>
+                {config.isVisibleToStudents !== false ? 'ظاهر للطلاب والزوار' : 'مخفي تماماً عن الطلاب'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-300">
+              {config.isVisibleToStudents !== false
+                ? 'زر "وضع الملتقى ✦" ظاهر حالياً في شريط التنقل العلوي والواجهة الرئيسية للطلاب.'
+                : 'تم إخفاء أزرار وضع الملتقى من شريط التنقل والواجهة الرئيسية، مع إمكانية استمرار تشغيله ومعاينته من لوحة الإدارة.'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
+          <button
+            type="button"
+            onClick={() => handleToggleStudentVisibility(config.isVisibleToStudents === false)}
+            className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 min-h-[42px] ${
+              config.isVisibleToStudents !== false
+                ? 'bg-amber-950/60 hover:bg-amber-900/80 text-amber-200 border border-amber-700/60'
+                : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-md shadow-cyan-500/30'
+            }`}
+          >
+            {config.isVisibleToStudents !== false ? (
+              <>
+                <EyeOff className="w-4 h-4" />
+                <span>إخفاء عن واجهة الطلاب</span>
+              </>
+            ) : (
+              <>
+                <Eye className="w-4 h-4" />
+                <span>إظهار في واجهة الطلاب</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
 
       {/* ========================================================================= */}
       {/* 2. Global Presentation Metrics & Duration Overview                        */}

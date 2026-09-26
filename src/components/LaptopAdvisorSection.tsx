@@ -19,7 +19,7 @@ import {
   ArrowRight,
   Filter,
   Layers,
-  Sparkles,
+  Terminal,
   ChevronRight,
   Sliders,
   ArrowUpRight
@@ -1001,7 +1001,7 @@ export const LaptopAdvisorSection: React.FC = () => {
               {evaluation.suitableFields.length > 0 && (
                 <div className="p-5 sm:p-6 rounded-3xl bg-[#091527] border border-slate-800 shadow-xl space-y-3">
                   <div className="flex items-center gap-2 text-cyan-300 font-black text-sm">
-                    <Sparkles className="w-4 h-4 text-cyan-400" />
+                    <Terminal className="w-4 h-4 text-cyan-400" />
                     <span>المجالات والبرمجيات التي يستطيع جهازك التعامل معها بكفاءة:</span>
                   </div>
                   <div className="flex flex-wrap gap-2">

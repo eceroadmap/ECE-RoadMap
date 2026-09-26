@@ -1,6 +1,7 @@
 import { ExhibitionFullConfig } from '../types/exhibition';
 
 export const DEFAULT_EXHIBITION_CONFIG: ExhibitionFullConfig = {
+  isVisibleToStudents: true,
   defaultPlaybackSpeed: 1.0,
   slides: [
     {

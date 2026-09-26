@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { 
   db, 
   auth, 
@@ -24,6 +25,7 @@ function normalizeConfig(data: Partial<ExhibitionFullConfig>): ExhibitionFullCon
   return {
     ...DEFAULT_EXHIBITION_CONFIG,
     ...data,
+    isVisibleToStudents: data.isVisibleToStudents !== undefined ? data.isVisibleToStudents : true,
     slides: data.slides || DEFAULT_EXHIBITION_CONFIG.slides,
     hero: { ...DEFAULT_EXHIBITION_CONFIG.hero, ...(data.hero || {}) },
     journey: { ...DEFAULT_EXHIBITION_CONFIG.journey, ...(data.journey || {}) },
@@ -139,17 +141,7 @@ export const exhibitionRepository = {
         (snap) => {
           if (snap.exists()) {
             const data = snap.data() as Partial<ExhibitionFullConfig>;
-            const merged: ExhibitionFullConfig = {
-              ...DEFAULT_EXHIBITION_CONFIG,
-              ...data,
-              slides: data.slides || DEFAULT_EXHIBITION_CONFIG.slides,
-              hero: { ...DEFAULT_EXHIBITION_CONFIG.hero, ...(data.hero || {}) },
-              journey: { ...DEFAULT_EXHIBITION_CONFIG.journey, ...(data.journey || {}) },
-              skills: { ...DEFAULT_EXHIBITION_CONFIG.skills, ...(data.skills || {}) },
-              software: { ...DEFAULT_EXHIBITION_CONFIG.software, ...(data.software || {}) },
-              careers: { ...DEFAULT_EXHIBITION_CONFIG.careers, ...(data.careers || {}) },
-              qrPortal: { ...DEFAULT_EXHIBITION_CONFIG.qrPortal, ...(data.qrPortal || {}) }
-            };
+            const merged = normalizeConfig(data);
             this.setLocalConfig(merged);
             callback(merged);
           }
@@ -166,3 +158,19 @@ export const exhibitionRepository = {
     }
   }
 };
+
+/**
+ * React Hook for Realtime Exhibition Mode Configuration & Student Visibility
+ */
+export function useLiveExhibitionConfig(): ExhibitionFullConfig {
+  const [config, setConfig] = useState<ExhibitionFullConfig>(() => exhibitionRepository.getCachedConfig());
+
+  useEffect(() => {
+    const unsub = exhibitionRepository.subscribe((loaded) => {
+      if (loaded) setConfig(loaded);
+    });
+    return unsub;
+  }, []);
+
+  return config;
+}

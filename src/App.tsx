@@ -28,6 +28,7 @@ import { AcademicRecordSection } from './components/AcademicRecordSection';
 import { GraduationProjectNavigatorSection } from './components/GraduationProjectNavigatorSection';
 import { FromCourseToSkillSection } from './components/FromCourseToSkillSection';
 import { ExhibitionModeModal } from './components/ExhibitionModeModal';
+import { useLiveExhibitionConfig } from './services/admin/exhibitionRepository';
 import { QRCodeDisplay } from './components/QRCodeDisplay';
 import { VisitorWelcomeWidget } from './components/VisitorWelcomeWidget';
 import { UsernamePasswordPromptModal } from './components/UsernamePasswordPromptModal';
@@ -50,6 +51,9 @@ export default function App() {
   const [courseYearFilter, setCourseYearFilter] = useState<AcademicYearNumber | 'all'>('all');
   const [roadmapInitialYear, setRoadmapInitialYear] = useState<AcademicYearNumber>(1);
   const [isUsernamePromptOpen, setIsUsernamePromptOpen] = useState(false);
+
+  const exhibitionConfig = useLiveExhibitionConfig();
+  const isExhibitionVisible = exhibitionConfig.isVisibleToStudents !== false;
 
   const { 
     profile, 
@@ -139,7 +143,7 @@ export default function App() {
         onSelectTab={(tab) => handleNavigateTab(tab)}
         onOpenSearch={() => setIsSearchOpen(true)}
         onOpenSyncModal={() => setIsLoginModalOpen(true)}
-        onOpenExhibition={() => setIsExhibitionOpen(true)}
+        onOpenExhibition={isExhibitionVisible ? () => setIsExhibitionOpen(true) : undefined}
         onOpenQRModal={() => setIsQRModalOpen(true)}
       />
 
@@ -154,7 +158,7 @@ export default function App() {
             <HomeHero
               onNavigateTab={(tab) => handleNavigateTab(tab)}
               onScrollToJourney={handleScrollToJourney}
-              onOpenExhibition={() => setIsExhibitionOpen(true)}
+              onOpenExhibition={isExhibitionVisible ? () => setIsExhibitionOpen(true) : undefined}
               onOpenQRModal={() => setIsQRModalOpen(true)}
             />
 

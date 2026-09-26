@@ -100,6 +100,7 @@ export interface SlideMetaConfig {
 }
 
 export interface ExhibitionFullConfig {
+  isVisibleToStudents?: boolean;
   slides: SlideMetaConfig[];
   hero: HeroSlideConfig;
   journey: JourneySlideConfig;

@@ -15,7 +15,7 @@ import {
   DollarSign, 
   ExternalLink,
   RotateCcw,
-  Sparkles,
+  Terminal,
   Save,
   CheckCircle2,
   AlertCircle
